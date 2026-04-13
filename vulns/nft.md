@@ -2,7 +2,7 @@
 
 NFT-specific vulnerabilities including reentrancy via `onERC721Received`, royalty bypass, or marketplace logic flaws.
 
-**Total incidents: 7**
+**Total incidents: 9**
 
 ---
 
@@ -15,6 +15,8 @@ NFT-specific vulnerabilities including reentrancy via `onERC721Received`, royalt
 | 2024-05-XX | TSURU | OnERC1155ReceivedUnauthorized | [2024-05-XX_TSURU_OnERC1155ReceivedUnauthorized.md](../2024/2024-05-XX_TSURU_OnERC1155ReceivedUnauthorized.md) |
 | 2024-09-16 | OnyxDAO | NFTLiquidationExploit | [2024-09-16_OnyxDAO_NFTLiquidationExploit.md](../2024/2024-09-16_OnyxDAO_NFTLiquidationExploit.md) |
 | 2025-01-22 | Paribus | NFTCollateralOvervaluation | [2025-01-22_Paribus_NFTCollateralOvervaluation.md](../2025/2025-01-22_Paribus_NFTCollateralOvervaluation.md) |
+| 2022-04-22 | AkutarNFT | RefundDoSFundsLocked | [2022-04-22_AkutarNFT_RefundDoSFundsLocked.md](../2022/2022-04-22_AkutarNFT_RefundDoSFundsLocked.md) |
+| 2024-02-22 | DeezNutz | 404 ERC404 취약점 | [2024-02-22_DeezNutz_404_ERC404_취약점.md](../2024/2024-02-22_DeezNutz_404_ERC404_취약점.md) |
 
 ---
 

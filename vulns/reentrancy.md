@@ -2,7 +2,7 @@
 
 Exploits that re-enter a contract before state updates complete, allowing repeated withdrawals or unintended state changes.
 
-**Total incidents: 72**
+**Total incidents: 75**
 
 ---
 
@@ -80,6 +80,9 @@ Exploits that re-enter a contract before state updates complete, allowing repeat
 | 2025-03-05 | PumpToken | BuyTokenReentrancy | [2025-03-05_PumpToken_BuyTokenReentrancy.md](../2025/2025-03-05_PumpToken_BuyTokenReentrancy.md) |
 | 2025-03-15 | wKeyDAO | NFTReentrancy | [2025-03-15_wKeyDAO_NFTReentrancy.md](../2025/2025-03-15_wKeyDAO_NFTReentrancy.md) |
 | 2025-04-08 | Laundromat | WithdrawReentrancy | [2025-04-08_Laundromat_WithdrawReentrancy.md](../2025/2025-04-08_Laundromat_WithdrawReentrancy.md) |
+| 2024-01-03 | Radiant | Capital 재진입 플래시론 | [2024-01-03_Radiant_Capital_재진입_플래시론.md](../2024/2024-01-03_Radiant_Capital_재진입_플래시론.md) |
+| 2024-01-23 | DAO | SoulMate 재진입 플래시론 | [2024-01-23_DAO_SoulMate_재진입_플래시론.md](../2024/2024-01-23_DAO_SoulMate_재진입_플래시론.md) |
+| 2024-05-31 | Predy | Finance 콜백 재진입 | [2024-05-31_Predy_Finance_콜백_재진입.md](../2024/2024-05-31_Predy_Finance_콜백_재진입.md) |
 
 ---
 

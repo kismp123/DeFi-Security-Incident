@@ -2,7 +2,7 @@
 
 Overflow, underflow, or precision loss bugs that corrupt calculations — often in fixed-point arithmetic, share math, or unit conversions.
 
-**Total incidents: 25**
+**Total incidents: 31**
 
 ---
 
@@ -33,6 +33,12 @@ Overflow, underflow, or precision loss bugs that corrupt calculations — often 
 | 2026-01-09 | Truebit | BondingCurveOverflow | [2026-01-09_Truebit_BondingCurveOverflow.md](../2026/2026-01-09_Truebit_BondingCurveOverflow.md) |
 | 2026-01-10 | FutureSwap | UnitMismatch | [2026-01-10_FutureSwap_UnitMismatch.md](../2026/2026-01-10_FutureSwap_UnitMismatch.md) |
 | 2026-03-17 | dTRINITY | PrecisionLoss ETH | [2026-03-17_dTRINITY_PrecisionLoss_ETH.md](../2026/2026-03-17_dTRINITY_PrecisionLoss_ETH.md) |
+| 2024-11-15 | MFT | IntegerTruncation | [2024-11-15_MFT_IntegerTruncation.md](../2024/2024-11-15_MFT_IntegerTruncation.md) |
+| 2025-03-25 | MIMSpell | CauldronRounding ARB | [2025-03-25_MIMSpell_CauldronRounding_ARB.md](../2025/2025-03-25_MIMSpell_CauldronRounding_ARB.md) |
+| 2024-06-20 | Dyson | Money 금리 계산오류 | [2024-06-20_Dyson_Money_금리_계산오류.md](../2024/2024-06-20_Dyson_Money_금리_계산오류.md) |
+| 2026-03-05 | BitcoinReserveOffering | DoubleMint ETH | [2026-03-05_BitcoinReserveOffering_DoubleMint_ETH.md](../2026/2026-03-05_BitcoinReserveOffering_DoubleMint_ETH.md) |
+| 2026-03-05 | SolvProtocol | BRO DoubleMint ETH | [2026-03-05_SolvProtocol_BRO_DoubleMint_ETH.md](../2026/2026-03-05_SolvProtocol_BRO_DoubleMint_ETH.md) |
+| 2024-09-14 | PLN | TransferFromZeroAmount | [2024-09-14_PLN_TransferFromZeroAmount.md](../2024/2024-09-14_PLN_TransferFromZeroAmount.md) |
 
 ---
 

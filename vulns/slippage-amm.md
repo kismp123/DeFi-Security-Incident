@@ -2,7 +2,7 @@
 
 Missing or bypassable slippage protection in AMMs, allowing sandwich attacks or unfavorable trade execution.
 
-**Total incidents: 18**
+**Total incidents: 27**
 
 ---
 
@@ -26,6 +26,15 @@ Missing or bypassable slippage protection in AMMs, allowing sandwich attacks or 
 | 2025-03-01 | ZeUSD | SlippageProtection ETH | [2025-03-01_ZeUSD_SlippageProtection_ETH.md](../2025/2025-03-01_ZeUSD_SlippageProtection_ETH.md) |
 | 2025-10-30 | SharwaFinance | SlippageManipulation | [2025-10-30_SharwaFinance_SlippageManipulation.md](../2025/2025-10-30_SharwaFinance_SlippageManipulation.md) |
 | 2025-11-12 | DRLVaultV3 | SlippageManipulation | [2025-11-12_DRLVaultV3_SlippageManipulation.md](../2025/2025-11-12_DRLVaultV3_SlippageManipulation.md) |
+| 2022-10-27 | TeamFinance | MigrateSqrtPrice | [2022-10-27_TeamFinance_MigrateSqrtPrice.md](../2022/2022-10-27_TeamFinance_MigrateSqrtPrice.md) |
+| 2022-11 | BDEX | ConvertDustManipulation | [2022-11_BDEX_ConvertDustManipulation.md](../2022/2022-11_BDEX_ConvertDustManipulation.md) |
+| 2022-12 | Overnight | USDPlusPlatypusManipulation | [2022-12_Overnight_USDPlusPlatypusManipulation.md](../2022/2022-12_Overnight_USDPlusPlatypusManipulation.md) |
+| 2023-06-05 | VINU | AddLiquidityExploit | [2023-06-05_VINU_AddLiquidityExploit.md](../2023/2023-06-05_VINU_AddLiquidityExploit.md) |
+| 2024-04-XX | Z123 | ConsecutiveSwapLiquidityBurn | [2024-04-XX_Z123_ConsecutiveSwapLiquidityBurn.md](../2024/2024-04-XX_Z123_ConsecutiveSwapLiquidityBurn.md) |
+| 2024-05-12 | Liquidity | Tokens 유동성 조작 | [2024-05-12_Liquidity_Tokens_유동성_조작.md](../2024/2024-05-12_Liquidity_Tokens_유동성_조작.md) |
+| 2025-06-23 | GradientMakerPool | LiquidityImbalance | [2025-06-23_GradientMakerPool_LiquidityImbalance.md](../2025/2025-06-23_GradientMakerPool_LiquidityImbalance.md) |
+| 2026-02-22 | LAXOToken | LPBurnManipulation BSC | [2026-02-22_LAXOToken_LPBurnManipulation_BSC.md](../2026/2026-02-22_LAXOToken_LPBurnManipulation_BSC.md) |
+| 2026-04-07 | HERMES | HB PoolTaxDrain AMM k Zero | [2026-04-07_HERMES_HB_PoolTaxDrain_AMM_k_Zero.md](../2026/2026-04-07_HERMES_HB_PoolTaxDrain_AMM_k_Zero.md) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 Exploits where attackers supply arbitrary calldata or target addresses to hijack contract execution flow.
 
-**Total incidents: 60**
+**Total incidents: 79**
 
 ---
 
@@ -68,6 +68,25 @@ Exploits where attackers supply arbitrary calldata or target addresses to hijack
 | 2026-01-25 | ApertureFinance | UnverifiedInput ETH | [2026-01-25_ApertureFinance_UnverifiedInput_ETH.md](../2026/2026-01-25_ApertureFinance_UnverifiedInput_ETH.md) |
 | 2026-01-25 | SwapNet | ArbitraryCall ARB | [2026-01-25_SwapNet_ArbitraryCall_ARB.md](../2026/2026-01-25_SwapNet_ArbitraryCall_ARB.md) |
 | 2026-01-30 | Gyro | ArbitraryCall ARB | [2026-01-30_Gyro_ArbitraryCall_ARB.md](../2026/2026-01-30_Gyro_ArbitraryCall_ARB.md) |
+| 2022-10 | MulticallWithoutCheck | ArbitraryTransfer | [2022-10_MulticallWithoutCheck_ArbitraryTransfer.md](../2022/2022-10_MulticallWithoutCheck_ArbitraryTransfer.md) |
+| 2023-11-12 | FiberRouter | CalldataInjection | [2023-11-12_FiberRouter_CalldataInjection.md](../2023/2023-11-12_FiberRouter_CalldataInjection.md) |
+| 2024-02-XX | Paraswap | V3CallbackArbitraryTransfer | [2024-03-XX_Paraswap_V3CallbackArbitraryTransfer.md](../2024/2024-03-XX_Paraswap_V3CallbackArbitraryTransfer.md) |
+| 2024-02-XX | Zoomer | ArbitrarySelector | [2024-02-XX_Zoomer_ArbitrarySelector.md](../2024/2024-02-XX_Zoomer_ArbitrarySelector.md) |
+| 2024-07-13 | GAX | UnvalidatedLowLevelCall | [2024-07-13_GAX_UnvalidatedLowLevelCall.md](../2024/2024-07-13_GAX_UnvalidatedLowLevelCall.md) |
+| 2024-11-18 | MainnetSettler | ArbitraryExecution | [2024-11-18_MainnetSettler_ArbitraryExecution.md](../2024/2024-11-18_MainnetSettler_ArbitraryExecution.md) |
+| 2025-03-10 | OneInchFusion | CalldataCorruption | [2025-03-10_OneInchFusion_CalldataCorruption.md](../2025/2025-03-10_OneInchFusion_CalldataCorruption.md) |
+| 2022-12 | BBOX | TransferHelperDrain | [2022-12_BBOX_TransferHelperDrain.md](../2022/2022-12_BBOX_TransferHelperDrain.md) |
+| 2023-04-09 | SushiSwap | RouteProcessor ETH | [2023-04-09_SushiSwap_RouteProcessor_ETH.md](../2023/2023-04-09_SushiSwap_RouteProcessor_ETH.md) |
+| 2024-04-XX | OpenLeverage2 | MarginTradeArbitraryDEX | [2024-04-XX_OpenLeverage2_MarginTradeArbitraryDEX.md](../2024/2024-04-XX_OpenLeverage2_MarginTradeArbitraryDEX.md) |
+| 2024-04-XX | Rico | BankDiamondFlashArbitraryTransfer | [2024-04-XX_Rico_BankDiamondFlashArbitraryTransfer.md](../2024/2024-04-XX_Rico_BankDiamondFlashArbitraryTransfer.md) |
+| 2024-05-XX | SCROLL | UniversalRouterExecute | [2024-05-XX_SCROLL_UniversalRouterExecute.md](../2024/2024-05-XX_SCROLL_UniversalRouterExecute.md) |
+| 2024-06-XX | Bazaar | ExitPoolArbitraryHolder | [2024-06-XX_Bazaar_ExitPoolArbitraryHolder.md](../2024/2024-06-XX_Bazaar_ExitPoolArbitraryHolder.md) |
+| 2024-07-19 | SpectraFinance | UniversalRouterBypass | [2024-07-19_SpectraFinance_UniversalRouterBypass.md](../2024/2024-07-19_SpectraFinance_UniversalRouterBypass.md) |
+| 2024-07-26 | Spectra | Finance UniversalRouterBypass | [2024-07-26_Spectra_Finance_UniversalRouterBypass.md](../2024/2024-07-26_Spectra_Finance_UniversalRouterBypass.md) |
+| 2024-09-05 | AIRBTC | CustomSelectorDrain | [2024-09-05_AIRBTC_CustomSelectorDrain.md](../2024/2024-09-05_AIRBTC_CustomSelectorDrain.md) |
+| 2024-09-17 | MARA | EncodedCallExploit | [2024-09-17_MARA_EncodedCallExploit.md](../2024/2024-09-17_MARA_EncodedCallExploit.md) |
+| 2025-07-22 | MulticallWithETH | ValueForwarding | [2025-07-22_MulticallWithETH_ValueForwarding.md](../2025/2025-07-22_MulticallWithETH_ValueForwarding.md) |
+| 2024-05-19 | Mixed | Swap Router 라우터 취약점 | [2024-05-19_Mixed_Swap_Router_라우터_취약점.md](../2024/2024-05-19_Mixed_Swap_Router_라우터_취약점.md) |
 
 ---
 

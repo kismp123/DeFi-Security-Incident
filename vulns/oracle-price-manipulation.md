@@ -2,7 +2,7 @@
 
 Exploits that distort on-chain price data — via spot price manipulation, TWAP gaming, or reserve skewing — to profit from mispriced assets.
 
-**Total incidents: 93**
+**Total incidents: 117**
 
 ---
 
@@ -101,6 +101,30 @@ Exploits that distort on-chain price data — via spot price manipulation, TWAP 
 | 2026-01-20 | Makina | PriceOracleManipulation | [2026-01-20_Makina_PriceOracleManipulation.md](../2026/2026-01-20_Makina_PriceOracleManipulation.md) |
 | 2026-02-22 | LAXOToken | ReserveManipulation | [2026-02-22_LAXOToken_ReserveManipulation.md](../2026/2026-02-22_LAXOToken_ReserveManipulation.md) |
 | 2026-03-02 | CurveLlamaLend | SharePriceManipulation | [2026-03-02_CurveLlamaLend_SharePriceManipulation.md](../2026/2026-03-02_CurveLlamaLend_SharePriceManipulation.md) |
+| 2022-09 | ZoomproFinance | FakePairManipulation | [2022-09_ZoomproFinance_FakePairManipulation.md](../2022/2022-09_ZoomproFinance_FakePairManipulation.md) |
+| 2023-02-15 | USDs | CurvePoolManipulation | [2023-02-15_USDs_CurvePoolManipulation.md](../2023/2023-02-15_USDs_CurvePoolManipulation.md) |
+| 2023-04-30 | SiloFinance | InterestRateManipulation | [2023-04-30_SiloFinance_InterestRateManipulation.md](../2023/2023-04-30_SiloFinance_InterestRateManipulation.md) |
+| 2023-05-19 | SellToken | PriceOracle | [2023-05-19_SellToken_PriceOracle.md](../2023/2023-05-19_SellToken_PriceOracle.md) |
+| 2023-07-21 | RodeoFinance | TWAPManipulation | [2023-07-21_RodeoFinance_TWAPManipulation.md](../2023/2023-07-21_RodeoFinance_TWAPManipulation.md) |
+| 2023-08-26 | SVT | FlawedPriceCalc BSC | [2023-08-26_SVT_FlawedPriceCalc_BSC.md](../2023/2023-08-26_SVT_FlawedPriceCalc_BSC.md) |
+| 2023-09-20 | XSDWETHpool | PIDManipulation | [2023-09-20_XSDWETHpool_PIDManipulation.md](../2023/2023-09-20_XSDWETHpool_PIDManipulation.md) |
+| 2023-11-15 | KyberSwap | TickManipulation | [2023-11-15_KyberSwap_TickManipulation.md](../2023/2023-11-15_KyberSwap_TickManipulation.md) |
+| 2023-11-22 | KyberSwap | TickMathBug Multi | [2023-11-22_KyberSwap_TickMathBug_Multi.md](../2023/2023-11-22_KyberSwap_TickMathBug_Multi.md) |
+| 2024-01-14 | Wise | Lending 3 가격조작 오라클 | [2024-01-14_Wise_Lending_3_가격조작_오라클.md](../2024/2024-01-14_Wise_Lending_3_가격조작_오라클.md) |
+| 2024-02-12 | Compound | Uni 가격조작 오라클 | [2024-02-12_Compound_Uni_가격조작_오라클.md](../2024/2024-02-12_Compound_Uni_가격조작_오라클.md) |
+| 2024-02-23 | BlueberryProtocol | PriceOracleRounding ETH | [2024-02-23_BlueberryProtocol_PriceOracleRounding_ETH.md](../2024/2024-02-23_BlueberryProtocol_PriceOracleRounding_ETH.md) |
+| 2024-02-27 | Swarm | Markets 가격조작 | [2024-02-27_Swarm_Markets_가격조작.md](../2024/2024-02-27_Swarm_Markets_가격조작.md) |
+| 2024-04-12 | OpenLeverage | 2 가격조작 청산 | [2024-04-12_OpenLeverage_2_가격조작_청산.md](../2024/2024-04-12_OpenLeverage_2_가격조작_청산.md) |
+| 2024-04-23 | BigBang | Swap AMM 가격조작 | [2024-04-23_BigBang_Swap_AMM_가격조작.md](../2024/2024-04-23_BigBang_Swap_AMM_가격조작.md) |
+| 2024-04-25 | Sumer | Money 담보 오라클조작 | [2024-04-25_Sumer_Money_담보_오라클조작.md](../2024/2024-04-25_Sumer_Money_담보_오라클조작.md) |
+| 2024-06-13 | UwU | Lend 2 오라클 조작 | [2024-06-13_UwU_Lend_2_오라클_조작.md](../2024/2024-06-13_UwU_Lend_2_오라클_조작.md) |
+| 2024-08-30 | Zenterest | StaleOracleBorrow | [2024-08-30_Zenterest_StaleOracleBorrow.md](../2024/2024-08-30_Zenterest_StaleOracleBorrow.md) |
+| 2024-10-10 | HYDT | OracleMintManipulation | [2024-10-10_HYDT_OracleMintManipulation.md](../2024/2024-10-10_HYDT_OracleMintManipulation.md) |
+| 2026-02-15 | Moonwell | FaultyOracle | [2026-02-15_Moonwell_FaultyOracle.md](../2026/2026-02-15_Moonwell_FaultyOracle.md) |
+| 2026-02-26 | PloutosMarket | WrongOracle ETH | [2026-02-26_PloutosMarket_WrongOracle_ETH.md](../2026/2026-02-26_PloutosMarket_WrongOracle_ETH.md) |
+| 2023-06-05 | NST | SwapPriceArbitrage | [2023-06-05_NST_SwapPriceArbitrage.md](../2023/2023-06-05_NST_SwapPriceArbitrage.md) |
+| 2023-08-17 | Exactly | CollateralManipulation | [2023-08-17_Exactly_CollateralManipulation.md](../2023/2023-08-17_Exactly_CollateralManipulation.md) |
+| 2023-10-18 | MicDao | HelperContractArbitrage | [2023-10-18_MicDao_HelperContractArbitrage.md](../2023/2023-10-18_MicDao_HelperContractArbitrage.md) |
 
 ---
 

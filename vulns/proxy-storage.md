@@ -2,7 +2,7 @@
 
 Storage layout collisions between proxy and implementation contracts leading to corrupted state.
 
-**Total incidents: 10**
+**Total incidents: 12**
 
 ---
 
@@ -18,6 +18,8 @@ Storage layout collisions between proxy and implementation contracts leading to 
 | 2025-02-12 | Unverified | d4f1 UninitializedProxy | [2025-02-12_Unverified_d4f1_UninitializedProxy.md](../2025/2025-02-12_Unverified_d4f1_UninitializedProxy.md) |
 | 2025-03-30 | LeverageSir | StorageCollision ETH | [2025-03-30_LeverageSir_StorageCollision_ETH.md](../2025/2025-03-30_LeverageSir_StorageCollision_ETH.md) |
 | 2025-06-11 | AAVEBoost | ProxyDepositDrain | [2025-06-11_AAVEBoost_ProxyDepositDrain.md](../2025/2025-06-11_AAVEBoost_ProxyDepositDrain.md) |
+| 2023-05-xx | LFI | DelegatecallRewardLoop | [2023-05-xx_LFI_DelegatecallRewardLoop.md](../2023/2023-05-xx_LFI_DelegatecallRewardLoop.md) |
+| 2024-04-XX | NGFS | DelegateCallReservesExploit | [2024-04-XX_NGFS_DelegateCallReservesExploit.md](../2024/2024-04-XX_NGFS_DelegateCallReservesExploit.md) |
 
 ---
 

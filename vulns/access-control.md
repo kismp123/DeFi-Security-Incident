@@ -2,26 +2,21 @@
 
 Missing or improperly enforced permission checks that allow unauthorized actors to call privileged functions.
 
-**Total incidents: 86**
+**Total incidents: 97**
 
 ---
 
 | Date | Protocol | Vulnerability Type | Report |
 |------|----------|--------------------|--------|
 | 2020-06-18 | Bancor | AccessControl | [2020-06-18_Bancor_AccessControl.md](../2020/2020-06-18_Bancor_AccessControl.md) |
-| 2021-03-07 | PAID | Network UnauthorizedMint | [2021-03-07_PAID_Network_UnauthorizedMint.md](../2021/2021-03-07_PAID_Network_UnauthorizedMint.md) |
 | 2021-06-21 | ElevenFinance | EmergencyBurn NoWithdraw | [2021-06-21_ElevenFinance_EmergencyBurn_NoWithdraw.md](../2021/2021-06-21_ElevenFinance_EmergencyBurn_NoWithdraw.md) |
 | 2021-06-23 | 88mph | UnprotectedInit | [2021-06-23_88mph_UnprotectedInit.md](../2021/2021-06-23_88mph_UnprotectedInit.md) |
-| 2021-07-20 | Levyathan | PrivateKeyLeak MintOwnership | [2021-07-20_Levyathan_PrivateKeyLeak_MintOwnership.md](../2021/2021-07-20_Levyathan_PrivateKeyLeak_MintOwnership.md) |
 | 2021-08-10 | PolyNetwork | CrossChain AccessControl | [2021-08-10_PolyNetwork_CrossChain_AccessControl.md](../2021/2021-08-10_PolyNetwork_CrossChain_AccessControl.md) |
 | 2021-09-04 | DaoMaker | UnprotectedInit EmergencyExit | [2021-09-04_DaoMaker_UnprotectedInit_EmergencyExit.md](../2021/2021-09-04_DaoMaker_UnprotectedInit_EmergencyExit.md) |
-| 2021-09-17 | SushiMiso | DutchAuction AccessControl | [2021-09-17_SushiMiso_DutchAuction_AccessControl.md](../2021/2021-09-17_SushiMiso_DutchAuction_AccessControl.md) |
 | 2022-01-28 | Qubit | DepositZeroAddressWhitelist | [2022-01-28_Qubit_DepositZeroAddressWhitelist.md](../2022/2022-01-28_Qubit_DepositZeroAddressWhitelist.md) |
 | 2022-02-14 | Sandbox | NFTBurnAccessControl | [2022-02-14_Sandbox_NFTBurnAccessControl.md](../2022/2022-02-14_Sandbox_NFTBurnAccessControl.md) |
 | 2022-03-14 | CompoundTUSD | SweepTokenUnauthorized | [2022-03-14_CompoundTUSD_SweepTokenUnauthorized.md](../2022/2022-03-14_CompoundTUSD_SweepTokenUnauthorized.md) |
 | 2022-04-19 | CFToken | PublicTransferDrain | [2022-04-19_CFToken_PublicTransferDrain.md](../2022/2022-04-19_CFToken_PublicTransferDrain.md) |
-| 2022-06-23 | Harmony | CompromisedMultisig | [2022-06-23_Harmony_CompromisedMultisig.md](../2022/2022-06-23_Harmony_CompromisedMultisig.md) |
-| 2022-06-24 | HarmonyBridge | MultisigKeyCompromise | [2022-06-24_HarmonyBridge_MultisigKeyCompromise.md](../2022/2022-06-24_HarmonyBridge_MultisigKeyCompromise.md) |
 | 2022-07-10 | FlippazOne | AccessControl | [2022-07-10_FlippazOne_AccessControl.md](../2022/2022-07-10_FlippazOne_AccessControl.md) |
 | 2022-08-26 | DDC | FeeHandlerAccessControl | [2022-08-26_DDC_FeeHandlerAccessControl.md](../2022/2022-08-26_DDC_FeeHandlerAccessControl.md) |
 | 2022-09 | ROI | OwnershipTakeover | [2022-09_ROI_OwnershipTakeover.md](../2022/2022-09_ROI_OwnershipTakeover.md) |
@@ -94,6 +89,22 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2025-10-22 | TokenHolder | PrivilegedLoan-Exploit | [2025-10-22_TokenHolder_PrivilegedLoan-Exploit.md](../2025/2025-10-22_TokenHolder_PrivilegedLoan-Exploit.md) |
 | 2025-11-10 | DRLVaultV3 | AccessControl ETH | [2025-11-10_DRLVaultV3_AccessControl_ETH.md](../2025/2025-11-10_DRLVaultV3_AccessControl_ETH.md) |
 | 2025-12-12 | RibbonFinance | AccessControl ETH | [2025-12-12_RibbonFinance_AccessControl_ETH.md](../2025/2025-12-12_RibbonFinance_AccessControl_ETH.md) |
+| 2022-08-13 | ReaperFarm | MissingOwnerCheck | [2022-08-13_ReaperFarm_MissingOwnerCheck.md](../2022/2022-08-13_ReaperFarm_MissingOwnerCheck.md) |
+| 2022-09 | BadGuysbyRPF | MissingAmountCheck | [2022-09_BadGuysbyRPF_MissingAmountCheck.md](../2022/2022-09_BadGuysbyRPF_MissingAmountCheck.md) |
+| 2022-10 | Carrot | TransRewardOwnerTakeover | [2022-10_Carrot_TransRewardOwnerTakeover.md](../2022/2022-10_Carrot_TransRewardOwnerTakeover.md) |
+| 2023-03-28 | SafeMoon | PublicBurnLP BSC | [2023-03-28_SafeMoon_PublicBurnLP_BSC.md](../2023/2023-03-28_SafeMoon_PublicBurnLP_BSC.md) |
+| 2023-05-16 | landNFT | UnrestrictedMint | [2023-05-16_landNFT_UnrestrictedMint.md](../2023/2023-05-16_landNFT_UnrestrictedMint.md) |
+| 2023-10-16 | OpenLeverage | AdminTakeover | [2023-10-16_OpenLeverage_AdminTakeover.md](../2023/2023-10-16_OpenLeverage_AdminTakeover.md) |
+| 2023-12-26 | TIME | ERC2771Exploit | [2023-12-26_TIME_ERC2771Exploit.md](../2023/2023-12-26_TIME_ERC2771Exploit.md) |
+| 2024-03-XX | BBT | SetRegistryMint | [2024-03-XX_BBT_SetRegistryMint.md](../2024/2024-03-XX_BBT_SetRegistryMint.md) |
+| 2024-03-XX | TGBS | BurnBlockBypass | [2024-03-XX_TGBS_BurnBlockBypass.md](../2024/2024-03-XX_TGBS_BurnBlockBypass.md) |
+| 2024-05-XX | SATURN | SetEnableSwitchManipulation | [2024-05-XX_SATURN_SetEnableSwitchManipulation.md](../2024/2024-05-XX_SATURN_SetEnableSwitchManipulation.md) |
+| 2024-04-XX | XBridge | ListTokenWithdrawUnauthorized | [2024-04-XX_XBridge_ListTokenWithdrawUnauthorized.md](../2024/2024-04-XX_XBridge_ListTokenWithdrawUnauthorized.md) |
+| 2024-05-XX | MetaDragon | TransferToContractUnrestrictedMint | [2024-05-XX_MetaDragon_TransferToContractUnrestrictedMint.md](../2024/2024-05-XX_MetaDragon_TransferToContractUnrestrictedMint.md) |
+| 2024-11-10 | X319 | UnprotectedClaimEther | [2024-11-10_X319_UnprotectedClaimEther.md](../2024/2024-11-10_X319_UnprotectedClaimEther.md) |
+| 2025-01-07 | 98Token | UnprotectedSwap | [2025-01-07_98Token_UnprotectedSwap.md](../2025/2025-01-07_98Token_UnprotectedSwap.md) |
+| 2026-03-06 | MoltEVM | mEVM FakeSpawnerMint Base | [2026-03-06_MoltEVM_mEVM_FakeSpawnerMint_Base.md](../2026/2026-03-06_MoltEVM_mEVM_FakeSpawnerMint_Base.md) |
+| 2023-05-05 | DEI | BurnFromExploit ARB | [2023-05-05_DEI_BurnFromExploit_ARB.md](../2023/2023-05-05_DEI_BurnFromExploit_ARB.md) |
 
 ---
 

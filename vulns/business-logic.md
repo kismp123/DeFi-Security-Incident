@@ -2,7 +2,7 @@
 
 Flaws in protocol-specific logic — incorrect accounting, faulty reward math, or broken invariants — that can be exploited for unintended gains.
 
-**Total incidents: 99**
+**Total incidents: 149**
 
 ---
 
@@ -107,6 +107,56 @@ Flaws in protocol-specific logic — incorrect accounting, faulty reward math, o
 | 2026-03-22 | CyrusFinance | BusinessLogic BSC | [2026-03-22_CyrusFinance_BusinessLogic_BSC.md](../2026/2026-03-22_CyrusFinance_BusinessLogic_BSC.md) |
 | 2026-03-23 | BCEToken | BusinessLogic BSC | [2026-03-23_BCEToken_BusinessLogic_BSC.md](../2026/2026-03-23_BCEToken_BusinessLogic_BSC.md) |
 | 2026-03-26 | UnknownStake | BusinessLogic BSC | [2026-03-26_UnknownStake_BusinessLogic_BSC.md](../2026/2026-03-26_UnknownStake_BusinessLogic_BSC.md) |
+| 2024-01-30 | MIM | Spell 이자율 조작 | [2024-01-30_MIM_Spell_이자율_조작.md](../2024/2024-01-30_MIM_Spell_이자율_조작.md) |
+| 2024-03-XX | MO | BorrowRedeemLogicFlaw | [2024-03-XX_MO_BorrowRedeemLogicFlaw.md](../2024/2024-03-XX_MO_BorrowRedeemLogicFlaw.md) |
+| 2024-04-XX | Yield | MintDivestedBurnDivestedLogicFlaw | [2024-04-XX_Yield_MintDivestedBurnDivestedLogicFlaw.md](../2024/2024-04-XX_Yield_MintDivestedBurnDivestedLogicFlaw.md) |
+| 2024-05-30 | Trade | on Orion 주문서 조작 | [2024-05-30_Trade_on_Orion_주문서_조작.md](../2024/2024-05-30_Trade_on_Orion_주문서_조작.md) |
+| 2024-06-XX | DysonMoney | MintHarvestRedeemLogicFlaw | [2024-06-XX_DysonMoney_MintHarvestRedeemLogicFlaw.md](../2024/2024-06-XX_DysonMoney_MintHarvestRedeemLogicFlaw.md) |
+| 2024-11-20 | proxy | b7e1 OrderManipulation | [2024-11-20_proxy_b7e1_OrderManipulation.md](../2024/2024-11-20_proxy_b7e1_OrderManipulation.md) |
+| 2025-08-22 | EverValueCoin | OrderbookManipulation | [2025-08-22_EverValueCoin_OrderbookManipulation.md](../2025/2025-08-22_EverValueCoin_OrderbookManipulation.md) |
+| 2022-10-21 | OlympusDAO | BondRedeemBypass | [2022-10-21_OlympusDAO_BondRedeemBypass.md](../2022/2022-10-21_OlympusDAO_BondRedeemBypass.md) |
+| 2022-11 | Annex | FakeTokenLiquidation | [2022-11_Annex_FakeTokenLiquidation.md](../2022/2022-11_Annex_FakeTokenLiquidation.md) |
+| 2022-12 | Defrost | LSW DepositRedeemManipulation | [2022-12_Defrost_LSW_DepositRedeemManipulation.md](../2022/2022-12_Defrost_LSW_DepositRedeemManipulation.md) |
+| 2023-04-25 | Axioma | PresalePriceArbitrage | [2023-04-25_Axioma_PresalePriceArbitrage.md](../2023/2023-04-25_Axioma_PresalePriceArbitrage.md) |
+| 2023-05-01 | LevelFinance | ReferralClaimDrain BSC | [2023-05-01_LevelFinance_ReferralClaimDrain_BSC.md](../2023/2023-05-01_LevelFinance_ReferralClaimDrain_BSC.md) |
+| 2023-05-08 | ERC20TokenBank | UncheckedTransfer | [2023-05-08_ERC20TokenBank_UncheckedTransfer.md](../2023/2023-05-08_ERC20TokenBank_UncheckedTransfer.md) |
+| 2023-05-12 | CS | StaleGlobalVariable | [2023-05-12_CS_StaleGlobalVariable.md](../2023/2023-05-12_CS_StaleGlobalVariable.md) |
+| 2023-05-xx | NOON | TransferVisibilityError | [2023-05-xx_NOON_TransferVisibilityError.md](../2023/2023-05-xx_NOON_TransferVisibilityError.md) |
+| 2023-06-07 | Contract | 0x7657 UncheckedTransfer | [2023-06-07_Contract_0x7657_UncheckedTransfer.md](../2023/2023-06-07_Contract_0x7657_UncheckedTransfer.md) |
+| 2023-08-27 | Balancer | BoostedPoolVuln ETH | [2023-08-27_Balancer_BoostedPoolVuln_ETH.md](../2023/2023-08-27_Balancer_BoostedPoolVuln_ETH.md) |
+| 2023-10-11 | Astrid | WithdrawExploit | [2023-10-11_Astrid_WithdrawExploit.md](../2023/2023-10-11_Astrid_WithdrawExploit.md) |
+| 2023-12-01 | Bob | RouterExploit | [2023-12-01_Bob_RouterExploit.md](../2023/2023-12-01_Bob_RouterExploit.md) |
+| 2023-12-05 | PHIL | TokenSellExploit | [2023-12-05_PHIL_TokenSellExploit.md](../2023/2023-12-05_PHIL_TokenSellExploit.md) |
+| 2023-12-14 | bZx | LoanExploit | [2023-12-14_bZx_LoanExploit.md](../2023/2023-12-14_bZx_LoanExploit.md) |
+| 2023-12-16 | GoodDollar | ReserveExploit | [2023-12-16_GoodDollar_ReserveExploit.md](../2023/2023-12-16_GoodDollar_ReserveExploit.md) |
+| 2024-02-05 | Affine | DeFi 전략 취약점 | [2024-02-05_Affine_DeFi_전략_취약점.md](../2024/2024-02-05_Affine_DeFi_전략_취약점.md) |
+| 2024-02-29 | Particle | Trade 담보 청산 오류 | [2024-02-29_Particle_Trade_담보_청산_오류.md](../2024/2024-02-29_Particle_Trade_담보_청산_오류.md) |
+| 2024-02-XX | ParticleTrade | MaliciousLien | [2024-02-XX_ParticleTrade_MaliciousLien.md](../2024/2024-02-XX_ParticleTrade_MaliciousLien.md) |
+| 2024-03-28 | PrismaFi | MigrateExploit ETH | [2024-03-28_PrismaFi_MigrateExploit_ETH.md](../2024/2024-03-28_PrismaFi_MigrateExploit_ETH.md) |
+| 2024-03-XX | ETHFIN | BuybackManipulation | [2024-03-XX_ETHFIN_BuybackManipulation.md](../2024/2024-03-XX_ETHFIN_BuybackManipulation.md) |
+| 2024-03-XX | SSS | TransferLimitBypass | [2024-03-XX_SSS_TransferLimitBypass.md](../2024/2024-03-XX_SSS_TransferLimitBypass.md) |
+| 2024-06-XX | Velocore | ExecutePoolAccountingBug | [2024-06-XX_Velocore_ExecutePoolAccountingBug.md](../2024/2024-06-XX_Velocore_ExecutePoolAccountingBug.md) |
+| 2024-06-XX | Will | PlaceSellOrderExpiredSettlement | [2024-06-XX_Will_PlaceSellOrderExpiredSettlement.md](../2024/2024-06-XX_Will_PlaceSellOrderExpiredSettlement.md) |
+| 2024-08-28 | YodlRouter | TransferFeeExploit | [2024-08-28_YodlRouter_TransferFeeExploit.md](../2024/2024-08-28_YodlRouter_TransferFeeExploit.md) |
+| 2024-09-26 | BedrockDeFi | ETHtoUniBTCMinting | [2024-09-26_BedrockDeFi_ETHtoUniBTCMinting.md](../2024/2024-09-26_BedrockDeFi_ETHtoUniBTCMinting.md) |
+| 2024-12-15 | Pledge | SwapTokenExploit | [2024-12-15_Pledge_SwapTokenExploit.md](../2024/2024-12-15_Pledge_SwapTokenExploit.md) |
+| 2024-12-18 | BTC24H | LockBypassExploit | [2024-12-18_BTC24H_LockBypassExploit.md](../2024/2024-12-18_BTC24H_LockBypassExploit.md) |
+| 2025-01-10 | HORS | InsufficientInputValidation | [2025-01-10_HORS_InsufficientInputValidation.md](../2025/2025-01-10_HORS_InsufficientInputValidation.md) |
+| 2025-01-15 | Unilend | HealthFactorMiscalculation | [2025-01-15_Unilend_HealthFactorMiscalculation.md](../2025/2025-01-15_Unilend_HealthFactorMiscalculation.md) |
+| 2025-02-26 | HegicOptions | WithdrawWithoutHedge | [2025-02-26_HegicOptions_WithdrawWithoutHedge.md](../2025/2025-02-26_HegicOptions_WithdrawWithoutHedge.md) |
+| 2025-05-22 | RICE | BentoBoxWithdraw | [2025-05-22_RICE_BentoBoxWithdraw.md](../2025/2025-05-22_RICE_BentoBoxWithdraw.md) |
+| 2025-08-28 | Panoptic | Exploit ETH | [2025-08-28_Panoptic_Exploit_ETH.md](../2025/2025-08-28_Panoptic_Exploit_ETH.md) |
+| 2025-10-15 | MIMSpell3 | BorrowLimitBypass | [2025-10-15_MIMSpell3_BorrowLimitBypass.md](../2025/2025-10-15_MIMSpell3_BorrowLimitBypass.md) |
+| 2025-12-02 | Goldfinch | Exploit ETH | [2025-12-02_Goldfinch_Exploit_ETH.md](../2025/2025-12-02_Goldfinch_Exploit_ETH.md) |
+| 2026-03-10 | AlkemiEarn | Self Liquidation | [2026-03-10_AlkemiEarn_Self_Liquidation.md](../2026/2026-03-10_AlkemiEarn_Self_Liquidation.md) |
+| 2026-03-10 | Bunni | AaveV3 wstETH FlashLiquidation | [2026-03-10_Bunni_AaveV3_wstETH_FlashLiquidation.md](../2026/2026-03-10_Bunni_AaveV3_wstETH_FlashLiquidation.md) |
+| 2023-11-08 | KR | TokenSell | [2023-11-08_KR_TokenSell.md](../2023/2023-11-08_KR_TokenSell.md) |
+| 2022-10 | RES | ThisAToBManipulation | [2022-10_RES_ThisAToBManipulation.md](../2022/2022-10_RES_ThisAToBManipulation.md) |
+| 2025-05-15 | Unwarp | WETHUnwrapExploit | [2025-05-15_Unwarp_WETHUnwrapExploit.md](../2025/2025-05-15_Unwarp_WETHUnwrapExploit.md) |
+| 2025-05-12 | MBUToken | DepositMint | [2025-05-12_MBUToken_DepositMint.md](../2025/2025-05-12_MBUToken_DepositMint.md) |
+| 2024-04-03 | Hoppy | Frog ERC ERC 취약점 | [2024-04-03_Hoppy_Frog_ERC_ERC_취약점.md](../2024/2024-04-03_Hoppy_Frog_ERC_ERC_취약점.md) |
+| 2024-12-12 | CloberDEX | FakeTokenMint | [2024-12-12_CloberDEX_FakeTokenMint.md](../2024/2024-12-12_CloberDEX_FakeTokenMint.md) |
+| 2024-04-09 | 미확인 | 컨트랙트 0x00C409 미확인 취약점 | [2024-04-09_미확인_컨트랙트_0x00C409_미확인_취약점.md](../2024/2024-04-09_미확인_컨트랙트_0x00C409_미확인_취약점.md) |
 
 ---
 

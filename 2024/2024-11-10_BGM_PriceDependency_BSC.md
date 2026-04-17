@@ -13,7 +13,7 @@
 | **PancakeSwap Pool** | [0xADC4...6e0a](https://bscscan.com/address/0xADC4eca2a3038B478b591Bac1a87E428625d6e0a) (BGM-USDT LP) |
 | **Root Cause** | AMM Spot price used directly as oracle for reward calculation (Vulnerable Price Dependency) |
 | **Attack Block** | #43,881,717 (2024-11-10 08:04:24 UTC) |
-| **PoC Source** | [DeFiHackLabs / BGM_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-11/BGM_exp.sol) |
+| **PoC Source** | DeFiHackLabs — BGM_exp.sol not confirmed in repository (unverified citation) |
 
 ---
 

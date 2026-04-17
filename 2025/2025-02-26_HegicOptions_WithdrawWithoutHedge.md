@@ -5,7 +5,7 @@
 | **Date** | 2025-02-26 |
 | **Protocol** | Hegic Options |
 | **Chain** | Ethereum (Arbitrum) |
-| **Loss** | ~$104,000,000 (≈104M USD worth of WBTC) |
+| **Loss** | ~$104,000 (≈104K USD worth of WBTC) |
 | **Attacker** | [0x4B53608f...](https://etherscan.io/address/0x4B53608fFF0cE42cDF9Cf01D7d024C2c9ea1aA2e8) |
 | **Attack Tx** | [Unconfirmed (2 Txs)](https://etherscan.io) |
 | **Vulnerable Contract** | [0x7094E706...](https://etherscan.io/address/0x7094E706E75E13D1E0ea237f71A7C4511e9d270B) |

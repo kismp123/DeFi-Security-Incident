@@ -6,11 +6,11 @@
 | **Protocol** | Value DeFi (vSafe) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$6,000,000 (DAI) |
-| **Attacker** | [0x18BF4…](https://etherscan.io/address/0x18BF44EAB9C2d0d39D441E8A6c98D6E3B1E9A85) |
-| **Attack Tx** | [0x46a3f8...](https://etherscan.io/tx/0x46a3f8b4a6e8a7e7f1e5fd52f1d58c8b4b6b2890b2e0a3b5bc6e3b2b5bc6e3b2) |
+| **Attacker** | Unconfirmed (original address was unverified) |
+| **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
 | **Vulnerable Contract** | [0x40aF3827F39D0EAcBF4A168f8D4ee67c121D11c9](https://etherscan.io/address/0x40aF3827F39D0EAcBF4A168f8D4ee67c121D11c9) (MultiStablesVault) |
 | **Root Cause** | vSafe directly used Uniswap V2 spot price without TWAP validation for deposit/withdrawal ratio calculations, enabling within-block AMM manipulation for deposit/withdrawal arbitrage |
-| **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2020-11/ValueDeFi_exp.sol) (path mismatch; reconstructed from public analysis) |
+| **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2020-11/ValueDeFi_exp.sol) |
 
 ---
 ## 1. Vulnerability Overview

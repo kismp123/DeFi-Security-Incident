@@ -6,9 +6,9 @@
 | **Protocol** | SOF Token (Space Original Finance) |
 | **Chain** | BSC (BNB Smart Chain) |
 | **Loss** | ~$225,936 BSC-USD (net profit basis) |
-| **Attacker** | [0xcb5b...e6f7](https://bscscan.com/address/0xcb5b22d86819b84ef1b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) |
-| **Attack Contract** | [0xcb5b...e6f7](https://bscscan.com/address/0xcb5b22d86819b84ef1b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) |
-| **Attack Tx** | [0xcb5b...e6f7](https://bscscan.com/tx/0xcb5b22d86819b84ef1b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) |
+| **Attacker** | Unidentified |
+| **Attack Contract** | Unidentified |
+| **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
 | **Vulnerable Contract** | [SOF Token: 0x465d...b312](https://bscscan.com/address/0x465dd76538b6fe8297cadadd0b4b2b4ff8ccb312) |
 | **Root Cause** | Burn fee exemption on transfers to mining contract — flash loan drains LP reserve |
 | **PoC Source** | DeFiHackLabs (no PoC registered as of 2026-02) / CertiK Incident Analysis Report (2026-02-27) |

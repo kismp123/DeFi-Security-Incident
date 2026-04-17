@@ -6,7 +6,7 @@
 | **Protocol** | Harvest Finance |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$33,800,000 (USDC, USDT) |
-| **Attacker** | [0xf224aB reeF...](https://etherscan.io/address/0xf224aB reeF3B4fc4B5A5Db1A286E47e26b5C7DA53) |
+| **Attacker** | [0xf224ab004461540778a914ea397c589b677e27bb](https://etherscan.io/address/0xf224ab004461540778a914ea397c589b677e27bb) |
 | **Attack Tx** | [Multiple transactions](https://etherscan.io/tx/0x35f8d2f572fceaac9288e5d462117850ef2694786992a8c3f6d02612277b0877) |
 | **Vulnerable Contract** | [0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE](https://etherscan.io/address/0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE) |
 | **Root Cause** | The Harvest vault used the Curve Y pool's spot price (`get_virtual_price()`) directly during deposit/withdrawal without a manipulation-resistant oracle such as TWAP, enabling within-block price manipulation for deposit/withdrawal arbitrage |

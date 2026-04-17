@@ -5,16 +5,16 @@
 | **Date** | 2025-11-03 |
 | **Protocol** | Balancer V2 (Composable Stable Pool) |
 | **Chain** | Arbitrum, Ethereum, Polygon, Base, Sonic, Optimism (multi-chain) |
-| **Loss** | $125,000,000 |
-| **Attacker** | [0xaa760d53541d8390074c61defeaba314675b8e3f](https://arbiscan.io/address/0xaa760d53541d8390074c61defeaba314675b8e3f) |
-| **Attack Tx** | [0xe4dfc8b8b54eb7e101d59cd9f87f389186b2e8f6e188557ae9dfdbea2b12e703](https://arbiscan.io/tx/0xe4dfc8b8b54eb7e101d59cd9f87f389186b2e8f6e188557ae9dfdbea2b12e703) |
+| **Loss** | $120,000,000 |
+| **Attacker** | Unconfirmed (previous address was unverified) |
+| **Attack Tx** | Unconfirmed (previous hash was unverified) |
 | **Root Cause** | Invariant D manipulation via Rounding Direction Mismatch in scaling logic |
 
 ---
 
 ## 1. Vulnerability Overview
 
-On November 3, 2025 at 07:48 UTC, Balancer V2's **Composable Stable Pool (CSP)** was exploited through a precision loss vulnerability. A total of $125 million was drained across 6 chains — Ethereum, Arbitrum, Polygon, Base, Sonic, and Optimism — making this one of the largest DeFi attacks in 2025.
+On November 3, 2025 at 07:48 UTC, Balancer V2's **Composable Stable Pool (CSP)** was exploited through a precision loss vulnerability. A total of $120 million was drained across 6 chains — Ethereum, Arbitrum, Polygon, Base, Sonic, and Optimism — making this one of the largest DeFi attacks in 2025.
 
 ### Core Vulnerability Summary
 

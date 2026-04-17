@@ -8,7 +8,7 @@
 | **Loss** | ~500 USD |
 | **Attacker** | [0x07185a9e74f8dceb7d6487400e4009ff76d1af46](https://etherscan.io/address/0x07185a9e74f8dceb7d6487400e4009ff76d1af46) |
 | **Attack Tx** | [0x23b69bef...](https://etherscan.io/tx/0x23b69bef57656f493548a5373300f7557777f352ade8131353ff87a1b27e2bb3) |
-| **Vulnerable Contract** | [0x204B937FEaEc333E9e6d72D35f1D131f187ECeA1](https://arbiscan.io/address/0x03339ecae41bc162dacae5c2a275c8f64d6c80a0) |
+| **Vulnerable Contract** | [0x204B937FEaEc333E9e6d72D35f1D131f187ECeA1](https://etherscan.io/address/0x204B937FEaEc333E9e6d72D35f1D131f187ECeA1) |
 | **Root Cause** | The `take` function allows unauthorized profit extraction using HEX tokens obtained via flash swap |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-08/Hexotic_exp.sol) |
 

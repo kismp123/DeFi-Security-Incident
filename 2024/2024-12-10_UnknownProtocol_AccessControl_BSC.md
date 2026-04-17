@@ -8,7 +8,7 @@
 | **Loss** | $640,000 (estimated — denominated in USDT) |
 | **Attacker** | [0x71de...A1D6](https://bscscan.com/address/0x71decbfc8be353c560e0ecdbc0e9380a7e85a1d6) |
 | **Attack Contract** | Unidentified (attacker-deployed EOA or contract) |
-| **Attack Tx** | [0xc962...afd71](https://bscscan.com/tx/0xc96287cadfc96afd71) *(full hash unconfirmed)* |
+| **Attack Tx** | Unconfirmed (truncated hash — full tx not verified) |
 | **Vulnerable Contract** | Unknown BSC Protocol (Staking/Pledge Contract) |
 | **Root Cause** | Missing access control (`onlyOwner`) on `swapTokenU()` — anyone can call it to swap protocol assets to an arbitrary address |
 | **PoC Reference** | [DeFiHackLabs — Pledge_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-12/Pledge_exp.sol) |

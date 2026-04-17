@@ -7,7 +7,7 @@
 | **Chain** | BSC (BNB Smart Chain) |
 | **Loss** | $8,900,000 |
 | **Attacker** | [Unknown Address](https://bscscan.com/address/0x286e09932b8d096cba3423d12965042736b8f850) |
-| **Attack Tx** | [0x3b85...](https://bscscan.com/tx/0x3b85b74e87b7a631a4a5b3e1b0a76e31673e3a0f30a3d4e1c3c6f9e2e2d2a2a) |
+| **Attack Tx** | [0xbcf5e30c...](https://bscscan.com/tx/0xbcf5e30c164837b5d7c42fd7e33e47a0072dc014e7f0a67aa7710af49d0ce53b) |
 | **Vulnerable Contract** | [0x4298...fcB5](https://bscscan.com/address/0x42981d0bfbAf196529376EE702F2a9Eb9092fcB5) |
 | **Root Cause** | Public `burn()` function with no access control allows direct burning of LP pool balance, enabling price manipulation |
 | **Attack Block** | 26,864,889 (BSC) |

@@ -8,7 +8,7 @@
 | **Loss** | ~$133,500 (TUR tokens) |
 | **Attacker** | [0xC9...F692](https://bscscan.com/address/0xC9F692) |
 | **Attack Contract** | Attacker EOA direct execution (no separate contract confirmed) |
-| **Attack Tx** | [0x96c9ce3c...e6f7](https://bscscan.com/tx/0x96c9ce3c527681bf0db5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) |
+| **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
 | **Vulnerable Contract** | Unknown Stake Contract (BSC) |
 | **Root Cause** | Reward calculation directly uses the spot price from the TUR-NOBEL AMM pool without TWAP; amplified withdrawal possible via referral claim |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2026-03/UnknownStake_exp.sol) (unpublished) |

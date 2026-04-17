@@ -13,7 +13,7 @@
 | **Vulnerable Contract** | [0xCbEe...9DF9](https://sonicscan.org/address/0xCbEe4617ABF667830fe3ee7DC8d6f46380829DF9) (LeverageUsingSiloFlashloanWithGeneralSwap) |
 | **Victim** | [0x60ba...4860](https://sonicscan.org/address/0x60baf994f44dd10c19c0c47cbfe6048a4ffe4860) (SiloDAO test address) |
 | **Root Cause** | Arbitrary external call inside `_fillQuote()` of `openLeveragePosition()` — `swapArgs.exchangeProxy` and `swapCallData` executed without validation, allowing the attacker to inject the `borrow()` function selector and borrow 224 ETH unauthorized using the victim's collateral |
-| **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-06/SiloFinance_exp.sol) |
+| **PoC Source** | DeFiHackLabs — SiloFinance_exp.sol not confirmed in repository (unverified citation) |
 
 ---
 

@@ -12,7 +12,7 @@
 | **Vulnerable Contract** | [0xa7e9...1adb](https://bscscan.com/address/0xa7e92345ddf541aa5cf60fee2a0e721c50ca1adb) (DCF Token) |
 | **Attack Block** | [44290970](https://bscscan.com/block/44290970) |
 | **Root Cause** | Missing slippage protection + forced token burn inside LP pair during transfer, enabling unlimited price manipulation |
-| **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-11/DCF_exp.sol) |
+| **PoC Source** | DeFiHackLabs — DCF_exp.sol not confirmed in repository (unverified citation) |
 
 ---
 

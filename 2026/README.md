@@ -2,7 +2,7 @@
 
 Early 2026 saw continued BSC-focused business logic attacks and novel patterns including EIP-7702 exploitation and AMM k-value manipulation.
 
-**Total incidents: 38**
+**Total incidents: 40**
 
 ---
 
@@ -65,6 +65,8 @@ Early 2026 saw continued BSC-focused business logic attacks and novel patterns i
 | 2026-04-07 | HERMES | HB PoolTaxDrain AMM k Zero | [2026-04-07_HERMES_HB_PoolTaxDrain_AMM_k_Zero.md](./2026-04-07_HERMES_HB_PoolTaxDrain_AMM_k_Zero.md) |
 | 2026-04-13 | Hyperbridge | TokenGateway ForgedProof FakeMint ETH | [2026-04-13_Hyperbridge_TokenGateway_ForgedProof_FakeMint_ETH.md](./2026-04-13_Hyperbridge_TokenGateway_ForgedProof_FakeMint_ETH.md) |
 | 2026-04-13 | OpenUSDT | HyperlaneWarpRoute USDC/USDT Arbitrage ETH | [2026-04-13_OpenUSDT_HyperlaneWarpRoute_USDC_USDT_Arbitrage_ETH.md](./2026-04-13_OpenUSDT_HyperlaneWarpRoute_USDC_USDT_Arbitrage_ETH.md) |
+| 2026-05-05 | Ekubo | IPayerCallbackPayerSpoofing ETH | [2026-05-05_Ekubo_IPayerCallbackPayerSpoofing_ETH.md](./2026-05-05_Ekubo_IPayerCallbackPayerSpoofing_ETH.md) |
+| 2026-05-07 | TrustedVolumes | RFQOrderSignerAccessControl ETH | [2026-05-07_TrustedVolumes_RFQOrderSignerAccessControl_ETH.md](./2026-05-07_TrustedVolumes_RFQOrderSignerAccessControl_ETH.md) |
 
 ---
 

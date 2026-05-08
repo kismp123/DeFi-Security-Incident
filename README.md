@@ -14,7 +14,7 @@ A comprehensive reference of **887** real-world DeFi security incidents (2020–
 | [2023](./2023/README.md) | 266 | Flash loans, read-only reentrancy on L2, high-volume year |
 | [2024](./2024/README.md) | 279 | Business logic & arbitrary call dominance on BSC/ETH |
 | [2025](./2025/README.md) | 128 | Complex multi-step exploits, precision loss, AMM bugs |
-| [2026](./2026/README.md) | 36 | BSC business logic, EIP-7702, AMM k-value attacks |
+| [2026](./2026/README.md) | 40 | BSC business logic, EIP-7702, AMM k-value attacks, RFQ/callback authorization bugs |
 
 ---
 
@@ -25,7 +25,7 @@ A comprehensive reference of **887** real-world DeFi security incidents (2020–
 | [Flash Loan](./vulns/flash-loan.md) | 124 | Price manipulation and logic exploits within a single transaction |
 | [Business Logic](./vulns/business-logic.md) | 149 | Protocol-specific flaws in accounting, rewards, or invariants |
 | [Oracle & Price Manipulation](./vulns/oracle-price-manipulation.md) | 117 | Spot price distortion, reserve skewing, TWAP gaming |
-| [Access Control](./vulns/access-control.md) | 97 | Missing or bypassed permission checks on privileged functions |
+| [Access Control](./vulns/access-control.md) | 98 | Missing or bypassed permission checks on privileged functions |
 | [Reentrancy](./vulns/reentrancy.md) | 75 | Cross-function and read-only reentrancy attacks |
 | [Arbitrary Call / Input](./vulns/arbitrary-call.md) | 79 | Attacker-controlled calldata hijacking execution flow |
 | [Staking & Reward](./vulns/staking-reward.md) | 47 | Reward math errors, lock-up bypass, vault logic flaws |
@@ -33,7 +33,7 @@ A comprehensive reference of **887** real-world DeFi security incidents (2020–
 | [Slippage & AMM](./vulns/slippage-amm.md) | 27 | Missing slippage protection, K-invariant bypass |
 | [Deflationary / Tax Token](./vulns/defl-tax-token.md) | 31 | Protocol incompatibility with rebase/fee-on-transfer tokens |
 | [Signature Replay](./vulns/signature-replay.md) | 14 | Reused signatures missing nonces or domain separators |
-| [Approval / Allowance Abuse](./vulns/approval-abuse.md) | 12 | Excessive approvals and allowance drain via transferFrom |
+| [Approval / Allowance Abuse](./vulns/approval-abuse.md) | 13 | Excessive approvals and allowance drain via transferFrom |
 | [Unprotected Callback](./vulns/unprotected-callback.md) | 11 | Unvalidated swap/flash callbacks exploited for unauthorized execution |
 | [Private Key Compromise](./vulns/private-key-compromise.md) | 12 | Key theft, GitHub leak, insider abuse, supply chain attacks |
 | [Donation / Vault Inflation](./vulns/donation-inflation.md) | 10 | First-depositor donation attacks inflating share prices |

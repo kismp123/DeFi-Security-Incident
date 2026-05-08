@@ -2,7 +2,7 @@
 
 Exploits that drain tokens by abusing excessive token approvals or allowances â€” including transferFrom without proper ownership checks.
 
-**Total incidents: 12**
+**Total incidents: 13**
 
 ---
 
@@ -20,6 +20,7 @@ Exploits that drain tokens by abusing excessive token approvals or allowances â€
 | 2024-09-04 | Unverified16d0 | MultiCallTransferFrom | [2024-09-04_Unverified16d0_MultiCallTransferFrom.md](../2024/2024-09-04_Unverified16d0_MultiCallTransferFrom.md) |
 | 2024-10-29 | BUBAI | TransferFromAllowanceExploit | [2024-10-29_BUBAI_TransferFromAllowanceExploit.md](../2024/2024-10-29_BUBAI_TransferFromAllowanceExploit.md) |
 | 2025-08-13 | Coinbase | ExcessiveApprovalDrain | [2025-08-13_Coinbase_ExcessiveApprovalDrain.md](../2025/2025-08-13_Coinbase_ExcessiveApprovalDrain.md) |
+| 2026-05-05 | Ekubo | IPayerCallback PayerSpoofing ETH | [2026-05-05_Ekubo_IPayerCallbackPayerSpoofing_ETH.md](../2026/2026-05-05_Ekubo_IPayerCallbackPayerSpoofing_ETH.md) |
 
 ---
 

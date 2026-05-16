@@ -6,8 +6,8 @@
 | **Protocol** | Cream Finance |
 | **Chain** | Ethereum |
 | **Loss** | ~$130,000,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x2435...66b](https://etherscan.io/address/0x24354d31bc9d90f62fe5f2454709c32049cf866b) |
+| **Attack Tx** | [0x0fe2...c92](https://etherscan.io/tx/0x0fe2542079644e107cbf13690eb9c2c65963ccb79089ff96bfaf8dced2331c92) (block 13,499,798) |
 | **Vulnerable Contract** | Cream crYUSD / crETH Markets |
 | **Root Cause** | Collateral value calculated using yUSD vault's `pricePerShare()` as a spot value — manipulable within a single block via recursive mint/borrow |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-10/Cream_2_exp.sol) |

@@ -7,9 +7,9 @@
 | **Chain** | BNB Smart Chain |
 | **Loss** | ~$433,000 (OCA damage) + ~$422,000 (Unknown Protocol simultaneous damage) |
 | **Total Loss** | ~$855,000 (same transaction) |
-| **Attacker** | [0xdddfb3...cf7](https://bscscan.com/address/0xdddfb3d6fa42e66cf7b6c0fc3e6ca8fdc81aab51) |
-| **Attack Contract** | Unidentified (flash loan contract deployed by attacker) |
-| **Attack Tx** | [0xcd5979...ccb7](https://bscscan.com/tx/0xcd5979352d9b42ccb7b14f66b44b3cdc0c5a42e01dea6d7e0c6d41c57a4c979e) |
+| **Attacker** | [0xdddf...ba5](https://bscscan.com/address/0xDDdFB3D6fa42e66cF78eFA21166B8Ef2D26c1bA5) |
+| **Attack Contract** | [0xa297...EAa](https://bscscan.com/address/0xa297a53B5554F4Feba4077F4Cb13da220387dEAa) |
+| **Attack Tx** | [0xcd59...906](https://bscscan.com/tx/0xcd5979352d9b42ccb7780d5344fac08d1d46591a592ab284a588e2156cf44906) (block 81,020,478) |
 | **Vulnerable Contract** | OCA token contract (BSC) |
 | **Root Cause** | Business Logic Flaw — `sellOCA()` / `swapHelper()` functions allowed unauthorized LP reserve manipulation during flash swap callbacks |
 | **PoC Source** | DeFiHackLabs (unregistered / based on community analysis) |

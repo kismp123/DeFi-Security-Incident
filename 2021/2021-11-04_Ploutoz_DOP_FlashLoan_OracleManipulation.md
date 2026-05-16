@@ -6,8 +6,8 @@
 | **Protocol** | Ploutoz (DOP Token) |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$365,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x2f61...15e](https://bscscan.com/address/0x2f618493b9ff77d61426e4dbf3b844666a6b315e) |
+| **Attack Tx** | [0x7fe4...457](https://bscscan.com/tx/0x7fe46c2746855dd57e18f4d33522849ff192e4e26c74835799ba8dab89099457) (block 12,886,417) |
 | **Vulnerable Contract** | [0x844FA82f1E54824655470970F7004Dd90546bB28](https://bscscan.com/address/0x844FA82f1E54824655470970F7004Dd90546bB28) (DOP Token) |
 | **Root Cause** | AMM spot price from Twinidex/PancakeSwap used for DOP collateral valuation — manipulable within a single block via large swaps |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-11/Ploutoz_exp.sol) |

@@ -6,11 +6,11 @@
 | Date | 2023-05 |
 | Project | LocalTrader (LCT) |
 | Chain | BSC |
-| Loss | Address unconfirmed |
-| Attacker | Address unconfirmed |
-| Attack TX | Address unconfirmed |
+| Loss | ~384 BNB |
+| Attacker | [0xd771...dd7](https://bscscan.com/address/0xd771dfa8fa59bd2d1251a0481fca0cf216276dd7) |
+| Attack TX | [0x57b5...5ba](https://bscscan.com/tx/0x57b589f631f8ff20e2a89a649c4ec2e35be72eaecf155fdfde981c0fec2be5ba) (block 28,460,898) |
 | Vulnerable Contract | UpgradeableProxy: 0x303554d4D8Bd01f18C6fA4A8df3FF57A96071a41 |
-| Block | Address unconfirmed |
+| Block | 28,460,898 |
 | CWE | CWE-284 (Improper Access Control — unprotected proxy storage) |
 | Vulnerability Type | Proxy Storage Slot Write via Unauthenticated Function Selectors |
 

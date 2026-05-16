@@ -6,10 +6,10 @@
 | **Protocol** | BCE Token (PancakeSwap BCE/USDT Pool) |
 | **Chain** | BNB Smart Chain (BSC) |
 | **Loss** | ~$679,000 (LP liquidity provider losses) |
-| **Attacker** | [Undisclosed](https://bscscan.com/address/) (deployed two malicious contracts MC1, MC2) |
+| **Attacker** | Undisclosed (deployed two malicious contracts MC1, MC2) |
 | **Attack Contracts** | MC1 (flash loan receiver), MC2 (swap executor) — specific addresses undisclosed |
-| **Attack Tx** | [0x85ac5d15...](https://bscscan.com/tx/0x85ac5d15f16d49ae08f90ab0e554ebfcb145712342c5b7704e305d602146d452) |
-| **Vulnerable Contract** | [0xcdb189d3...99999999](https://bscscan.com/address/0xcdb189d377ac1cf9d7b1d1a988f2025b99999999) (BCE Token) |
+| **Attack Tx** | Unverified (hash `0x85ac5d15...` was duplicated from Cyrus Finance 2026-03-22 — actual BCE Token tx not confirmed) |
+| **Vulnerable Contract** | BCE Token (BSC) — specific contract address not independently verified |
 | **Root Cause** | The state variable `scheduledDestruction`, which can be influenced by users, burns tokens directly from the PancakeSwap pair — the destruction amount derived from sell activity is settled from LP reserves rather than at the user's expense |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) (not registered for 2026-03, based on public analysis) |
 

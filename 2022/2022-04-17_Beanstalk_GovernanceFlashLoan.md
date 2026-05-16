@@ -6,7 +6,7 @@
 | **Protocol** | Beanstalk Farms |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$182,000,000 (BEAN, 3CRV, LUSD, etc.) |
-| **Attacker** | Attacker address unconfirmed |
+| **Attacker** | [0x1c5dCdd006EA78a7E4783f9e6021C32935a10fb4](https://etherscan.io/address/0x1c5dCdd006EA78a7E4783f9e6021C32935a10fb4) |
 | **Attack Tx** | Block 14,595,905 |
 | **Vulnerable Contract** | BeanStalk/SiloV2Facet [0xC1E088fC1323b20BCBee9bd1B9fC9546db5624C5](https://etherscan.io/address/0xC1E088fC1323b20BCBee9bd1B9fC9546db5624C5) |
 | **Root Cause** | `emergencyCommit()` calculates voting power using the current block Stalk balance rather than a snapshot at proposal time, allowing deposit→vote→withdraw within the same transaction |

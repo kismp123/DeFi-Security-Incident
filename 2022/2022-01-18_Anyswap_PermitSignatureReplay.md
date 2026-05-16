@@ -5,7 +5,7 @@
 | **Date** | 2022-01-18 |
 | **Protocol** | Anyswap (Multichain) |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | ~$1,800,000 (WETH) |
+| **Loss** | ~$3,000,000 total across 8 affected tokens (WETH, AVAX, MATIC, WBNB, and others); ~1,889 WETH stolen from the WETH pool specifically; ~$912 WETH rescued by whitehat (net $1.8M WETH). Multi-token total per CoinDesk. |
 | **Attacker** | [0x3Ee505bA316879d246a8fD2b3d7eE63b51B44FAB](https://etherscan.io/address/0x3Ee505bA316879d246a8fD2b3d7eE63b51B44FAB) |
 | **Attack Tx** | Block 14,037,236 |
 | **Vulnerable Contract** | [0x6b7a87899490EcE95443e979cA9485CBE7E71522](https://etherscan.io/address/0x6b7a87899490EcE95443e979cA9485CBE7E71522) |

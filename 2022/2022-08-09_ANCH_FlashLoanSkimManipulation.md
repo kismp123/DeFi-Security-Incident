@@ -5,8 +5,9 @@
 | **Date** | 2022-08-09 |
 | **Protocol** | ANCH Token |
 | **Chain** | Binance Smart Chain (BSC) |
-| **Loss** | Address unconfirmed (USDT drained) |
-| **Attacker** | Address unconfirmed |
+| **Loss** | Unconfirmed — no on-chain attack occurred |
+| **Attacker** | Unknown |
+| **Attack Tx** | No confirmed on-chain attack tx — AnciliaInc simulation PoC demonstrating skim() vulnerability; ANCH pair contract had no events at fork block (BSC block: 20,302,534) |
 | **Vulnerable Contract (ANCH Token)** | [0xA4f5d4aFd6b9226b3004dD276A9F778EB75f2e9e](https://bscscan.com/address/0xA4f5d4aFd6b9226b3004dD276A9F778EB75f2e9e) |
 | **ANCH/USDT LP** | [0xaD0dA05b9C20fa541012eE2e89AC99A864CC68Bb](https://bscscan.com/address/0xaD0dA05b9C20fa541012eE2e89AC99A864CC68Bb) |
 | **USDT** | [0x55d398326f99059fF775485246999027B3197955](https://bscscan.com/address/0x55d398326f99059fF775485246999027B3197955) |

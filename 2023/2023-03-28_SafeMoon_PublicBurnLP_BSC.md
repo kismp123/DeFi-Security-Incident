@@ -7,10 +7,10 @@
 | **Chain** | BSC (BNB Smart Chain) |
 | **Loss** | $8,900,000 |
 | **Attacker** | [Unknown Address](https://bscscan.com/address/0x286e09932b8d096cba3423d12965042736b8f850) |
-| **Attack Tx** | [0xbcf5e30c...](https://bscscan.com/tx/0xbcf5e30c164837b5d7c42fd7e33e47a0072dc014e7f0a67aa7710af49d0ce53b) |
+| **Attack Tx** | [0x48e52a12...](https://bscscan.com/tx/0x48e52a12cb297354a2a1c54cbc897cf3772328e7e71f51c9889bb8c5e533a934) |
 | **Vulnerable Contract** | [0x4298...fcB5](https://bscscan.com/address/0x42981d0bfbAf196529376EE702F2a9Eb9092fcB5) |
 | **Root Cause** | Public `burn()` function with no access control allows direct burning of LP pool balance, enabling price manipulation |
-| **Attack Block** | 26,864,889 (BSC) |
+| **Attack Block** | 26,864,890 (BSC) |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2023-03/safeMoon_exp.sol) |
 
 ---
@@ -118,7 +118,7 @@ function mint(address user, uint256 amount) external {
 }
 ```
 
-The actual attack (block 26,864,889) primarily exploited `burn()`, but `mint()` carries the same vulnerability.
+The actual attack (block 26,864,890) primarily exploited `burn()`, but `mint()` carries the same vulnerability.
 
 ---
 
@@ -225,7 +225,7 @@ pragma solidity ^0.8.13;
 // ============================================================
 // SafeMoon Attack PoC — Core Logic
 // Source: DeFiHackLabs (SunWeb3Sec)
-// Attack Block: BSC 26,864,889
+// Attack Block: BSC 26,864,890
 // ============================================================
 
 contract SafemoonAttackerTest is Test, IPancakeCallee {
@@ -415,7 +415,7 @@ function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
 | Item | PoC Value | On-Chain Actual | Match |
 |------|--------|-------------|------|
 | Flash loan WBNB | 1,000 ether | 1,000 WBNB | ✅ |
-| Attack block | 26,864,889 | 26,864,889 | ✅ |
+| Attack block | 26,864,890 | 26,864,890 | ✅ |
 | Final WBNB received | ~27,463 WBNB | ~27,463 WBNB | ✅ |
 | Repayment fee | 0.3% (10030/10000) | 0.3% | ✅ |
 | Protocol loss | ~$8.9M | ~$8.9M | ✅ |
@@ -426,7 +426,7 @@ function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
 |------|------|
 | SafeMoon Token | `0x42981d0bfbAf196529376EE702F2a9Eb9092fcB5` |
 | WBNB/SFM LP Pool | `0x1CEa83EC5E48D9157fCAe27a19807BeF79195Ce1` |
-| Attack Block | 26,864,889 (BSC) |
+| Attack Block | 26,864,890 (BSC) |
 | Test Block | 26,854,757 (BSC, for mint vulnerability verification) |
 
 ### 8.3 Attack Event Sequence

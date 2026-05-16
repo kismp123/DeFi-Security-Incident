@@ -14,6 +14,7 @@
 | **Attack Tx (main attack)** | [0x9312...7f0](https://optimistic.etherscan.io/tx/0x9312ae377d7ebdf3c7c3a86f80514878deb5df51aad38b6191d55db53e42b7f0) |
 | **Vulnerable Contract (soVELO)** | [0xe3b8...5fE5](https://optimistic.etherscan.io/address/0xe3b81318b1b6776f0877c3770afddff97b9f5fe5) |
 | **Attack Block** | 120,062,493 |
+| **Vulnerability Type** | Compound v2 empty-market donation attack (NOT ERC4626; SonneFinance is a Compound v2 fork) |
 | **Root Cause** | Direct donation to newly added VELO market to manipulate soVELO exchange rate — Precision Loss (ERC4626 Inflation Attack) |
 | **PoC Source** | [DeFiHackLabs — Sonne_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-05/Sonne_exp.sol) |
 

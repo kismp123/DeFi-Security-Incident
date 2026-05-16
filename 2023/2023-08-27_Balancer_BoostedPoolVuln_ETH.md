@@ -5,7 +5,7 @@
 | **Date** | 2023-08-27 |
 | **Protocol** | Balancer |
 | **Chain** | Ethereum |
-| **Loss** | ~$2,000,000 |
+| **Loss** | ~$979,000 |
 | **Attacker** | [0xed18...a9eb](https://etherscan.io/address/0xed187f37e5ad87d5b3b2624c01de56c5862b7a9b) |
 | **Attack Contract** | [0x2100...44f0](https://etherscan.io/address/0x2100dcd8758ab8b89b9b545a43a1e47e8e2944f0) |
 | **Attack Tx** | [0x2a02...c2d](https://etherscan.io/tx/0x2a027c8b915c3737942f512fc5d26fd15752d0332353b3059de771a35a606c2d) |

@@ -6,9 +6,9 @@
 | **Protocol** | Gyro.finance (Arbitrum Liquidity Management Protocol) |
 | **Chain** | Arbitrum |
 | **Loss** | ~$700,000 |
-| **Attacker** | [0x51c2...9a1...](https://arbiscan.io/address/0x51c22898a9b9f519a1) |
+| **Attacker** | Unverified (placeholder address — full address not independently confirmed) |
 | **Attack Contract** | — (not publicly confirmed) |
-| **Attack Tx** | [0x51c2...9a1...](https://arbiscan.io/tx/0x51c22898a9b9f519a1) |
+| **Attack Tx** | Unverified (placeholder hash — full tx not independently confirmed) |
 | **Vulnerable Contract** | — (Gyro.finance router/vault contract, not publicly confirmed) |
 | **Root Cause** | Arbitrary External Call in router/vault contract — user-controlled calldata executed without input validation |
 | **PoC Source** | DeFiHackLabs (not listed for 2026-01 — no public PoC) |

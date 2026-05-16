@@ -6,8 +6,8 @@
 | **Protocol** | COCO / PandaToken |
 | **Chain** | BSC |
 | **Loss** | ~280 BNB |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x0cc2...5a2](https://bscscan.com/address/0x0cc28b80D21eBe7b3f3320FAA059f163E98A55a2) |
+| **Attack Tx** | [0x7b74...875](https://bscscan.com/tx/0x7b743f0fa0ffc6542bc4132405f6c986a00187b6a8b23613ab98c8bcfe9fd875) (block 41,529,777) |
 | **Vulnerable Contract** | Address unconfirmed |
 | **Root Cause** | Vulnerable contract allowed arbitrary transferFrom, enabling direct transfer of LP pool balance followed by swap |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-08/COCO_exp.sol) |

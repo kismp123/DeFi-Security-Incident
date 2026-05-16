@@ -5,7 +5,7 @@
 | **Date** | 2024-06-10 |
 | **Protocol** | UwU Lend (Aave v2 Fork) |
 | **Chain** | Ethereum |
-| **Loss** | $23,000,000 (3 consecutive attacks) |
+| **Loss** | ~$19,300,000 (3 consecutive same-day attacks; combined with Jun 13 follow-on: ~$23M) |
 | **Attacker** | [0x841d...1f47](https://etherscan.io/address/0x841dDf093f5188989fA1524e7B893de64B421f47) |
 | **Attack Contract (1st)** | [0x21C5...312E](https://etherscan.io/address/0x21C58d8F816578b1193AEf4683E8c64405A4312E) |
 | **Attack Contract (2nd)** | [0x4e48...3D](https://etherscan.io/address/0x4e48C46779b3B16d63375751467D7eee34D41c3D) |

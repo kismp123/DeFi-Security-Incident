@@ -6,8 +6,8 @@
 | **Protocol** | Nerve Bridge |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$80,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0xd547...228](https://bscscan.com/address/0xd5476194bdc298b6981f5414b693363f94d69228) |
+| **Attack Tx** | [0xea95...f1d](https://bscscan.com/tx/0xea95925eb0438e04d0d81dc270a99ca9fa18b94ca8c6e34272fc9e09266fcf1d) (block 12,653,565) |
 | **Vulnerable Contract** | Nerve MetaSwap / Nerve 3Pool |
 | **Root Cause** | `remove_liquidity_one_coin()` allowing `min_amount=0` and no restriction on repeated calls within the same block, causing accumulated pool imbalance through sequential MetaSwap + 3Pool interactions |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-12/NerveBridge_exp.sol) |

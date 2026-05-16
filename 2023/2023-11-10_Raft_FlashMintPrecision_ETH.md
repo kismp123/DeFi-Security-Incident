@@ -5,7 +5,7 @@
 | **Date** | 2023-11-10 |
 | **Protocol** | Raft Protocol |
 | **Chain** | Ethereum |
-| **Loss** | ~$3,200,000 (approximately 6,701,624 R stablecoins minted without authorization) |
+| **Loss** | ~$3,300,000 (1,577 ETH extracted; ~6,701,624 R minted at face value; confirmed by CoinDesk, Raft post-mortem) |
 | **Attacker EOA** | [0xc1f2...39fa](https://etherscan.io/address/0xc1f2b71a502b551a65eee9c96318afdd5fd439fa) |
 | **Attack Contract** | [0x0a33...ef8](https://etherscan.io/address/0x0a3340129816a86b62b7eafd61427f743c315ef8) |
 | **Attack Tx** | [0xfeed...ce7](https://etherscan.io/tx/0xfeedbf51b4e2338e38171f6e19501327294ab1907ab44cfd2d7e7336c975ace7) |

@@ -6,7 +6,7 @@
 | **Protocol** | Unknown Stake |
 | **Chain** | BSC (BNB Chain) |
 | **Loss** | ~$133,500 (TUR tokens) |
-| **Attacker** | [0xC9...F692](https://bscscan.com/address/0xC9F692) |
+| **Attacker** | Unverified (address `0xC9F692` in record is only 6 hex chars — invalid; full address not independently confirmed) |
 | **Attack Contract** | Attacker EOA direct execution (no separate contract confirmed) |
 | **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
 | **Vulnerable Contract** | Unknown Stake Contract (BSC) |

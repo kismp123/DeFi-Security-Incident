@@ -6,8 +6,8 @@
 | **Protocol** | xWin Finance |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$80,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0xb63f...d19](https://bscscan.com/address/0xb63f0d8b9aa0c4e68d5630f54bfefc6cf2c2ad19) |
+| **Attack Tx** | [0xba0f...c1d](https://bscscan.com/tx/0xba0fa8c150b2408eec9bbbbfe63f9ca63e99f3ff53ac46ee08d691883ac05c1d) (block 8,589,726) |
 | **Vulnerable Contract** | xWin Fund (PCLPXWIN) |
 | **Root Cause** | `priceImpactTolerance=10000` (100%) in the swap inside `subscribe()` effectively disables slippage control — allows cumulative XWIN price inflation on each repeated call |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-06/xWin_exp.sol) |

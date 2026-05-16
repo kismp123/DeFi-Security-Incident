@@ -6,8 +6,9 @@
 | **Chain** | BSC (Binance Smart Chain) |
 | **Protocol** | XSURGE Token |
 | **Loss** | ~$5,400,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 10,087,723) |
+| **Attacker** | [0x59c6...ad3](https://bscscan.com/address/0x59c686272e6f11dC8701A162F938fb085D940ad3) |
+| **Attack Contract** | [0x1514...dc46](https://bscscan.com/address/0x1514aaa4dcf56c4aa90da6a4ed19118e6800dc46) |
+| **Attack Tx** | [0x7e2a...d2](https://bscscan.com/tx/0x7e2a6ec08464e8e0118368cb933dc64ed9ce36445ecf9c49cacb970ea78531d2) (block 10,087,724) |
 | **Vulnerable Contract** | [0xE1E1Aa58983F6b8eE8E4eCD206ceA6578F036c21](https://bscscan.com/address/0xE1E1Aa58983F6b8eE8E4eCD206ceA6578F036c21) (XSURGE Token) |
 | **Root Cause** | The sell() function re-enters via the receive() hook during BNB transfer, allowing repeated sell() calls before the balance is updated |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-08/XSURGE_exp.sol) |

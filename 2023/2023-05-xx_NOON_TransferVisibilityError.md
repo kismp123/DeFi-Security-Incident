@@ -7,8 +7,8 @@
 | Project | NOON (NO Token) |
 | Chain | Ethereum |
 | Loss | ~$2,000 |
-| Attacker | Address unconfirmed |
-| Attack TX | Address unconfirmed |
+| Attacker | [0x9748...3de](https://etherscan.io/address/0x9748c8540a5f752ba747f1203ac13dae789033de) |
+| Attack TX | [0x23fb...8c0](https://etherscan.io/tx/0x23fb7f093e827ed061aafb574cfd420eab879621c7f78cb341292e106a3a88c0) (block 17,366,980) |
 | Vulnerable Contract | NO Token: 0x6fEAc5F3792065b21f85BC118D891b33e0673bD8 |
 | Block | 17,366,979 |
 | CWE | CWE-284 (Improper Access Control — internal function exposed as public) |

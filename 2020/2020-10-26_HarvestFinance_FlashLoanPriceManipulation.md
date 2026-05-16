@@ -9,7 +9,7 @@
 | **Attacker** | [0xf224ab004461540778a914ea397c589b677e27bb](https://etherscan.io/address/0xf224ab004461540778a914ea397c589b677e27bb) |
 | **Attack Tx** | [Multiple transactions](https://etherscan.io/tx/0x35f8d2f572fceaac9288e5d462117850ef2694786992a8c3f6d02612277b0877) |
 | **Vulnerable Contract** | [0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE](https://etherscan.io/address/0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE) |
-| **Root Cause** | The Harvest vault used the Curve Y pool's spot price (`get_virtual_price()`) directly during deposit/withdrawal without a manipulation-resistant oracle such as TWAP, enabling within-block price manipulation for deposit/withdrawal arbitrage |
+| **Root Cause** | The Harvest vault priced fUSDC shares using the Curve Y pool's live USDC spot balance (not the manipulation-resistant `get_virtual_price()`), enabling within-block balance manipulation via flash loan for deposit/withdrawal arbitrage |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2020-10/HarvestFinance_exp.sol) |
 
 ---

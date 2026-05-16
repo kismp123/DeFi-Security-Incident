@@ -11,7 +11,7 @@
 | Attack Type | Flash Loan + LP Liquidity Manipulation + emergencyWithdraw() |
 | CWE | CWE-284 (Improper Access Control) |
 | Attacker Address | `0x9d44f1a37044500064111010632a8a59003701c8` |
-| Attack Contract | `0x4bc691601b50b3e107b89d5eb0ce3606eb48` |
+| Attack Contract | Unverified (recorded address `0x4bc691601b50b3e107b89d5eb0ce3606eb48` is only 38 hex chars — invalid; full address not confirmed) |
 | Vulnerable Contract | `0xa44e79a2c9a8965e7a6fa77bf0ca8faf50e6c73e` (FarmingLPToken) |
 | Fork Block | 18,680,254 |
 

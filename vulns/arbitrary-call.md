@@ -37,7 +37,7 @@ Exploits where attackers supply arbitrary calldata or target addresses to hijack
 | 2024-02-15 | ParticleTrade | UnverifiedInput ETH | [2024-02-15_ParticleTrade_UnverifiedInput_ETH.md](../2024/2024-02-15_ParticleTrade_UnverifiedInput_ETH.md) |
 | 2024-02-28 | Seneca | ArbitraryCall ETH | [2024-02-28_Seneca_ArbitraryCall_ETH.md](../2024/2024-02-28_Seneca_ArbitraryCall_ETH.md) |
 | 2024-02-XX | Seneca | ArbitraryCall | [2024-02-XX_Seneca_ArbitraryCall.md](../2024/2024-02-XX_Seneca_ArbitraryCall.md) |
-| 2024-03-08 | Unizen | ArbitraryCall Polygon | [2024-03-08_Unizen_ArbitraryCall_Polygon.md](../2024/2024-03-08_Unizen_ArbitraryCall_Polygon.md) |
+| 2024-03-08 | Unizen | ArbitraryCall ETH | [2024-03-08_Unizen_ArbitraryCall_ETH.md](../2024/2024-03-08_Unizen_ArbitraryCall_ETH.md) |
 | 2024-03-XX | ALP | ArbitrarySwapCall | [2024-03-XX_ALP_ArbitrarySwapCall.md](../2024/2024-03-XX_ALP_ArbitrarySwapCall.md) |
 | 2024-03-XX | GHT | TransferFromSyncManipulation | [2024-03-XX_GHT_TransferFromSyncManipulation.md](../2024/2024-03-XX_GHT_TransferFromSyncManipulation.md) |
 | 2024-03-XX | UnizenIO | ArbitraryCalldata | [2024-03-XX_UnizenIO_ArbitraryCalldata.md](../2024/2024-03-XX_UnizenIO_ArbitraryCalldata.md) |
@@ -86,7 +86,6 @@ Exploits where attackers supply arbitrary calldata or target addresses to hijack
 | 2024-09-05 | AIRBTC | CustomSelectorDrain | [2024-09-05_AIRBTC_CustomSelectorDrain.md](../2024/2024-09-05_AIRBTC_CustomSelectorDrain.md) |
 | 2024-09-17 | MARA | EncodedCallExploit | [2024-09-17_MARA_EncodedCallExploit.md](../2024/2024-09-17_MARA_EncodedCallExploit.md) |
 | 2025-07-22 | MulticallWithETH | ValueForwarding | [2025-07-22_MulticallWithETH_ValueForwarding.md](../2025/2025-07-22_MulticallWithETH_ValueForwarding.md) |
-| 2024-05-19 | Mixed | Swap Router 라우터 취약점 | [2024-05-19_Mixed_Swap_Router_라우터_취약점.md](../2024/2024-05-19_Mixed_Swap_Router_라우터_취약점.md) |
 
 ---
 

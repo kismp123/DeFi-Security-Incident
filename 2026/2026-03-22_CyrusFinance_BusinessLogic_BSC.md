@@ -6,9 +6,9 @@
 | **Protocol** | Cyrus Finance |
 | **Chain** | BSC (BNB Smart Chain) |
 | **Loss** | ~$512,000 USDT |
-| **Attacker** | [Address unconfirmed](https://bscscan.com/address/) |
-| **Attack Contract** | [Address unconfirmed](https://bscscan.com/address/) |
-| **Attack Tx** | [0x2b7efdac...456e47b9](https://bscscan.com/tx/0x2b7efdac5f052ee9a8a4b58fb5f5d1c09e4a28d9498a59f1ef5f5b39456e47b9) |
+| **Attacker** | [0x9f7E...D69](https://bscscan.com/address/0x9f7EABD7C3538bA6B9D10Eede63712c0EccE6D69) |
+| **Attack Contract** | [0xAF7F...eB](https://bscscan.com/address/0xAF7F22831D1eC86D24be51a1760b04aD4b58e9eB) |
+| **Attack Tx** | [0x85ac...452](https://bscscan.com/tx/0x85ac5d15f16d49ae08f90ab0e554ebfcb145712342c5b7704e305d602146d452) (block 88,215,293) |
 | **Vulnerable Contract** | [CyrusTreasury: 0xb042Ea7b...50aE10b](https://bscscan.com/address/0xb042Ea7b35826e6e537a63bb9fc9fb06b50aE10b) |
 | **Root Cause** | `slot0()` spot price dependency in `withdrawUSDTFromAny()` → price manipulable within the same transaction (Business Logic Flaw) |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) (not included in 2026-03 — reconstructed from web research) |

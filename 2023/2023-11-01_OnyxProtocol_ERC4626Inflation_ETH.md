@@ -5,7 +5,7 @@
 | **Date** | 2023-11-01 |
 | **Protocol** | OnyxProtocol |
 | **Chain** | Ethereum |
-| **Loss** | $2,000,000 (~822 WETH) |
+| **Loss** | ~$2,100,000 (~1,164 ETH; confirmed by The Block, Hacken, CryptoTimes — the "822 WETH" figure in earlier reports was an undercount) |
 | **Attacker** | [0x085b...2bff](https://etherscan.io/address/0x085bdff2c522e8637d4154039db8746bb8642bff) |
 | **Attack Contract** | [0x526e...36f](https://etherscan.io/address/0x526e8e98356194b64eae4c2d443cc8aad367336f) |
 | **Attack Tx** | [0xf7c2...f635](https://etherscan.io/tx/0xf7c21600452939a81b599017ee24ee0dfd92aaaccd0a55d02819a7658a6ef635) |

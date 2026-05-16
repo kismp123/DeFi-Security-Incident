@@ -5,7 +5,7 @@
 | **Date** | 2023-07-30 |
 | **Protocol** | Curve Finance |
 | **Chain** | Ethereum |
-| **Loss** | ~$60,000,000 (total; individual pools: alETH ~$13.6M, msETH ~$0, pETH ~$11.5M, CRV ~$14M+) |
+| **Loss** | ~$73,000,000 gross (alETH ~$13.6M–$20.5M, msETH ~$1.6M, pETH ~$11.5M, CRV/ETH ~$22–24M); net loss after white-hat recoveries ~$19–20M (≈73% returned) |
 | **Attacker (pETH pool)** | [0x6ec21d18...8538](https://etherscan.io/address/0x6ec21d1868743a44318c3c259a6d4953f9978538) |
 | **Attack Contract (pETH)** | [0x466b85b4...f04](https://etherscan.io/address/0x466b85b49ec0c5c1eb402d5ea3c4b88864ea0f04) |
 | **Attack Tx (pETH)** | [0xa84aa065...20c](https://etherscan.io/tx/0xa84aa065ce61dbb1eb50ab6ae67fc31a9da50dd2c74eefd561661bfce2f1620c) |

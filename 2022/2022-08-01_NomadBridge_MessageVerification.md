@@ -5,7 +5,7 @@
 | **Date** | 2022-08-01 |
 | **Protocol** | Nomad Bridge |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | ~$152,000,000 |
+| **Loss** | ~$190,000,000 (CNBC; Elliptic lower-bound: $156M) |
 | **Attacker** | Multiple (including front-runners) |
 | **Vulnerable Contract (Replica Proxy)** | [0x5D94309E5a0090b165FA4181519701637B6DAEBA](https://etherscan.io/address/0x5D94309E5a0090b165FA4181519701637B6DAEBA) |
 | **Replica Logic** | [0xb92336759618f55bd0f8313bd843604592e27bd8](https://etherscan.io/address/0xb92336759618f55bd0f8313bd843604592e27bd8) |

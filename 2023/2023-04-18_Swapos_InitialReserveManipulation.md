@@ -8,7 +8,7 @@
 | Chain | Ethereum |
 | Loss | ~Unconfirmed SWP amount |
 | Attacker | Unidentified |
-| Attack TX | https://etherscan.io/address/0x2df07c054138bf29348f35a12a22550230bd1405 |
+| Attack TX | Unconfirmed (attacker address: [0x2df07c...](https://etherscan.io/address/0x2df07c054138bf29348f35a12a22550230bd1405)) |
 | Vulnerable Contract | SwapPos: 0x8ce2F9286F50FbE2464BFd881FAb8eFFc8Dc584f |
 | Block | 17,057,419 |
 | CWE | CWE-682 (Incorrect Calculation — reserve manipulation) |

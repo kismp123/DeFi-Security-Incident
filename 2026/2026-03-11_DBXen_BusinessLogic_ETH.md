@@ -4,11 +4,11 @@
 |------|------|
 | **Date** | 2026-03-11 |
 | **Protocol** | DBXen (XEN token burn-based staking) |
-| **Chain** | Ethereum Mainnet |
+| **Chain** | Ethereum Mainnet + BNB Chain (simultaneous attack on both chains) |
 | **Loss** | ~$149,000 (65.28 ETH + 2,305 DXN tokens) |
 | **Attacker** | (Immediately bridged via LayerZero) |
 | **Attack Tx (ETH)** | [0x914a5a...08bc37](https://etherscan.io/tx/0x914a5af790e55b8ea140a79da931fc037cb4c4457704d184ad21f54fb808bc37) |
-| **Attack Tx (BSC)** | [0xe66e54...d366](https://etherscan.io/tx/0xe66e54586827d6a9e1c75bd1ea42fa60891ad341909d29ec896253ee2365d366) |
+| **Attack Tx (BSC)** | [0xe66e54...d366](https://bscscan.com/tx/0xe66e54586827d6a9e1c75bd1ea42fa60891ad341909d29ec896253ee2365d366) |
 | **Vulnerable Contract** | [0xf5c80c...abd](https://etherscan.io/address/0xf5c80c305803280b587f8cabbccdc4d9bf522abd) |
 | **DXN Token** | [0x80f0C1...B6F](https://etherscan.io/address/0x80f0C1c49891dcFDD40b6e0F960F84E6042bcB6F) |
 | **Root Cause** | State inconsistency caused by mixed use of `_msgSender()` and `msg.sender` in an ERC-2771 meta-transaction context |

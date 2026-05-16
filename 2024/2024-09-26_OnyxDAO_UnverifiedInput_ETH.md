@@ -5,12 +5,12 @@
 | **Date** | 2024-09-26 |
 | **Protocol** | OnyxDAO |
 | **Chain** | Ethereum |
-| **Loss** | $4,000,000 (4.1M VUSD, 7.35M XCN, 5K DAI, 0.23 WBTC, 50K USDT) |
+| **Loss** | ~$3,800,000 (4.1M VUSD, 7.35M XCN, 5K DAI, 0.23 WBTC, 50K USDT) |
 | **Attacker** | [0x6809...F36B](https://etherscan.io/address/0x680910cf5fc9969a25fd57e7896a14ff1e55f36b) |
 | **Attack Contract (Main)** | [0xa57e...8956](https://etherscan.io/address/0xa57eda20be51ae07df3c8b92494c974a92cf8956) |
 | **Attack Tx** | [0x4656...8729](https://etherscan.io/tx/0x46567c731c4f4f7e27c4ce591f0aebdeb2d9ae1038237a0134de7b13e63d8729) |
 | **Vulnerable Contract** | [NFTLiquidation 0xf10b...9002](https://etherscan.io/address/0xf10bc5be84640236c71173d1809038af4ee19002) |
-| **Root Cause** | Fake Market injection via unvalidated user input → liquidation function abuse |
+| **Root Cause** | Compound v2 precision loss (oETH exchange rate inflation via tiny mint/redeem cycles) combined with fake Market injection via unvalidated user input into NFTLiquidation.liquidateWithSingleRepay() |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-09/OnyxDAO_exp.sol) |
 
 > **Note**: OnyxDAO suffered a separate incident in 2023 (2023-11-01, ERC4626 inflation attack, ~$2M loss). This document covers only the September 2024 incident.

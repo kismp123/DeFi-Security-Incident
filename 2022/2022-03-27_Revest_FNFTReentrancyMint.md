@@ -5,7 +5,7 @@
 | **Date** | 2022-03-27 |
 | **Protocol** | Revest Finance |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | ~$2,000,000 (RENA tokens) |
+| **Loss** | ~$2,000,000 (BLOCKS ~$1.7M dominant, ECO, LYXe, RENA) |
 | **Attacker** | Attacker address unidentified |
 | **Vulnerable Contract** | Revest [0x2320A28f52334d62622cc2EaFa15DE55F9987eD9](https://etherscan.io/address/0x2320A28f52334d62622cc2EaFa15DE55F9987eD9) |
 | **Root Cause** | During `withdrawFNFT()` execution, an ERC1155 `onERC1155Received` callback is triggered; within this callback, `depositAdditionalToFNFT()` can be reentered to inflate FNFT balances at minimal cost |

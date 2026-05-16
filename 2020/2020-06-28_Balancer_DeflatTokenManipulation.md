@@ -5,7 +5,7 @@
 | **Date** | 2020-06-28 |
 | **Protocol** | Balancer Protocol |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | ~$500,000 (WETH) |
+| **Loss** | ~$500,000 (WETH + WBTC + LINK + SNX mix across two pools) |
 | **Attacker** | [Attacker Address](https://etherscan.io/address/0x09923e09FDECE38e3f843A1508Ef56b8fc66e9A8) |
 | **Attack Tx** | [0x013be977...](https://etherscan.io/tx/0x013be97768b702fe8eccef1a40544d5ecb3c1961ad5f87fee4d16fdc08c78106) |
 | **Vulnerable Contract** | [0x0e511Aa1a137AaD267dfe3a6bFCa0b856C1a3682](https://etherscan.io/address/0x0e511Aa1a137AaD267dfe3a6bFCa0b856C1a3682) |

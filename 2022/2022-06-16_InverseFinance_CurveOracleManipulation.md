@@ -5,7 +5,7 @@
 | **Date** | 2022-06-16 |
 | **Protocol** | Inverse Finance (Anchor Protocol) |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | ~$1,200,000 (DOLA + WBTC) |
+| **Loss** | ~$1,200,000 attacker profit (protocol bad debt: ~$5,830,000 DOLA) |
 | **Attacker** | Attacker address unconfirmed |
 | **Attack Tx** | Block 14,972,418 |
 | **Vulnerable Contract** | anYvCrv3Crypto [0x1429a930ec3bcf5Aa32EF298ccc5aB09836EF587](https://etherscan.io/address/0x1429a930ec3bcf5Aa32EF298ccc5aB09836EF587) |

@@ -6,8 +6,8 @@
 | **Protocol** | DODO Finance |
 | **Chain** | Ethereum |
 | **Loss** | ~$3,800,000 (wCRES + USDT) |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x368a...b23](https://etherscan.io/address/0x368a6558255bccac517da5106647d8182c571b23) |
+| **Attack Tx** | [0x3956...221e](https://etherscan.io/tx/0x395675b56370a9f5fe8b32badfa80043f5291443bd6c8273900476880fb5221e) (block 12,000,165) |
 | **Vulnerable Contract** | [0x051EBD717311350f1684f89335bed4ABd083a2b6](https://etherscan.io/address/0x051EBD717311350f1684f89335bed4ABd083a2b6) (DVM Pool) |
 | **Root Cause** | DVM.init() function lacks an `initialized` flag, allowing it to be called again at any time |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-03/dodo_flashloan_exp.sol) |

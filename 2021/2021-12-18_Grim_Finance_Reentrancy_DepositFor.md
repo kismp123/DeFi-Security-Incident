@@ -6,8 +6,8 @@
 | **Protocol** | Grim Finance (GrimBoostVault) |
 | **Chain** | Fantom |
 | **Loss** | ~$30,000,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0xdefc...06c](https://ftmscan.com/address/0xdefc385d7038f391eb0063c2f7c238cfb55b206c) |
+| **Attack Tx** | [0x1931...dd6](https://ftmscan.com/tx/0x19315e5b150d0a83e797203bb9c957ec1fa8a6f404f4f761d970cb29a74a5dd6) (block 25,345,003) |
 | **Vulnerable Contract** | GrimBoostVault (`depositFor()` function) |
 | **Root Cause** | `depositFor()` is reenterable when calling `transferFrom()` on an external token — 7 nested reentrant calls via a malicious token contract |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-12/Grim_exp.sol) |

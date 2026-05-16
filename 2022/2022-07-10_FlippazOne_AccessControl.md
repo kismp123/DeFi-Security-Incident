@@ -6,7 +6,8 @@
 | **Protocol** | FlippazOne (NFT Mint) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | All ETH held by the contract |
-| **Attacker** | Address unconfirmed |
+| **Attacker** | [0x56d8...4e3](https://etherscan.io/address/0x56d8b635a7c88fd1104d23d632af40c1c3aac4e3) |
+| **Attack Tx** | [0x8bde...a30](https://etherscan.io/tx/0x8bded20c1db5a1d5f595b15e682a95ce11d3c895d6031147fa49c4ffa5729a30) (block 15,084,458) |
 | **Vulnerable Contract** | [0xE85A08Cf316F695eBE7c13736C8Cc38a7Cc3e944](https://etherscan.io/address/0xE85A08Cf316F695eBE7c13736C8Cc38a7Cc3e944) |
 | **Root Cause** | `ownerWithdrawAllTo()` function lacks access control, allowing any address to drain all funds |
 | **CWE** | CWE-284: Improper Access Control |

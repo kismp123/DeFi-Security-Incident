@@ -5,10 +5,10 @@
 | **Date** | 2024-12-17 |
 | **Protocol** | GemPad (Multi-chain No-Code Token Launchpad / LP Token Locker) |
 | **Chain** | Ethereum, BNB Chain, Base |
-| **Loss** | ~$1,800,000 (27 projects affected) |
+| **Loss** | ~$1,800,000 (27 projects affected on ETH, BNB Chain, Base; per Halborn post-mortem) |
 | **Attacker** | [0xFDd9...cAaa](https://etherscan.io/address/0xFDd9b0A7e7e16b5Fd48a3D1e242aF362bC81bCaa) |
 | **Attack Contract** | [0x8e18...c43](https://etherscan.io/address/0x8e18Fb32061600A82225CAbD7fecF5b1be477c43) |
-| **Attack Tx** | [0x2bb6...659](https://etherscan.io/tx/0x2bb6d2ca3b52a01ff9b74a9acb0d7be0a3ee6af28a9a44b49b6d1e1d20fce659) |
+| **Attack Tx** | [0x2bb6...763](https://etherscan.io/tx/0x2bb6d2ca3b52a01ff9ec01c931f68762ded9a05693ea65d911a20602eea02763) |
 | **Vulnerable Contract (Proxy)** | [0x10b5...74c](https://etherscan.io/address/0x10b5f02956d242ab770605d59b7d27e51e45774c) |
 | **Vulnerable Contract (Implementation)** | [0x5d5c...FAd](https://etherscan.io/address/0x5d5c5d5898b486ad907c9fbad610324f45d29fad) |
 | **Root Cause** | Reentrancy allowed during external NFT manager callback in `GempadLock.collectFees()` |

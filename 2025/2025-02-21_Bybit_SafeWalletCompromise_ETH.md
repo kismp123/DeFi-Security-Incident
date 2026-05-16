@@ -6,7 +6,7 @@
 | **Protocol** | Bybit Exchange (Safe{Wallet} multisig) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$1,500,000,000 (~401,346 ETH) |
-| **Attacker EOA** | `0x0fa09c3a3f8b1c4f3a5f93f4e3f3e3f3e3f3e3f3` (partial — Lazarus Group) |
+| **Attacker EOA** | Unverified placeholder (repeating-pattern value on record is not a valid EOA; attributed to Lazarus Group / DPRK state-sponsored actors) |
 | **Attack Contract 1** | `0x96221423...` (malicious Safe implementation — partial) |
 | **Attack Contract 2** | `0xbdd077f6...` (proxy exploit contract — partial) |
 | **Victim** | Bybit cold wallet Safe multisig |

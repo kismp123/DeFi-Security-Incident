@@ -4,7 +4,7 @@
 |------|------|
 | **Date** | 2023-02-09 |
 | **Protocol** | dForce |
-| **Chain** | Arbitrum |
+| **Chain** | Arbitrum / Optimism (simultaneous attack on both chains; ~$3.65M combined) |
 | **Loss** | ~$3,650,000 |
 | **Attacker** | [0x...EOA](https://arbiscan.io/address/0x916792f7734089470de27297903BED8a4630b26D) |
 | **Attack Tx** | [0x5db5c240...](https://arbiscan.io/tx/0x5db5c2400ab56db697b3cc9aa02a05deab658e1438ce2f8692ca009cc45171dd) |

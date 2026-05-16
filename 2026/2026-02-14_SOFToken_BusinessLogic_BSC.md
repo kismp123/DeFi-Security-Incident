@@ -6,9 +6,9 @@
 | **Protocol** | SOF Token (Space Original Finance) |
 | **Chain** | BSC (BNB Smart Chain) |
 | **Loss** | ~$225,936 BSC-USD (net profit basis) |
-| **Attacker** | Unidentified |
+| **Attacker** | [0x29e5...ebfd](https://bscscan.com/address/0x29e5f70ebab2b5b830609e0f2b8a357f2295ebfd) |
 | **Attack Contract** | Unidentified |
-| **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
+| **Attack Tx** | [0xcb5b...68f8](https://bscscan.com/tx/0xcb5b22d86819b84ef176aee2d6b89f687e74d829560de1bcc63d53fcb2ac68f8) (block 81,140,062) |
 | **Vulnerable Contract** | [SOF Token: 0x465d...b312](https://bscscan.com/address/0x465dd76538b6fe8297cadadd0b4b2b4ff8ccb312) |
 | **Root Cause** | Burn fee exemption on transfers to mining contract — flash loan drains LP reserve |
 | **PoC Source** | DeFiHackLabs (no PoC registered as of 2026-02) / CertiK Incident Analysis Report (2026-02-27) |

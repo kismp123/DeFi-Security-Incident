@@ -5,7 +5,7 @@
 | **Date** | 2022-06-09 |
 | **Protocol** | Optimism (OP Token) / Wintermute |
 | **Chain** | Optimism |
-| **Loss** | 20,000,000 OP tokens (mistakenly sent to wrong address — design misunderstanding, not an attack) |
+| **Loss** | 20,000,000 OP tokens temporarily taken — an unknown actor deployed to the vanity address and claimed the tokens, but returned all 20M OP to Wintermute after negotiations (~1 week). Net permanent loss: $0. |
 | **Related Address** | [0x4f3a120E72C76c22ae802D129F599BFDbc31cb81](https://optimistic.etherscan.io/address/0x4f3a120E72C76c22ae802D129F599BFDbc31cb81) (non-existent vanity address) |
 | **Vulnerable Contract** | ProxyFactory [0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B](https://optimistic.etherscan.io/address/0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B) |
 | **Root Cause** | Wintermute sent OP tokens to a vanity address (CREATE opcode-based) that was deployed on Ethereum but had never been deployed on Optimism. The PoC demonstrates that the address can be generated on Optimism by looping through ProxyFactory `createProxy()` calls |

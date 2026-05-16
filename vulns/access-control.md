@@ -72,6 +72,7 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2024-09-13 | INUMI | AccessControlDrain | [2024-09-13_INUMI_AccessControlDrain.md](../2024/2024-09-13_INUMI_AccessControlDrain.md) |
 | 2024-09-26 | RockX | UniBTC Misconfiguration ETH | [2024-09-26_RockX_UniBTC_Misconfiguration_ETH.md](../2024/2024-09-26_RockX_UniBTC_Misconfiguration_ETH.md) |
 | 2024-12-10 | UnknownProtocol | AccessControl BSC | [2024-12-10_UnknownProtocol_AccessControl_BSC.md](../2024/2024-12-10_UnknownProtocol_AccessControl_BSC.md) |
+| 2024-12-10 | DeXeDAO | AccessControl BSC | [2024-12-10_DeXeDAO_AccessControl_BSC.md](../2024/2024-12-10_DeXeDAO_AccessControl_BSC.md) |
 | 2024-12-29 | FEG | AccessControl ETH | [2024-12-29_FEG_AccessControl_ETH.md](../2024/2024-12-29_FEG_AccessControl_ETH.md) |
 | 2025-04-10 | MorphoBlue | Misconfiguration ETH | [2025-04-10_MorphoBlue_Misconfiguration_ETH.md](../2025/2025-04-10_MorphoBlue_Misconfiguration_ETH.md) |
 | 2025-04-14 | KiloEx | AccessControl Base | [2025-04-14_KiloEx_AccessControl_Base.md](../2025/2025-04-14_KiloEx_AccessControl_Base.md) |
@@ -87,7 +88,6 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2025-08-13 | MulticallWithXera | ApprovalAbuse | [2025-08-13_MulticallWithXera_ApprovalAbuse.md](../2025/2025-08-13_MulticallWithXera_ApprovalAbuse.md) |
 | 2025-08-20 | 0xf340 | MissingAccessControl-VRF | [2025-08-20_0xf340_MissingAccessControl-VRF.md](../2025/2025-08-20_0xf340_MissingAccessControl-VRF.md) |
 | 2025-10-22 | TokenHolder | PrivilegedLoan-Exploit | [2025-10-22_TokenHolder_PrivilegedLoan-Exploit.md](../2025/2025-10-22_TokenHolder_PrivilegedLoan-Exploit.md) |
-| 2025-11-10 | DRLVaultV3 | AccessControl ETH | [2025-11-10_DRLVaultV3_AccessControl_ETH.md](../2025/2025-11-10_DRLVaultV3_AccessControl_ETH.md) |
 | 2025-12-12 | RibbonFinance | AccessControl ETH | [2025-12-12_RibbonFinance_AccessControl_ETH.md](../2025/2025-12-12_RibbonFinance_AccessControl_ETH.md) |
 | 2022-08-13 | ReaperFarm | MissingOwnerCheck | [2022-08-13_ReaperFarm_MissingOwnerCheck.md](../2022/2022-08-13_ReaperFarm_MissingOwnerCheck.md) |
 | 2022-09 | BadGuysbyRPF | MissingAmountCheck | [2022-09_BadGuysbyRPF_MissingAmountCheck.md](../2022/2022-09_BadGuysbyRPF_MissingAmountCheck.md) |

@@ -25,8 +25,8 @@ The `AurumNodePool` contract of Aurum Node Pool provided `changeNodePrice()` and
 ```solidity
 // ❌ Vulnerable AurumNodePool - no access control on parameter modification functions
 contract AurumNodePool {
-    uint256 public nodePrice;       // 노드 생성 비용
-    uint256 public rewardPerNode;   // 노드당 일일 보상
+    uint256 public nodePrice;       // Node creation cost
+    uint256 public rewardPerNode;   // Daily reward per node
 
     // ❌ Anyone can change node price
     function changeNodePrice(uint256 newPrice) external {

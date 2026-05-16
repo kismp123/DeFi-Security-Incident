@@ -6,8 +6,8 @@
 | **Protocol** | GAX |
 | **Chain** | BSC |
 | **Loss** | ~50,000 BUSD |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x8ccf...123](https://bscscan.com/address/0x8ccf2860f38fc2f4a56dec897c8c976503fcb123) |
+| **Attack Tx** | [0x368f...108](https://bscscan.com/tx/0x368f842e79a10bb163d98353711be58431a7cd06098d6f4b6cbbcd4c77b53108) (block 40,375,925) |
 | **Vulnerable Contract** | [0xdb4b73Df2F6dE4AFCd3A883efE8b7a4B0763822b](https://bscscan.com/address/0xdb4b73Df2F6dE4AFCd3A883efE8b7a4B0763822b) |
 | **Root Cause** | Unvalidated low-level call via function selector 0x6c99d7c8 |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-07/GAX_exp.sol) |

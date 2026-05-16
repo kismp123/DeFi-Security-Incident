@@ -6,7 +6,7 @@
 | Date | 2023-03-11 |
 | Project | DKP Token Exchange |
 | Chain | BSC |
-| Loss | ~USDT (address unconfirmed) |
+| Loss | ~Unconfirmed (USDT) |
 | Attacker | address unconfirmed |
 | Attack TX | address unconfirmed (BSC block 26,284,131) |
 | Vulnerable Contract | DKPExchange: 0x89257A52Ad585Aacb1137fCc8abbD03a963B9683 |

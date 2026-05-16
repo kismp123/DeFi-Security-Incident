@@ -5,7 +5,7 @@
 | **Date** | 2024-02-28 |
 | **Protocol** | Seneca Protocol |
 | **Chain** | Ethereum |
-| **Loss** | ~$6,000,000 |
+| **Loss** | ~$6,400,000 (confirmed CertiK, The Block; 80% / ~$5.3M recovered by whitehat) |
 | **Attacker** | [0x9464...42DC](https://etherscan.io/address/0x94641c01a4937f2C8eF930580cF396142a2942DC) |
 | **Attack Tx** | [0x23fc...1286](https://etherscan.io/tx/0x23fcf9d4517f7cc39815b09b0a80c023ab2c8196c826c93b4100f2e26b701286) |
 | **Vulnerable Contract** | [0x65c2...1F06](https://etherscan.io/address/0x65c210c59B43EB68112b7a4f75C8393C36491F06) (Chamber Proxy) |

@@ -6,11 +6,11 @@
 | Date | 2023-05-05 |
 | Project | GPT Token |
 | Chain | BSC |
-| Loss | Address unconfirmed |
-| Attacker | Address unconfirmed |
-| Attack TX | Address unconfirmed |
+| Loss | ~$155,000 BUSD |
+| Attacker | [0x054a...38d](https://bscscan.com/address/0x054a3574d8082112575843dd944ff42c58dda38d) |
+| Attack TX | [0xb77c...391](https://bscscan.com/tx/0xb77cb34cd01204bdad930d8c172af12462eef58dea16199185b77147d6533391) (block 28,494,869) |
 | Vulnerable Contract | GPT Token: 0xa1679abEF5Cd376cC9A1C4c2868Acf52e08ec1B3 |
-| Block | Address unconfirmed |
+| Block | 28,494,869 |
 | CWE | CWE-682 (Incorrect Calculation — fee mechanism allows skim exploitation) |
 | Vulnerability Type | Broken Fee Mechanism + skim() Loop Reserve Drain |
 

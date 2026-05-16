@@ -6,8 +6,8 @@
 | **Protocol** | 88mph (MPH NFT) |
 | **Chain** | Ethereum |
 | **Loss** | NFT theft (minor financial loss) |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 12,516,705) |
+| **Attacker** | Whitehat disclosure — no malicious exploit (Immunefi bounty $42,069 paid) |
+| **Attack Tx** | No on-chain attack tx — vulnerability reported to team before exploitation (PoC fork block: 12,516,705) |
 | **Vulnerable Contract** | [0xF0b7DE03134857391d8D43Ed48e20EDF21461097](https://etherscan.io/address/0xF0b7DE03134857391d8D43Ed48e20EDF21461097) (MPH NFT) |
 | **Root Cause** | The `init()` function checks an `initialized` flag but can be re-invoked after deployment, allowing ownership takeover |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-06/88mph_exp.sol) |

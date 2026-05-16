@@ -6,8 +6,8 @@
 | **Protocol** | JulSwap |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$1,500,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 7,785,586) |
+| **Attacker** | [0xc3bc...372](https://bscscan.com/address/0xc3bc29941677db01b9645f7b8b72d27e3ba75372) |
+| **Attack Tx** | [0x1751...77a](https://bscscan.com/tx/0x1751268e620767ff117c5c280e9214389b7c1961c42e77fc704fd88e22f4f77a) (block 7,785,587) |
 | **Vulnerable Contract** | [0x32dffc3fe8e3ef3571bf8a72c0d0015c5373f41d](https://bscscan.com/address/0x32dffc3fe8e3ef3571bf8a72c0d0015c5373f41d) (JulSwap) |
 | **Root Cause** | `addBNB()` references the current contract BNB balance (spot) when calculating JUL mint amount, allowing mint manipulation via large BNB inflows |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-05/JulSwap_exp.sol) |

@@ -5,7 +5,7 @@
 | **Date** | 2023-03-13 |
 | **Protocol** | Euler Finance |
 | **Chain** | Ethereum |
-| **Loss** | $197,000,000 |
+| **Loss** | $197,000,000 gross stolen; ~$177M returned by attacker between Mar 25–Apr 3, 2023; net protocol loss ~$20M |
 | **Attacker** | [0xb66c...7ae0](https://etherscan.io/address/0xb66cd966670d962C227B3EABA30a872DbFb995db) |
 | **Attack Tx** | [0xc310...111d](https://etherscan.io/tx/0xc310a0affe2169d1f6feec1c63dbc7f7c62a887fa48795d327d4d2da2d6b111d) |
 | **Root Cause** | Unlimited debt creation without collateral via donateToReserves + mint combination, followed by self-liquidation to realize profit |

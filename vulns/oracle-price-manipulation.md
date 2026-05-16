@@ -110,14 +110,8 @@ Exploits that distort on-chain price data — via spot price manipulation, TWAP 
 | 2023-09-20 | XSDWETHpool | PIDManipulation | [2023-09-20_XSDWETHpool_PIDManipulation.md](../2023/2023-09-20_XSDWETHpool_PIDManipulation.md) |
 | 2023-11-15 | KyberSwap | TickManipulation | [2023-11-15_KyberSwap_TickManipulation.md](../2023/2023-11-15_KyberSwap_TickManipulation.md) |
 | 2023-11-22 | KyberSwap | TickMathBug Multi | [2023-11-22_KyberSwap_TickMathBug_Multi.md](../2023/2023-11-22_KyberSwap_TickMathBug_Multi.md) |
-| 2024-01-14 | Wise | Lending 3 가격조작 오라클 | [2024-01-14_Wise_Lending_3_가격조작_오라클.md](../2024/2024-01-14_Wise_Lending_3_가격조작_오라클.md) |
-| 2024-02-12 | Compound | Uni 가격조작 오라클 | [2024-02-12_Compound_Uni_가격조작_오라클.md](../2024/2024-02-12_Compound_Uni_가격조작_오라클.md) |
 | 2024-02-23 | BlueberryProtocol | PriceOracleRounding ETH | [2024-02-23_BlueberryProtocol_PriceOracleRounding_ETH.md](../2024/2024-02-23_BlueberryProtocol_PriceOracleRounding_ETH.md) |
-| 2024-02-27 | Swarm | Markets 가격조작 | [2024-02-27_Swarm_Markets_가격조작.md](../2024/2024-02-27_Swarm_Markets_가격조작.md) |
-| 2024-04-12 | OpenLeverage | 2 가격조작 청산 | [2024-04-12_OpenLeverage_2_가격조작_청산.md](../2024/2024-04-12_OpenLeverage_2_가격조작_청산.md) |
-| 2024-04-23 | BigBang | Swap AMM 가격조작 | [2024-04-23_BigBang_Swap_AMM_가격조작.md](../2024/2024-04-23_BigBang_Swap_AMM_가격조작.md) |
-| 2024-04-25 | Sumer | Money 담보 오라클조작 | [2024-04-25_Sumer_Money_담보_오라클조작.md](../2024/2024-04-25_Sumer_Money_담보_오라클조작.md) |
-| 2024-06-13 | UwU | Lend 2 오라클 조작 | [2024-06-13_UwU_Lend_2_오라클_조작.md](../2024/2024-06-13_UwU_Lend_2_오라클_조작.md) |
+| 2024-06-13 | UwU Lend | Oracle Price Manipulation (2nd Attack) | [2024-06-13_UwuLend_Second_OraclePriceManipulation.md](../2024/2024-06-13_UwuLend_Second_OraclePriceManipulation.md) |
 | 2024-08-30 | Zenterest | StaleOracleBorrow | [2024-08-30_Zenterest_StaleOracleBorrow.md](../2024/2024-08-30_Zenterest_StaleOracleBorrow.md) |
 | 2024-10-10 | HYDT | OracleMintManipulation | [2024-10-10_HYDT_OracleMintManipulation.md](../2024/2024-10-10_HYDT_OracleMintManipulation.md) |
 | 2026-02-15 | Moonwell | FaultyOracle | [2026-02-15_Moonwell_FaultyOracle.md](../2026/2026-02-15_Moonwell_FaultyOracle.md) |

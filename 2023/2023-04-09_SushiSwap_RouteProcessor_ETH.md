@@ -4,7 +4,7 @@
 |------|------|
 | **Date** | 2023-04-09 |
 | **Protocol** | SushiSwap |
-| **Chain** | Ethereum |
+| **Chain** | Ethereum (primary; RouteProcessor2 also exploited on Arbitrum, Polygon, BNB Chain, Avalanche) |
 | **Loss** | $3,300,000 (~800 WETH in a single transaction) |
 | **Attacker** | [0xc0ff...9671](https://etherscan.io/address/0xc0ffeebabe5d496b2dde509f9fa189c25cf29671) (c0ffeebabe.eth) |
 | **Attack Contract** | [0xf9a0...cac4](https://etherscan.io/address/0xf9a001d5b2c7c5e45693b41fcf931b94e680cac4) |

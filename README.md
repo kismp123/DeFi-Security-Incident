@@ -1,6 +1,6 @@
 # DeFi Security Incident Database
 
-A comprehensive reference of **887** real-world DeFi security incidents (2020–2026), with root cause analysis, attack flow diagrams, on-chain source code, and PoC exploit code.
+A comprehensive reference of **812** real-world DeFi security incidents (2020–2026), with root cause analysis, attack flow diagrams, on-chain source code, and PoC exploit code.
 
 ---
 
@@ -9,12 +9,12 @@ A comprehensive reference of **887** real-world DeFi security incidents (2020–
 | Year | Incidents | Notable Events |
 |------|-----------|----------------|
 | [2020](./2020/README.md) | 9 | ERC777 reentrancy, early DeFi exploits |
-| [2021](./2021/README.md) | 34 | Flash loan surge, BSC explosion, K-invariant bypasses |
+| [2021](./2021/README.md) | 35 | Flash loan surge, BSC explosion, K-invariant bypasses, frontend injection |
 | [2022](./2022/README.md) | 135 | Bridge mega-hacks — Ronin ($625M), Wormhole ($320M), Nomad ($190M) |
-| [2023](./2023/README.md) | 266 | Flash loans, read-only reentrancy on L2, high-volume year |
-| [2024](./2024/README.md) | 279 | Business logic & arbitrary call dominance on BSC/ETH |
-| [2025](./2025/README.md) | 128 | Complex multi-step exploits, precision loss, AMM bugs |
-| [2026](./2026/README.md) | 40 | BSC business logic, EIP-7702, AMM k-value attacks, RFQ/callback authorization bugs |
+| [2023](./2023/README.md) | 235 | Flash loans, read-only reentrancy on L2, high-volume year |
+| [2024](./2024/README.md) | 234 | Business logic & arbitrary call dominance on BSC/ETH |
+| [2025](./2025/README.md) | 119 | Complex multi-step exploits, precision loss, AMM bugs, Sui/Solana/Starknet vulns |
+| [2026](./2026/README.md) | 45 | BSC business logic, EIP-7702, AMM k-value attacks, RFQ/callback authorization bugs |
 
 ---
 
@@ -25,18 +25,18 @@ A comprehensive reference of **887** real-world DeFi security incidents (2020–
 | [Flash Loan](./vulns/flash-loan.md) | 124 | Price manipulation and logic exploits within a single transaction |
 | [Business Logic](./vulns/business-logic.md) | 149 | Protocol-specific flaws in accounting, rewards, or invariants |
 | [Oracle & Price Manipulation](./vulns/oracle-price-manipulation.md) | 117 | Spot price distortion, reserve skewing, TWAP gaming |
-| [Access Control](./vulns/access-control.md) | 98 | Missing or bypassed permission checks on privileged functions |
+| [Access Control](./vulns/access-control.md) | 99 | Missing or bypassed permission checks on privileged functions |
 | [Reentrancy](./vulns/reentrancy.md) | 75 | Cross-function and read-only reentrancy attacks |
 | [Arbitrary Call / Input](./vulns/arbitrary-call.md) | 79 | Attacker-controlled calldata hijacking execution flow |
 | [Staking & Reward](./vulns/staking-reward.md) | 47 | Reward math errors, lock-up bypass, vault logic flaws |
-| [Integer & Precision](./vulns/integer-precision.md) | 31 | Overflow, underflow, and fixed-point precision bugs |
+| [Integer & Precision](./vulns/integer-precision.md) | 32 | Overflow, underflow, and fixed-point precision bugs |
 | [Slippage & AMM](./vulns/slippage-amm.md) | 27 | Missing slippage protection, K-invariant bypass |
 | [Deflationary / Tax Token](./vulns/defl-tax-token.md) | 31 | Protocol incompatibility with rebase/fee-on-transfer tokens |
 | [Signature Replay](./vulns/signature-replay.md) | 14 | Reused signatures missing nonces or domain separators |
 | [Approval / Allowance Abuse](./vulns/approval-abuse.md) | 13 | Excessive approvals and allowance drain via transferFrom |
 | [Unprotected Callback](./vulns/unprotected-callback.md) | 11 | Unvalidated swap/flash callbacks exploited for unauthorized execution |
 | [Private Key Compromise](./vulns/private-key-compromise.md) | 12 | Key theft, GitHub leak, insider abuse, supply chain attacks |
-| [Donation / Vault Inflation](./vulns/donation-inflation.md) | 10 | First-depositor donation attacks inflating share prices |
+| [Donation / Vault Inflation](./vulns/donation-inflation.md) | 11 | First-depositor donation attacks inflating share prices |
 | [Proxy & Storage Collision](./vulns/proxy-storage.md) | 12 | Storage layout mismatches between proxy and implementation |
 | [Governance](./vulns/governance.md) | 8 | Flash-loan governance, vote manipulation |
 | [NFT](./vulns/nft.md) | 9 | Reentrancy via callbacks, royalty bypass |
@@ -44,7 +44,7 @@ A comprehensive reference of **887** real-world DeFi security incidents (2020–
 | [Self-Transfer / Self-Balance Exploit](./vulns/self-balance-exploit.md) | 5 | Balance multiplication via self-transfer or threshold bypass |
 | [CREATE2 Exploit](./vulns/create2-exploit.md) | 5 | CREATE2 opcode abuse to predict or front-run contract addresses |
 | [MEV / Sandwich Attack](./vulns/mev-sandwich.md) | 4 | Front-running, sandwich attacks, and pool creation manipulation |
-| [Bridge & Cross-Chain](./vulns/bridge-crosschain.md) | 2 | Cross-chain message validation failures |
+| [Bridge & Cross-Chain](./vulns/bridge-crosschain.md) | 3 | Cross-chain message validation failures |
 
 → [Full vulnerability type index](./vulns/README.md)
 

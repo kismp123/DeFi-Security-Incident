@@ -4,10 +4,10 @@
 |------|------|
 | **Date** | 2021-11-30 |
 | **Protocol** | MonoSwap (MonoX) |
-| **Chain** | Ethereum |
-| **Loss** | ~$31,000,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 13,715,025) |
+| **Chain** | Ethereum, Polygon |
+| **Loss** | ~$31,000,000 (~$12M Ethereum + ~$19.4M Polygon) |
+| **Attacker** | [0xEcbE...258](https://etherscan.io/address/0xEcbE385F78041895c311070F344b55BfAa953258) |
+| **Attack Tx** | [0x9f14...299](https://etherscan.io/tx/0x9f14d093a2349de08f02fc0fb018dadb449351d0cdb7d0738ff69cc6fef5f299) (block 13,715,026) |
 | **Vulnerable Contract** | [0xC36a7887786389405EA8DA0B87602Ae3902B88A1](https://etherscan.io/address/0xC36a7887786389405EA8DA0B87602Ae3902B88A1) (Monoswap) |
 | **Root Cause** | `swapExactTokenForToken(MONO→MONO)` self-swap was permitted, inflating the MONO price indefinitely before draining USDC |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-11/Mono_exp.sol) |

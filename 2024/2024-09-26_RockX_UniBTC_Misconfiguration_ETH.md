@@ -5,7 +5,7 @@
 | **Date** | 2024-09-26 |
 | **Protocol** | Bedrock (RockX) — uniBTC |
 | **Chain** | Ethereum (Chain ID: 1) |
-| **Loss** | ~$1,700,000 (649.6 WETH) |
+| **Loss** | ~$2,000,000 (649.6 WETH attacker profit; total pool drain impact ~$2M) |
 | **Attacker** | [0x2bFB...F96](https://etherscan.io/address/0x2bFB373017349820dda2Da8230E6b66739BE9F96) |
 | **Attack Contract** | [0x1E1d...87D](https://etherscan.io/address/0x1E1d02D663228e5D47f1De64030B39632A3B787D) |
 | **Attack Tx** | [0x725f...940](https://etherscan.io/tx/0x725f0d65340c859e0f64e72ca8260220c526c3e0ccde530004160809f6177940) |

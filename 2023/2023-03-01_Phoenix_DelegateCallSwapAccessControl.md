@@ -6,8 +6,8 @@
 | Date | 2023-03-01 |
 | Project | Phoenix Finance (PhxProxy) |
 | Chain | Polygon |
-| Loss | ~Address unconfirmed USDC |
-| Attacker | Address unconfirmed |
+| Loss | ~$45,000 USDC |
+| Attacker | [0x1B28...059](https://polygonscan.com/address/0x1B288fBA50e9c44D8bb269a403Dcb21D5F8c6059) |
 | Attack TX | https://polygonscan.com/tx/0x6fa6374d43df083679cdab97149af8207cda2471620a06d3f28b115136b8e2c4 |
 | Vulnerable Contract | PhxProxy: 0x65BaF1DC6fA0C7E459A36E2E310836B396D1B1de |
 | Block | 40,066,946 (Polygon) |

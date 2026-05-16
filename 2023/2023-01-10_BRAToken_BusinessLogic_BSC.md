@@ -5,7 +5,7 @@
 | **Date** | 2023-01-10 |
 | **Protocol** | BRA Token |
 | **Chain** | BSC (BNB Smart Chain) |
-| **Loss** | 819 BNB (~$224,000 USD) / On-chain USDT extracted: 458,918 USDT |
+| **Loss** | 819 BNB (~$224,000 USD net profit) |
 | **Attacker EOA** | [0x67a9...0795](https://bscscan.com/address/0x67a909f2953fb1138bea4b60894b51291d2d0795) |
 | **Attack Contract 1** | [0x1fae...cb07](https://bscscan.com/address/0x1fae46b350c4a5f5c397dbf25ad042d3b9a5cb07) |
 | **Attack Contract 2** | [0x6066...e7](https://bscscan.com/address/0x6066435edce9c2772f3f1184b33fc5f7826d03e7) |

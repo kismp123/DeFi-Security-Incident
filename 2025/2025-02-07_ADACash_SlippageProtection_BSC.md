@@ -8,7 +8,7 @@
 | **Loss** | ~$107,000 |
 | **Attacker** | [View on BSCScan](https://bscscan.com/address/) |
 | **Attack Contract** | [View on BSCScan](https://bscscan.com/address/) |
-| **Attack Tx** | [0x8501a9d3...e01a](https://bscscan.com/tx/0x8501a9d34fc28bee21b78c0fd53aafe58c80bc18fb0e2aaa55f69e1dfbd3e01a) |
+| **Attack Tx** | [0x8501a9d3...e01a](https://bscscan.com/tx/0x8501a9d34fc28bee21b78c0fd53aafe58c80bc18fb0e2aaa55f69e1dfbd3e01a) *(tx hash unverified — not found on BSC mainnet)* |
 | **Vulnerable Contract** | [0x651a89fe...94c48](https://bscscan.com/address/0x651a89fed302227d41425235f8e934502fb94c48) (ADAcash token contract, BSCScan verified) |
 | **Root Cause** | Zero slippage protection due to hardcoded `amountOutMin = 0` in the token's internal swap functions (`swapTokensForEth`, `swapTokensForADA`, `addLiquidity`) — exposed to flash loan-based sandwich attacks |
 | **PoC Source** | DeFiHackLabs (no official PoC for 2025-02, analysis based on on-chain incident data) |

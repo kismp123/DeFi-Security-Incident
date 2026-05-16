@@ -6,8 +6,8 @@
 | **Protocol** | bEarn Fi (bVault) |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$11,000,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 7,457,124) |
+| **Attacker** | [0x47f3...0089](https://bscscan.com/address/0x47f341d896b08daacb344d9021f955247e50d089) |
+| **Attack Tx** | [0x603b...36c](https://bscscan.com/tx/0x603b2bbe2a7d0877b22531735ff686a7caad866f6c0435c37b7b49e4bfd9a36c) (block 7,457,125) |
 | **Vulnerable Contract** | [0xB390B07fcF76678089cb12d8E615d5Fe494b01Fb](https://bscscan.com/address/0xB390B07fcF76678089cb12d8E615d5Fe494b01Fb) (bVault) |
 | **Root Cause** | Repeated deposit→emergencyWithdraw cycle on bVault pool 13 manipulates internal accounting to enable duplicate withdrawals |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-05/bEarn_exp.sol) |

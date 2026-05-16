@@ -6,9 +6,9 @@
 | **Protocol** | Ember Sword (Blockchain MMORPG Game) |
 | **Chain** | Polygon |
 | **Loss** | ~$196,000 (60 WETH) — 159 victims |
-| **Attacker** | [0x11a624...e6f7](https://polygonscan.com/address/0x11a62441b20e74d586b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) *(unverified address)* |
-| **Attack Contract** | Unidentified (unverified on-chain) |
-| **Attack TX** | [0x11a624...e6f7](https://polygonscan.com/tx/0x11a62441b20e74d586b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) *(value provided in incident metadata)* |
+| **Attacker** | [0x268a...f5f0](https://polygonscan.com/address/0x268a663584b219a09c3c67aaeb353cc3ab0ef5f0) |
+| **Attack Contract** | [0xf423...82b3](https://polygonscan.com/address/0xf423d93de1314d0549a6a8f6165238dac97582b3) |
+| **Attack TX** | [0x11a6...af76](https://polygonscan.com/tx/0x11a62441b20e74d586e761885659c3cb45cbc447c89c73c5fd892a634cb8af76) |
 | **Vulnerable Contract** | [Ember Sword NFT Auction Contract (Polygon, deployed 2021, unverified)](https://polygonscan.com/address/0x68ddeda3f8bc35aae1c73212595ee7949f3f86ff) |
 | **Root Cause** | Access Control vulnerability — missing authorization validation logic to prevent unauthorized `transferFrom` calls in the NFT auction contract; attacker drained token allowances approved by victims in 2021 in bulk in 2024 |
 | **PoC Source** | No DeFiHackLabs PoC registered (detected by Certik Skynet, independently analyzed) |

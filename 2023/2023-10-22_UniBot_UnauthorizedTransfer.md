@@ -10,7 +10,7 @@
 | Loss | ~$83,994 USD |
 | Attack Type | Unauthorized Token Transfer via Router Vulnerability |
 | CWE | CWE-284 (Improper Access Control) |
-| Attacker Address | `0x413e4fb75c300b92fec12d7c44e4c0c0b4faab4d04` |
+| Attacker Address | `0x413e4fb75c300b92fec12d7c44e4c0c0b4faab4d` (etherscan.io/address/0x413e4fb75c300b92fec12d7c44e4c0c0b4faab4d) |
 | Attack Contract | `0x2b326a17b5ef826fa4e17d3836364ae1f0231a6f` |
 | Vulnerable Contract | `0x126c9FbaB3A2FCA24eDfd17322E71a5e36E91865` (UniBotRouter) |
 | Fork Block | 18,467,805 |
@@ -51,7 +51,7 @@ Source: Bytecode decompilation
 ## 3. Attack Flow
 
 ```
-Attacker [0x413e4fb75c300b92fec12d7c44e4c0c0b4faab4d04]
+Attacker [0x413e4fb75c300b92fec12d7c44e4c0c0b4faab4d]
   │
   ├─1─▶ UniBot.allowance(victim, UniBotRouter) query
   │      [UniBot: 0xf819d9Cb1c2A819Fd991781A822dE3ca8607c3C9]

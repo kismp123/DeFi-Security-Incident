@@ -1,8 +1,8 @@
 # 2021 DeFi Security Incidents
 
-DeFi's explosive growth brought a surge of flash loan attacks, oracle manipulation, and K-invariant bypasses across BSC and Ethereum. This year saw 34 incidents as protocols like PancakeBunny, Rari Capital, and Cream Finance were exploited.
+DeFi's explosive growth brought a surge of flash loan attacks, oracle manipulation, and K-invariant bypasses across BSC and Ethereum. This year saw 35 incidents as protocols like PancakeBunny, Rari Capital, and Cream Finance were exploited.
 
-**Total incidents: 34**
+**Total incidents: 35**
 
 ---
 
@@ -15,7 +15,7 @@ DeFi's explosive growth brought a surge of flash loan attacks, oracle manipulati
 | FlashLoan ReInit | 1 |
 | Finance KInvariantMismatch | 1 |
 | Protocol SpotBalanceLPCalc | 1 |
-| AlpacaVault WorkReetrancy | 1 |
+| AlpacaVault WorkReentrancy | 1 |
 | FlashLoan OracleManipulation | 1 |
 | ERC20 Reentrancy | 1 |
 | BUSD DepositWithdrawLoop | 1 |
@@ -32,13 +32,14 @@ DeFi's explosive growth brought a surge of flash loan attacks, oracle manipulati
 | 2021-03-09 | DODO | FlashLoan ReInit | [2021-03-09_DODO_FlashLoan_ReInit.md](./2021-03-09_DODO_FlashLoan_ReInit.md) |
 | 2021-04-28 | Uranium | Finance KInvariantMismatch | [2021-04-28_Uranium_Finance_KInvariantMismatch.md](./2021-04-28_Uranium_Finance_KInvariantMismatch.md) |
 | 2021-05-02 | Spartan | Protocol SpotBalanceLPCalc | [2021-05-02_Spartan_Protocol_SpotBalanceLPCalc.md](./2021-05-02_Spartan_Protocol_SpotBalanceLPCalc.md) |
-| 2021-05-05 | ValueDeFi | AlpacaVault WorkReetrancy | [2021-05-05_ValueDeFi_AlpacaVault_WorkReetrancy.md](./2021-05-05_ValueDeFi_AlpacaVault_WorkReetrancy.md) |
-| 2021-05-06 | PancakeBunny | FlashLoan OracleManipulation | [2021-05-06_PancakeBunny_FlashLoan_OracleManipulation.md](./2021-05-06_PancakeBunny_FlashLoan_OracleManipulation.md) |
-| 2021-05-08 | RariCapital | ERC20 Reentrancy | [2021-05-08_RariCapital_ERC20_Reentrancy.md](./2021-05-08_RariCapital_ERC20_Reentrancy.md) |
+| 2021-05-07 | ValueDeFi | AlpacaVault BusinessLogic (stale balance read) | [2021-05-07_ValueDeFi_AlpacaVault_BusinessLogic.md](./2021-05-07_ValueDeFi_AlpacaVault_BusinessLogic.md) |
+| 2021-05-08 | RariCapital | ibETH PriceManipulation (protocol incompatibility) | [2021-05-08_RariCapital_ibETH_PriceManipulation.md](./2021-05-08_RariCapital_ibETH_PriceManipulation.md) |
 | 2021-05-16 | bEarn | BUSD DepositWithdrawLoop | [2021-05-16_bEarn_BUSD_DepositWithdrawLoop.md](./2021-05-16_bEarn_BUSD_DepositWithdrawLoop.md) |
+| 2021-05-19 | PancakeBunny | FlashLoan OracleManipulation | [2021-05-19_PancakeBunny_FlashLoan_OracleManipulation.md](./2021-05-19_PancakeBunny_FlashLoan_OracleManipulation.md) |
 | 2021-05-21 | JulSwap | FlashLoan AddBNB Manipulation | [2021-05-21_JulSwap_FlashLoan_AddBNB_Manipulation.md](./2021-05-21_JulSwap_FlashLoan_AddBNB_Manipulation.md) |
 | 2021-05-28 | BurgerSwap | Reentrancy StaleReserves | [2021-05-28_BurgerSwap_Reentrancy_StaleReserves.md](./2021-05-28_BurgerSwap_Reentrancy_StaleReserves.md) |
 | 2021-06-02 | PancakeHunny | BalanceOf MintManipulation | [2021-06-02_PancakeHunny_BalanceOf_MintManipulation.md](./2021-06-02_PancakeHunny_BalanceOf_MintManipulation.md) |
+| 2021-06-16 | AlchemixV2 | StrategyBug YieldOverdistribution | [2021-06-16_AlchemixV2_StrategyBug_ETH.md](./2021-06-16_AlchemixV2_StrategyBug_ETH.md) |
 | 2021-06-21 | ElevenFinance | EmergencyBurn NoWithdraw | [2021-06-21_ElevenFinance_EmergencyBurn_NoWithdraw.md](./2021-06-21_ElevenFinance_EmergencyBurn_NoWithdraw.md) |
 | 2021-06-23 | 88mph | UnprotectedInit | [2021-06-23_88mph_UnprotectedInit.md](./2021-06-23_88mph_UnprotectedInit.md) |
 | 2021-06-26 | xWin | SlippageControl Bypass | [2021-06-26_xWin_SlippageControl_Bypass.md](./2021-06-26_xWin_SlippageControl_Bypass.md) |
@@ -57,7 +58,7 @@ DeFi's explosive growth brought a surge of flash loan attacks, oracle manipulati
 | 2021-10-27 | Cream | Finance2 OracleManipulation RecursiveBorrow | [2021-10-27_Cream_Finance2_OracleManipulation_RecursiveBorrow.md](./2021-10-27_Cream_Finance2_OracleManipulation_RecursiveBorrow.md) |
 | 2021-11-04 | Ploutoz | DOP FlashLoan OracleManipulation | [2021-11-04_Ploutoz_DOP_FlashLoan_OracleManipulation.md](./2021-11-04_Ploutoz_DOP_FlashLoan_OracleManipulation.md) |
 | 2021-11-30 | MonoSwap | SelfSwap PriceManipulation | [2021-11-30_MonoSwap_SelfSwap_PriceManipulation.md](./2021-11-30_MonoSwap_SelfSwap_PriceManipulation.md) |
-| 2021-11-30 | MonoX | SwapPriceManipulation | [2021-11-30_MonoX_SwapPriceManipulation.md](./2021-11-30_MonoX_SwapPriceManipulation.md) |
+| 2021-12-02 | BadgerDAO | FrontEndInject ApprovalDrain | [2021-12-02_BadgerDAO_FrontEndInject_ETH.md](./2021-12-02_BadgerDAO_FrontEndInject_ETH.md) |
 | 2021-12-18 | Grim | Finance Reentrancy DepositFor | [2021-12-18_Grim_Finance_Reentrancy_DepositFor.md](./2021-12-18_Grim_Finance_Reentrancy_DepositFor.md) |
 | 2021-12-21 | NerveBridge | MetaSwap PriceManipulation | [2021-12-21_NerveBridge_MetaSwap_PriceManipulation.md](./2021-12-21_NerveBridge_MetaSwap_PriceManipulation.md) |
 | 2021-12-21 | Visor | Finance DepositUnprotected | [2021-12-21_Visor_Finance_DepositUnprotected.md](./2021-12-21_Visor_Finance_DepositUnprotected.md) |

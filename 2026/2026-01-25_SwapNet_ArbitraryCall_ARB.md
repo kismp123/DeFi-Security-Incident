@@ -8,7 +8,7 @@
 | **Loss** | $13,410,000 (20 victims, single largest loss $13.34M) |
 | **Attacker** | [0x6cAa...833e](https://arbiscan.io/address/0x6cAad74121bF602e71386505A4687f310e0D833e) |
 | **Attack Contract** | [0xcCE2...225b](https://arbiscan.io/address/0xcCE2E1a23194bD50d99eB830af580Df0B7e3225b) |
-| **Attack Tx** | [0x25c0...8cbb](https://arbiscan.io/tx/0x25c08b3882ade18cbb) |
+| **Attack Tx** | Unverified (truncated hash on record — full tx not independently confirmed) |
 | **Vulnerable Contract** | [0x6160...757e](https://arbiscan.io/address/0x616000e384Ef1C2B52f5f3A88D57a3B64F23757e) |
 | **Root Cause** | Unvalidated arbitrary external call in router contract enables theft of approved tokens |
 | **References** | [BlockSec Analysis](https://blocksec.com/blog/17m-closed-source-smart-contract-exploit-arbitrary-call-swapnet-aperture) · [Verichains Analysis](https://blog.verichains.io/p/swapnet-exploit-analysis) · [ExVul Analysis](https://exvul.com/blog/swapnet-attack-analysis) |

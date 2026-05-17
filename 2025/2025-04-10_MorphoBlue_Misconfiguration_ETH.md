@@ -7,7 +7,7 @@
 | **Chain** | Ethereum |
 | **Loss** | ~$2,601,443 (1,708.64 ETH, price $1,522.52/ETH) |
 | **Attacker** | N/A (any actor monitoring the mempool) |
-| **Whitehat Intervention** | [c0ffeebabe.eth](https://etherscan.io/address/0xc0ffeebabe0000000000000000000000000000000) — intercepted funds and returned them |
+| **Whitehat Intervention** | [c0ffeebabe.eth](https://etherscan.io/address/0xC0ffeEBABE5D496B2DDE509f9fa189C25cF29671) — intercepted funds and returned them |
 | **Vulnerable Contract** | [Bundler3 (0x65661941...a2dc90245)](https://etherscan.io/address/0x6566194141eefa99af43bb5aa71460ca2dc90245) |
 | **Correct Target** | [Ethereum General Adapter1 (0x4a6c312e...d42be0ae0)](https://etherscan.io/address/0x4a6c312ec70e8747a587ee860a0353cd42be0ae0) |
 | **Root Cause** | Frontend SDK update misconfiguration — token approvals were incorrectly directed to the Bundler3 contract itself rather than the Bundler3 adapter |

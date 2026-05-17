@@ -131,7 +131,7 @@ The year of bridge hacks and cross-chain exploits. Ronin ($625M), Wormhole ($320
 | 2022-11 | AUR | NodePoolAccessControl | [2022-11_AUR_NodePoolAccessControl.md](./2022-11_AUR_NodePoolAccessControl.md) |
 | 2022-11 | Annex | FakeTokenLiquidation | [2022-11_Annex_FakeTokenLiquidation.md](./2022-11_Annex_FakeTokenLiquidation.md) |
 | 2022-11 | BDEX | ConvertDustManipulation | [2022-11_BDEX_ConvertDustManipulation.md](./2022-11_BDEX_ConvertDustManipulation.md) |
-| 2022-11 | BrahTOPG | ZapInArbitraryCall | [2022-11_BrahTOPG_ZapInArbitraryCall.md](./2022-11_BrahTOPG_ZapInArbitraryCall.md) |
+| 2022-11-09 | BrahTOPG | ZapInArbitraryCall | [2022-11-09_BrahTOPG_ZapInArbitraryCall.md](./2022-11-09_BrahTOPG_ZapInArbitraryCall.md) |
 | 2022-11-10 | DFX | FlashDepositReentrancy | [2022-11-10_DFX_FlashDepositReentrancy.md](./2022-11-10_DFX_FlashDepositReentrancy.md) |
 | 2022-11 | Kashi | InvalidSignatureApproval | [2022-11_Kashi_InvalidSignatureApproval.md](./2022-11_Kashi_InvalidSignatureApproval.md) |
 | 2022-11 | MBC | ZZSH SwapLiquifyManipulation | [2022-11_MBC_ZZSH_SwapLiquifyManipulation.md](./2022-11_MBC_ZZSH_SwapLiquifyManipulation.md) |

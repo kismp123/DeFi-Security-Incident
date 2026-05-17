@@ -6,7 +6,7 @@
 | **Protocol** | ATM Token |
 | **Chain** | BSC (BNB Chain) |
 | **Loss** | ~$182,000 USD (~182K BNB equivalent) |
-| **Attacker** | [0xee10...21a8](https://bscscan.com/address/0xee10553c26742bec9a4761fd717642d19012bab1704cbced048425070ee21a8a) |
+| **Attacker** | Unknown EOA (attacker address not independently confirmed; see Attack Tx for on-chain reference) |
 | **Attack Contract** | N/A (direct EOA call) |
 | **Attack Tx** | [0xee10553c...21a8](https://bscscan.com/tx/0xee10553c26742bec9a4761fd717642d19012bab1704cbced048425070ee21a8a) |
 | **Vulnerable Contract** | [ATM Token 0xa595...8888](https://bscscan.com/address/0xa5957E0E2565dc93880da7be32AbCBdF55788888) |

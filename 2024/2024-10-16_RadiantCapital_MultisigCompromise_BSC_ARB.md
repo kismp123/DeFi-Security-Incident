@@ -7,8 +7,8 @@
 | **Chain** | BSC + Arbitrum |
 | **Loss** | ~$50,000,000 |
 | **Attacker** | Lazarus Group (DPRK state-sponsored) |
-| **Attack Tx (BSC)** | [0x9a006...](https://bscscan.com/tx/0x9a006526de8e7fed2bab41e0e43b2e27edaae49b58d25c36a6c9e1b3b5ebdb3) |
-| **Attack Tx (ARB)** | [0x57a8c...](https://arbiscan.io/tx/0x57a8c09d29da0f95e3b16c3a9f6a07c3b8c3d4e2f7b8a1c9d5e3f2a8b7c6d5e4) |
+| **Attack Tx (BSC)** | [0xd97b...841c](https://bscscan.com/tx/0xd97b93f633aee356d992b49193e60a571b8c466bf46aaf072368f975dc11841c) |
+| **Attack Tx (ARB)** | [0x7856...2fb1](https://arbiscan.io/tx/0x7856552db409fe51e17339ab1e0e1ce9c85d68bf0f4de4c110fc4e372ea02fb1) |
 | **Vulnerable Contract** | Radiant LendingPoolAddressesProvider — ownership transferred to attacker |
 | **Root Cause** | Lazarus Group used malware-injected hardware wallet signing sessions to steal 3-of-11 multisig owner private keys; once threshold was met, the protocol's ownership was transferred to a malicious contract, draining all lending pools |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-10/RadiantCapital_exp.sol) |

@@ -6,9 +6,9 @@
 | **Protocol** | Unverified Contract 0x00C409 |
 | **Chain** | Ethereum |
 | **Loss** | Unconfirmed |
-| **Attacker** | [0x00C409](https://etherscan.io/address/0x00C409) |
-| **Attack Tx** | [0x](https://etherscan.io/tx/0x) |
-| **Vulnerable Contract** | [0x00C409](https://etherscan.io/address/0x00C409) |
+| **Attacker** | [0x6bEf...6B19](https://etherscan.io/address/0x6bEff34a8864b6d44d49Ba300c551A81011d6B19) |
+| **Attack Tx** | [0x998f...1d3f](https://etherscan.io/tx/0x998f1da472d927e74405b0aa1bbf5c1dbc50d74b39977bed3307ea2ada1f1d3f) (fork block 19,255,512 ≈ Feb 2024; file date 2024-04-09 per DeFiHackLabs) |
+| **Vulnerable Contract** | [0x00C4...003b](https://etherscan.io/address/0x00C409001C1900DdCdA20000008E112417DB003b) |
 | **Root Cause** | Unknown vulnerability in an unverified contract |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-04/UnverifiedContr_0x00C409_exp.sol) |
 

@@ -1,6 +1,6 @@
 # 2023 DeFi Security Incidents
 
-A high-volume year with 266 incidents. Flash loan price manipulation, access control failures, and read-only reentrancy across L2 chains (Arbitrum, Optimism, Polygon) were the dominant patterns.
+A high-volume year with 235 incidents. Flash loan price manipulation, access control failures, and read-only reentrancy across L2 chains (Arbitrum, Optimism, Polygon) were the dominant patterns.
 
 **Total incidents: 235**
 

@@ -6,8 +6,8 @@
 | **Protocol** | HORS Token |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~14.8 WBNB |
-| **Attacker** | [Unidentified](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://bscscan.com/tx/0x0000000000000000000000000000000000000000000000000000000000000000) |
+| **Attacker** | [0x8Efb...d5DF](https://bscscan.com/address/0x8Efb9311700439d70025d2B372fb54c61a60d5DF) |
+| **Attack Tx** | [0xc857...fed7](https://bscscan.com/tx/0xc8572846ed313b12bf835e2748ff37dacf6b8ee1bab36972dc4ace5e9f25fed7) (2025-01-08 14:04 UTC) |
 | **Vulnerable Contract** | [0x6f3390c6...](https://bscscan.com/address/0x6f3390c6C200e9bE81b32110CE191a293dc0eaba) |
 | **Root Cause** | Missing input validation on function selectors in the vulnerable contract allowed LP token theft via a fake router |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/HORS_exp.sol) |

@@ -7,7 +7,7 @@
 | **Chain** | Base (Coinbase L2) |
 | **Loss** | ~$3,000,000 (Kraken operational funds) |
 | **Attacker** | CertiK Skyfall Team (claimed whitehat research) |
-| **Attack Contract** | [0x45...CeA9](https://basescan.org/address/0x45cea9) (Base chain, deployed 2024-05-24) |
+| **Attack Contract** | Unverified — CertiK research contract on Base (full address not publicly disclosed; truncated as `0x45…CeA9`) |
 | **Attack Tx** | Multiple on-chain evidence — Base, BNB Chain, Arbitrum, Optimism |
 | **Vulnerable Contract** | Kraken deposit processing backend (off-chain accounting system) |
 | **Root Cause** | Failure to distinguish internal transfer status in deposit transactions — immediate credit on main transaction success without detecting internal revert |

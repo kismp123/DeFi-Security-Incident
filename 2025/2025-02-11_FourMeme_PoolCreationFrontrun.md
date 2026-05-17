@@ -6,8 +6,8 @@
 | **Protocol** | FourMeme |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$183,000 (287 BNB; per PeckShield and CoinTelegraph) |
-| **Attacker** | [Unidentified](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://bscscan.com/tx/0x0000000000000000000000000000000000000000000000000000000000000000) |
+| **Attacker** | [0x010F...53A](https://bscscan.com/address/0x010Fc97CB0a4D101dCe20DAB37361514bD59A53A) (Exploiter1 — pool creator) |
+| **Attack Tx** | [0x2902...f61](https://bscscan.com/tx/0x2902f93a0e0e32893b6d5c907ee7bb5dabc459093efa6dbc6e6ba49f85c27f61) (Exploiter2 main profit tx) |
 | **Vulnerable Contract** | FourMeme Launchpad (BSC) |
 | **Root Cause** | Attacker pre-created a PancakeSwap pool with an extreme price before the official liquidity migration, inducing the platform to inject liquidity into the manipulated pool |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-02/FourMeme_exp.sol) |

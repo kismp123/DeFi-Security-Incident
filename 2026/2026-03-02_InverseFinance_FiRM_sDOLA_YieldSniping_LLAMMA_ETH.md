@@ -109,7 +109,7 @@ The attacker deployed the attack contract ([0xd8e8...982](https://etherscan.io/a
 - Receive 25,000,000 crvUSD flash loan from Curve crvUSD pool
 
 **[Step 2] Accumulate sDOLA at Scale (Secure 90.1% of Supply)**
-- (2-a) Convert USDC to 6,187,490 alUSD via alUSD/USDC pool ([0xb30d...37](https://etherscan.io/address/0xb30da237))
+- (2-a) Convert USDC to 6,187,490 alUSD via Curve alUSD/crvFRAX metapool ([0xb30d...a5](https://etherscan.io/address/0xb30da2376f63de30b42dc055c93fa474f31330a5))
 - (2-b) Swap 650,000 alUSD for 454,997 sDOLA via alUSD/sDOLA Curve pool ([0x4606...f6](https://etherscan.io/address/0x460638e6f7605b866736e38045c0de8294d7d87f))
 - (2-c) Deposit 7,000,000 crvUSD into scrvUSD vault ([0x0655...67](https://etherscan.io/address/0x0655977feb2f289a4ab78af67bab0d17aab84367)), route through SaveDola ([0x76a9...37](https://etherscan.io/address/0x76a962ba6770068bcf454d34dde17175611e6637)) to obtain 327,300 sDOLA
 - (2-d) **Core swap**: Inject 13,254,734 crvUSD directly into LLAMMA ([0x0079...f7](https://etherscan.io/address/0x0079885e248b572cdc4559a8b156745e2d8ea1f7)) to obtain 9,825,506 sDOLA

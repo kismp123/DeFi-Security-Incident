@@ -2,11 +2,13 @@
 
 | Field | Details |
 |------|------|
-| **Date** | 2022-11 |
+| **Date** | 2022-11-09 |
 | **Protocol** | Brahma Finance (TOPG Zapper) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | Unconfirmed |
-| **Zapper** | [0xD248B30A3766d318C7A87F5Cf334A439446D](https://etherscan.io/address/0xD248B30A3766d318C7A87F5Cf334A439446D) |
+| **Attacker** | [0x6FA0...C4213](https://etherscan.io/address/0x6FA00a7324DC293eA8ECf56fe3143104494C4213) |
+| **Attack Tx** | [0xeaef...29c0](https://etherscan.io/tx/0xeaef2831d4d6bca04e4e9035613be637ae3b0034977673c1c2f10903926f29c0) |
+| **Zapper** | [0xD248...446D](https://etherscan.io/address/0xD248B30A3207A766d318C7A87F5Cf334A439446D) |
 | **WETH** | [0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2) |
 | **USDC** | [0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48](https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) |
 | **FRAX** | [0x853d955aCEf822Db058eb8505911ED77F175b99e](https://etherscan.io/address/0x853d955aCEf822Db058eb8505911ED77F175b99e) |
@@ -149,7 +151,7 @@ interface IERC20 {
 }
 
 contract BrahTOPGExploit is Test {
-    IBrahmaZapper zapper = IBrahmaZapper(0xD248B30A3766d318C7A87F5Cf334A439446D);
+    IBrahmaZapper zapper = IBrahmaZapper(0xD248B30A3207A766d318C7A87F5Cf334A439446D);
     IUniV2Router  router = IUniV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     IERC20 USDC  = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IERC20 FRAX  = IERC20(0x853d955aCEf822Db058eb8505911ED77F175b99e);

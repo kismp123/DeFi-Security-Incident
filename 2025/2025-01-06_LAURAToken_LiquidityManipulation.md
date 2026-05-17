@@ -6,9 +6,9 @@
 | **Protocol** | LAURA Token |
 | **Chain** | Ethereum |
 | **Loss** | ~$41,200 (12.34 ETH) |
-| **Attacker** | [Unidentified](https://etherscan.io/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://etherscan.io) |
-| **Vulnerable Contract** | [Unidentified](https://etherscan.io) |
+| **Attacker** | [0x2586...a36](https://etherscan.io/address/0x25869347f7993c50410a9b9b9c48f37d79e12a36) |
+| **Attack Tx** | [0xef34...420](https://etherscan.io/tx/0xef34f4fdf03e403e3c94e96539354fb4fe0b79a5ec927eacc63bc04108dbf420) |
+| **Vulnerable Contract** | LAURA Token liquidity contract (Ethereum; full address not publicly confirmed) |
 | **Root Cause** | `removeLiquidityWhenKIncreases` function callable under imbalanced liquidity pair state, allowing excess withdrawal |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/LAURAToken_exp.sol) |
 

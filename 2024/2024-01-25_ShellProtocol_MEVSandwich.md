@@ -4,18 +4,18 @@
 |------|------|
 | **Date** | 2024-01-25 |
 | **Protocol** | Shell Protocol MEV |
-| **Chain** | Ethereum |
-| **Loss** | Unconfirmed |
-| **Attacker** | [0xa898](https://etherscan.io/address/0xa898) |
-| **Attack Tx** | [0x](https://etherscan.io/tx/0x) |
-| **Vulnerable Contract** | [0x](https://etherscan.io/address/0x) |
+| **Chain** | BSC (BNB Chain) |
+| **Loss** | ~1,000 BUSD |
+| **Attacker** | [0x835b...bc502](https://bscscan.com/address/0x835b45d38cbdccf99e609436ff38e31ac05bc502) (from PoC source) |
+| **Attack Tx** | [0x24f1...d303](https://bscscan.com/tx/0x24f114c0ef65d39e0988d164e052ce8052fe4a4fd303399a8c1bb855e8da01e9) (block 35,273,751; from PoC source) |
+| **Vulnerable Contract** | [0xa898...f46](https://bscscan.com/address/0xa898b78b7cbbabacf9d179c4c46c212c0ac66f46) (Shell token contract; from PoC source) |
 | **Root Cause** | Sandwich attack on Shell Protocol transactions by MEV bot |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-01/Shell_MEV_0xa898_exp.sol) |
 
 ---
 ## 1. Vulnerability Overview
 
-Shell Protocol MEV is a DeFi protocol operating on the Ethereum chain that was subjected to a **MEV / Sandwich Attack** on 2024-01-25.
+Shell Protocol MEV was subjected to a **sandwich/drain attack** on BSC (BNB Chain) on 2024-01-25.
 The attacker exploited a sandwich attack on Shell Protocol transactions via an MEV bot, causing approximately **unconfirmed** in damages.
 
 ### Key Vulnerability Summary
@@ -81,7 +81,7 @@ Attacker
 
 ```solidity
 // Source: DeFiHackLabs - Shell_MEV_0xa898_exp.sol
-// Chain: Ethereum | Date: 2024-01-25
+// Chain: BSC (BNB Chain) | Date: 2024-01-25 | Block: 35,273,751
 
     function testExploit() public {
         BUSD.transfer(address(0x000000000000000000000000000000000000dEaD), BUSD.balanceOf(address(this)));
@@ -193,7 +193,7 @@ function getSafePrice() internal view returns (uint256) {
 3. **Insurance**: Distribute risk through DeFi insurance protocols
 
 ### For the Broader DeFi Ecosystem
-- The **2024-01-25** Shell Protocol MEV incident reconfirms the danger of **MEV / Sandwich Attack** exploits in the Ethereum ecosystem
+- The **2024-01-25** Shell Protocol MEV incident reconfirms the danger of **sandwich/drain attacks** on BSC token contracts
 - Similar protocols should immediately audit for the same vulnerability
 - Strengthening community-level security information sharing is recommended
 

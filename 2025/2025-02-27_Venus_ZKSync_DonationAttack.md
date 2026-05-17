@@ -6,8 +6,8 @@
 | **Protocol** | Venus Protocol (zkSync Era) |
 | **Chain** | zkSync Era |
 | **Loss** | ~86.7 WETH |
-| **Attacker** | [Unidentified](https://explorer.zksync.io/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://explorer.zksync.io) |
+| **Attacker** | [0x16be...430c](https://explorer.zksync.io/address/0x16be708e257a0df0f4275ecd9b0f70ce4b45430c) |
+| **Attack Tx** | [0x35a0...0d8](https://explorer.zksync.io/tx/0x35a0172fb6bd450ceb29aa67dc85221826dfd0b7528375400b4ccf15c1eed0d8) |
 | **Vulnerable Contract** | Venus Protocol wUSDM Pool (zkSync Era) |
 | **Root Cause** | Directly donating USDM to the wUSDM vault to artificially inflate share value, then repeatedly triggering over-collateralized liquidations to acquire vWETH |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-02/Venus_ZKSync_exp.sol) |

@@ -7,7 +7,7 @@
 | **Chain** | Polygon |
 | **Loss** | ~$120,000,000 total (BEUR minted/bad debt: ~$88–108M; wALBT stolen: ~$11M; the "$32M ALBT" figure in earlier reports was overstated — The Block confirmed ~$11M wALBT liquidated) |
 | **Attacker** | [0xcAcf...f642](https://polygonscan.com/address/0xcAcf2D28B2A5309e099f0C6e8C60Ec3dDf656642) |
-| **Attack Contract** | [0xed59...b5f1](https://polygonscan.com/address/0xed596991ac5f1aa1858da66c67f7cfa7e54b5f1) |
+| **Attack Contract** | [0xED59...B5f1](https://polygonscan.com/address/0xED596991ac5F1Aa1858Da66c67f7CFA76e54B5f1) |
 | **Attack Tx 1** | [0x3195...1b19](https://polygonscan.com/tx/0x31957ecc43774d19f54d9968e95c69c882468b46860f921668f2c55fadd51b19) |
 | **Attack Tx 2** | [0xa02d...32b1](https://polygonscan.com/tx/0xa02d0c3d16d6ee0e0b6a42c3cc91997c2b40c87d777136dedebe8ee0f47f32b1) |
 | **Vulnerable Contract** | [TellorFlex 0x8f55...4d5b](https://polygonscan.com/address/0x8f55d884cad66b79e1a131f6bcb0e66f4fd84d5b#code#F2#L282) |

@@ -5,8 +5,8 @@
 | **Date** | 2020-06-18 |
 | **Protocol** | Bancor Protocol |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | Limited damage (rapid response after vulnerability discovery) |
-| **Attacker** | [Attacker Address](https://etherscan.io/address/0x09923e09FDECE38e3f843A1508Ef56b8fc66e9A8) |
+| **Loss** | ~$131,889–$135,229 stolen by front-runner bots; ~$455,349 secured by Bancor white-hat self-extraction |
+| **Attacker** | Bancor white-hat self-hack + front-runner bots (no single external attacker EOA confirmed) |
 | **Attack Tx** | [0x4643b63d...](https://etherscan.io/tx/0x4643b63dcbfc385b8ab8c86cbc46da18c2e43d277de3e5bc3b4516d3c0fdeb9f) |
 | **Vulnerable Contract** | [0x5f58058C0eC971492166763c8C22632B583F667f](https://etherscan.io/address/0x5f58058C0eC971492166763c8C22632B583F667f) |
 | **Root Cause** | The `safeTransferFrom` function in a newly deployed Bancor contract was exposed as `public`, allowing arbitrary users to transfer tokens on behalf of others |

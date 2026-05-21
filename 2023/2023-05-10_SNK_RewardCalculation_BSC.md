@@ -6,7 +6,7 @@
 | **Protocol** | SNK (SNK Token / SNKMinter) |
 | **Chain** | BSC (BNB Chain) |
 | **Loss** | ~$197,000 (SNK tokens) |
-| **Attacker** | [0xace11292...](https://bscscan.com/address/0xace112925935335d0d7460a2470a612494f910467e263c7ff477221deee90a2c) |
+| **Attacker** | Unconfirmed EOA (address not isolated; attack TX: [0xace11292...](https://bscscan.com/tx/0xace112925935335d0d7460a2470a612494f910467e263c7ff477221deee90a2c)) |
 | **Attack Contract** | Temporary contract deployed within the attack transaction |
 | **Attack Tx 1** | [0xace11292...](https://bscscan.com/tx/0xace112925935335d0d7460a2470a612494f910467e263c7ff477221deee90a2c) |
 | **Attack Tx 2** | [0x7394f252...](https://bscscan.com/tx/0x7394f2520ff4e913321dd78f67dd84483e396eb7a25cbb02e06fe875fc47013a) |

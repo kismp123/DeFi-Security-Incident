@@ -6,8 +6,8 @@
 | **Protocol** | LPMine |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$24,000 USDT |
-| **Attacker** | [Unidentified](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://bscscan.com/tx/0x0000000000000000000000000000000000000000000000000000000000000000) |
+| **Attacker** | Unidentified (EOA not publicly confirmed) |
+| **Attack Tx** | [0x00c5...e300](https://bscscan.com/tx/0x00c5a772a58b117f142b2cbc8721b80d145ef7a910043ad08439863d0e78e300) (reward claim tx; from PoC reference) |
 | **Vulnerable Contract** | [0x6BBeF6DF...](https://bscscan.com/address/0x6BBeF6DF8db12667aE88519090984e4F871e5feb) |
 | **Root Cause** | `extractReward()` calculates rewards based on pair reserves without updating the timestamp, allowing repeated claims |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/LPMine_exp.sol) |

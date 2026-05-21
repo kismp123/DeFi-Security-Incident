@@ -5,7 +5,7 @@
 | **Date** | 2026-04-13 (UTC 03:39 – 05:08) |
 | **Protocol** | Hyperbridge (ISMP / TokenGateway on Ethereum) |
 | **Chain** | Ethereum |
-| **Loss** | ~108.2 ETH (~$237,000) actually realized; ~1 billion bridged DOT forged (theoretical ~$1.17B at mid-market, but pool liquidity was too thin to monetize) |
+| **Loss** | **~$2,500,000** (revised per Hyperbridge post-mortem; initial reports cited ~$237K extracted ETH, but multi-chain forensic audit 3 days post-incident confirmed ~$2.5M total); ~1 billion bridged DOT forged (theoretical ~$1.17B at mid-market, but pool liquidity was too thin to monetize) |
 | **Attacker EOA** | [0xC513E4f5…F1F8E7](https://etherscan.io/address/0xC513E4f5D7a93A1Dd5B7C4D9f6cC2F52d2F1F8E7) |
 | **Attack Hub Contract** | [0x365084B0…bAB5b8](https://etherscan.io/address/0x365084B05Fa7d5028346bD21D842eD0601bAB5b8) (master attack contract) |
 | **Vulnerable HandlerV1** | 0x6c8…4E6D64 (ISMP message handler) |
@@ -23,7 +23,7 @@ Hyperbridge is a coprocessor-style bridge that relays cross-chain state via ISMP
 
 `HandlerV1.handlePostRequest(...)` **failed to correctly validate an attacker-supplied proof**: either a missing root check, a replay of a historical MMR leaf, or insufficient domain separation in the verifier. Once past the proof check, TokenGateway treated the message as canonical and invoked one of its privileged handlers — specifically `ChangeAssetAdmin` — which rewrote the `admin` / `minter` slot of a bridged ERC20 to an attacker-controlled address.
 
-With mint authority over the fake "bridged DOT" ERC20 (`0x8d01…90b8`) and two sibling bridged-asset tokens, the attacker minted up to **1,000,000,000 tokens** per asset, then routed them through Uniswap V4 and legacy V3 pools to extract ~**108.2 ETH** (≈ $237K). The discrepancy between the theoretical ~$1.17B face value and the actual loss is entirely a **liquidity cap**: the bridged-DOT markets were too shallow to absorb more than a few hundred ETH of sell-pressure before collapsing to zero price.
+With mint authority over the fake "bridged DOT" ERC20 (`0x8d01…90b8`) and two sibling bridged-asset tokens, the attacker minted up to **1,000,000,000 tokens** per asset, then routed them through Uniswap V4 and legacy V3 pools to extract ~**108.2 ETH** (≈ $237K on-chain; Hyperbridge's post-mortem revised total losses to ~**$2.5M** after a multi-chain forensic audit). The discrepancy between the theoretical ~$1.17B face value and the directly extracted ETH is entirely a **liquidity cap**: the bridged-DOT markets were too shallow to absorb more than a few hundred ETH of sell-pressure before collapsing to zero price.
 
 ---
 
@@ -105,9 +105,9 @@ function onAccept(PostRequest calldata req) external onlyHandler {
 
 Because HandlerV1 accepted a forged proof, the `ChangeAssetAdmin` action was treated as canonical and the bridged ERC20 handed its `minter` role over to the attacker's contract.
 
-### 3.3 Why liquidation cap was $237K, not $1.17B
+### 3.3 Why ETH extracted was ~108 ETH while total loss reached ~$2.5M
 
-Uniswap V4 bridged-DOT pool depth was tiny (a few WETH of reserve). Each mint-and-dump round collapsed price geometrically; the marginal ETH-out curve bent to zero well before 1B DOT had been sold. The attacker realized that further minting produced no marginal ETH, and stopped at tx7.
+Uniswap V4 bridged-DOT pool depth was tiny (a few WETH of reserve). Each mint-and-dump round collapsed price geometrically; the marginal ETH-out curve bent to zero well before 1B DOT had been sold. The attacker realized that further minting produced no marginal ETH, and stopped at tx7. Hyperbridge's post-incident forensic audit identified additional losses beyond the directly extracted ETH (e.g., liquidity provider losses across V3/V4 pools, and residual token-value destruction), raising the total confirmed loss to ~$2.5M.
 
 ---
 
@@ -150,7 +150,7 @@ A rolling per-epoch mint cap per bridged asset would have reduced the worst case
 1. **Proof verifier bugs are terminal for bridges**: once a forged proof is accepted, every privileged handler downstream is attacker-controllable. HandlerV1 is the single point where trust is established — it must be audited with the same rigor as a consensus-layer verifier.
 2. **Privileged bridge payloads need redundant checks**: even with a perfect proof verifier, actions like `ChangeAssetAdmin` should re-check origin inside the destination contract. Defense in depth means the attack also has to corrupt the origin check, not just the proof.
 3. **Pool depth is a loss limiter, not a defense**: the attacker forged $1.17B of face value and could only monetize 0.02% of it. That is luck, not security — the same bug on a deeply liquid asset would have been catastrophic. Rate limits and timelocks are the real defenses.
-4. **Time-windowed admin rotations beat instant ones**: an instant-effective `setMinter` turned a proof-verifier bug into an 80-minute $237K loss. With a 24-hour timelock, the same bug would have been caught and reversed by monitoring before any mint completed.
+4. **Time-windowed admin rotations beat instant ones**: an instant-effective `setMinter` turned a proof-verifier bug into an 80-minute ~$2.5M loss. With a 24-hour timelock, the same bug would have been caught and reversed by monitoring before any mint completed.
 5. **Bridged-asset ERC20 wrappers are not "just ERC20s"**: their `minter` slot is a cross-chain trust root. Governance around it must match the bridge's consensus trust model.
 
 ---

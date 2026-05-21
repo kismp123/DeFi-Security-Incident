@@ -15,6 +15,7 @@
 | **Victim Token** | Molt EVM (`mEVM`) `0x225da3d879d379ff6510c1cc27ac8535353f501f` |
 | **Attack Function** | `0x131eaa43` (undisclosed custom function) |
 | **Unauthorized Mint Amount** | **100,000,000 mEVM** |
+| **USD Loss** | Unverified (token market cap and dump proceeds not independently confirmed) |
 
 ---
 

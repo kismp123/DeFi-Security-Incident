@@ -2,7 +2,7 @@
 
 Exploits that re-enter a contract before state updates complete, allowing repeated withdrawals or unintended state changes.
 
-**Total incidents: 75**
+**Total incidents: 72**
 
 ---
 
@@ -44,7 +44,7 @@ Exploits that re-enter a contract before state updates complete, allowing repeat
 | 2023-06-22 | SHIDO | LockTokenReentrancy | [2023-06-22_SHIDO_LockTokenReentrancy.md](../2023/2023-06-22_SHIDO_LockTokenReentrancy.md) |
 | 2023-06-xx | MidasCapital | ReadOnlyReentrancyLP | [2023-06-xx_MidasCapital_ReadOnlyReentrancyLP.md](../2023/2023-06-xx_MidasCapital_ReadOnlyReentrancyLP.md) |
 | 2023-07-01 | BNO | FlashLoanReentrancy | [2023-07-01_BNO_FlashLoanReentrancy.md](../2023/2023-07-01_BNO_FlashLoanReentrancy.md) |
-| 2023-07-10 | ArcadiaFinance | Reentrancy ETH | [2023-07-10_ArcadiaFinance_Reentrancy_ETH.md](../2023/2023-07-10_ArcadiaFinance_Reentrancy_ETH.md) |
+| 2023-07-10 | ArcadiaFinance | Reentrancy OP | [2023-07-10_ArcadiaFinance_Reentrancy_OP.md](../2023/2023-07-10_ArcadiaFinance_Reentrancy_OP.md) |
 | 2023-07-11 | Libertify | Reentrancy ETH | [2023-07-11_Libertify_Reentrancy_ETH.md](../2023/2023-07-11_Libertify_Reentrancy_ETH.md) |
 | 2023-07-18 | Libertify | Reentrancy | [2023-07-18_Libertify_Reentrancy.md](../2023/2023-07-18_Libertify_Reentrancy.md) |
 | 2023-07-21 | ConicFinance | ReadOnlyReentrancy ETH | [2023-07-21_ConicFinance_ReadOnlyReentrancy_ETH.md](../2023/2023-07-21_ConicFinance_ReadOnlyReentrancy_ETH.md) |
@@ -70,7 +70,7 @@ Exploits that re-enter a contract before state updates complete, allowing repeat
 | 2024-04-XX | SumerMoney | RepayBorrowBehalfReentrancy | [2024-04-XX_SumerMoney_RepayBorrowBehalfReentrancy.md](../2024/2024-04-XX_SumerMoney_RepayBorrowBehalfReentrancy.md) |
 | 2024-07-14 | MinterestFinance | Reentrancy Mantle | [2024-07-14_MinterestFinance_Reentrancy_Mantle.md](../2024/2024-07-14_MinterestFinance_Reentrancy_Mantle.md) |
 | 2024-07-20 | MRP | ReentrancyFallback | [2024-07-20_MRP_ReentrancyFallback.md](../2024/2024-07-20_MRP_ReentrancyFallback.md) |
-| 2024-09-03 | Penpie | ReentrancyRewardInflation ARB | [2024-09-03_Penpie_ReentrancyRewardInflation_ARB.md](../2024/2024-09-03_Penpie_ReentrancyRewardInflation_ARB.md) |
+| 2024-09-03 | Penpie | ReentrancyRewardInflation ETH | [2024-09-03_Penpie_ReentrancyRewardInflation_ETH.md](../2024/2024-09-03_Penpie_ReentrancyRewardInflation_ETH.md) |
 | 2024-09-04 | Pythia | ReentrancyStakingDrain | [2024-09-04_Pythia_ReentrancyStakingDrain.md](../2024/2024-09-04_Pythia_ReentrancyStakingDrain.md) |
 | 2024-11-11 | DeltaPrime | Reentrancy ARB | [2024-11-11_DeltaPrime_Reentrancy_ARB.md](../2024/2024-11-11_DeltaPrime_Reentrancy_ARB.md) |
 | 2024-12-10 | CloberDEX | Reentrancy Base | [2024-12-10_CloberDEX_Reentrancy_Base.md](../2024/2024-12-10_CloberDEX_Reentrancy_Base.md) |
@@ -80,9 +80,6 @@ Exploits that re-enter a contract before state updates complete, allowing repeat
 | 2025-03-05 | PumpToken | BuyTokenReentrancy | [2025-03-05_PumpToken_BuyTokenReentrancy.md](../2025/2025-03-05_PumpToken_BuyTokenReentrancy.md) |
 | 2025-03-15 | wKeyDAO | NFTReentrancy | [2025-03-15_wKeyDAO_NFTReentrancy.md](../2025/2025-03-15_wKeyDAO_NFTReentrancy.md) |
 | 2025-04-08 | Laundromat | WithdrawReentrancy | [2025-04-08_Laundromat_WithdrawReentrancy.md](../2025/2025-04-08_Laundromat_WithdrawReentrancy.md) |
-| 2024-01-03 | Radiant | Capital 재진입 플래시론 | [2024-01-03_Radiant_Capital_재진입_플래시론.md](../2024/2024-01-03_Radiant_Capital_재진입_플래시론.md) |
-| 2024-01-23 | DAO | SoulMate 재진입 플래시론 | [2024-01-23_DAO_SoulMate_재진입_플래시론.md](../2024/2024-01-23_DAO_SoulMate_재진입_플래시론.md) |
-| 2024-05-31 | Predy | Finance 콜백 재진입 | [2024-05-31_Predy_Finance_콜백_재진입.md](../2024/2024-05-31_Predy_Finance_콜백_재진입.md) |
 
 ---
 

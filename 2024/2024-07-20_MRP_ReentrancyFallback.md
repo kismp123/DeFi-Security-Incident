@@ -6,8 +6,8 @@
 | **Protocol** | MRP / WMRP |
 | **Chain** | BSC |
 | **Loss** | ~17 BNB |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x132d...138](https://bscscan.com/address/0x132d9bbdbe718365af6cc9e43bac109a9a53b138) |
+| **Attack Tx** | [0x4353...101](https://bscscan.com/tx/0x4353a6d37e95a0844f511f0ea9300ef3081130b24f0cf7a4bd1cae26ec393101) (block 40,122,170) |
 | **Vulnerable Contract** | WMRP Token Contract |
 | **Root Cause** | Repeated manipulation of WMRP contract state via reentrancy through `fallback()` |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-07/MRP_exp.sol) |

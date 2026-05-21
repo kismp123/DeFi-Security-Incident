@@ -2,7 +2,7 @@
 
 Attacks using uncollateralized flash loans to manipulate prices, drain liquidity, or exploit logic within a single transaction.
 
-**Total incidents: 124**
+**Total incidents: 116**
 
 ---
 
@@ -113,7 +113,6 @@ Attacks using uncollateralized flash loans to manipulate prices, drain liquidity
 | 2025-01-10 | IPC | ChainedFlashLoanTimelockBypass | [2025-01-10_IPC_ChainedFlashLoanTimelockBypass.md](../2025/2025-01-10_IPC_ChainedFlashLoanTimelockBypass.md) |
 | 2025-01-10 | Mosca | FlashLoanStateManipulation | [2025-01-10_Mosca_FlashLoanStateManipulation.md](../2025/2025-01-10_Mosca_FlashLoanStateManipulation.md) |
 | 2025-01-17 | Mosca2 | FlashLoanJoinExit | [2025-01-17_Mosca2_FlashLoanJoinExit.md](../2025/2025-01-17_Mosca2_FlashLoanJoinExit.md) |
-| 2025-03-01 | DCFToken | FlashLoanManipulation | [2025-03-01_DCFToken_FlashLoanManipulation.md](../2025/2025-03-01_DCFToken_FlashLoanManipulation.md) |
 | 2025-03-18 | Alkimiya | MorphoFlashLoan | [2025-03-18_Alkimiya_MorphoFlashLoan.md](../2025/2025-03-18_Alkimiya_MorphoFlashLoan.md) |
 | 2025-04-14 | YBToken | FlashLoanKManipulation | [2025-04-14_YBToken_FlashLoanKManipulation.md](../2025/2025-04-14_YBToken_FlashLoanKManipulation.md) |
 | 2025-06-09 | Unverified8490 | FlashLoanCallback | [2025-06-09_Unverified8490_FlashLoanCallback.md](../2025/2025-06-09_Unverified8490_FlashLoanCallback.md) |
@@ -125,13 +124,6 @@ Attacks using uncollateralized flash loans to manipulate prices, drain liquidity
 | 2025-08-08 | PDZ | FlashLoan-RewardManipulation | [2025-08-08_PDZ_FlashLoan-RewardManipulation.md](../2025/2025-08-08_PDZ_FlashLoan-RewardManipulation.md) |
 | 2025-08-25 | Hexotic | FlashSwap-TakeFunction | [2025-08-25_Hexotic_FlashSwap-TakeFunction.md](../2025/2025-08-25_Hexotic_FlashSwap-TakeFunction.md) |
 | 2022-07-LPC | FlashLoanSelfTransfer |  | [2022-07-LPC_FlashLoanSelfTransfer.md](../2022/2022-07-LPC_FlashLoanSelfTransfer.md) |
-| 2024-01-16 | NBL | Game 플래시론 리워드조작 | [2024-01-16_NBL_Game_플래시론_리워드조작.md](../2024/2024-01-16_NBL_Game_플래시론_리워드조작.md) |
-| 2024-01-27 | Peapods | Finance 플래시론 가격조작 | [2024-01-27_Peapods_Finance_플래시론_가격조작.md](../2024/2024-01-27_Peapods_Finance_플래시론_가격조작.md) |
-| 2024-02-06 | Dual | Pools 플래시론 가격조작 | [2024-02-06_Dual_Pools_플래시론_가격조작.md](../2024/2024-02-06_Dual_Pools_플래시론_가격조작.md) |
-| 2024-02-07 | Burns | DeFi 플래시론 가격조작 | [2024-02-07_Burns_DeFi_플래시론_가격조작.md](../2024/2024-02-07_Burns_DeFi_플래시론_가격조작.md) |
-| 2024-03-28 | Lava | Lending 플래시론 담보조작 | [2024-03-28_Lava_Lending_플래시론_담보조작.md](../2024/2024-03-28_Lava_Lending_플래시론_담보조작.md) |
-| 2024-05-10 | RedKeys | Coin 플래시론 가격조작 | [2024-05-10_RedKeys_Coin_플래시론_가격조작.md](../2024/2024-05-10_RedKeys_Coin_플래시론_가격조작.md) |
-| 2024-05-21 | EX | Community 플래시론 가격조작 | [2024-05-21_EX_Community_플래시론_가격조작.md](../2024/2024-05-21_EX_Community_플래시론_가격조작.md) |
 
 ---
 

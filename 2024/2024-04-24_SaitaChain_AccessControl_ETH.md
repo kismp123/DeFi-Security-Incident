@@ -7,7 +7,7 @@
 | **Chain** | Ethereum (additional losses: BNB Chain) |
 | **Loss** | ~$1,000,000 (ETH) / Total ~$1,440,000 (ETH + BNB combined) |
 | **Attacker** | [0x0cfc...caa7](https://etherscan.io/address/0x0cfc28d16d07219249c6d6d6ae24e7132ee4caa7) |
-| **Attack TX** | [0x903d...0bfc](https://etherscan.io/tx/0x903d88a92cbc0165a73fd1e47b35a3ad46e9b49e8b7bbada7f13668c3e3d0bfc) |
+| **Attack TX** | [0x903d...c92](https://etherscan.io/tx/0x903d88a92cbc0165a7f662305ac1bff97430dbcccaa0fe71e101e18aa9109c92) |
 | **Vulnerable Contract** | [0x354c...cB8C](https://etherscan.io/address/0x354cca2f55dde182d36fe34d673430e226a3cb8c) (XBridge4) |
 | **Root Cause** | In `listToken()`, when `_baseToken == _correspondingToken`, the token owner (`_tokenOwner`) can be set without any caller validation → subsequent `withdrawTokens()` call drains assets |
 | **PoC Source** | DeFiHackLabs (no PoC exists for this date) / [Neptune Mutual Analysis](https://medium.com/neptune-mutual/understanding-the-xbridge-exploit-d3d56c0dc19c) |

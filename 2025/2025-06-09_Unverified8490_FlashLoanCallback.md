@@ -6,7 +6,7 @@
 | **Protocol** | Unverified Contract (BSC) |
 | **Chain** | BSC |
 | **Loss** | 48,300 USD |
-| **Attacker** | [0x7248939f65bdd23aab9eaab1bc4a4f909567486e](https://etherscan.io/address/0x7248939f65bdd23aab9eaab1bc4a4f909567486e) |
+| **Attacker** | [0x7248...86e](https://bscscan.com/address/0x7248939f65bdd23aab9eaab1bc4a4f909567486e) |
 | **Attack Tx** | [0x9191153c...](https://bscscan.com/tx/0x9191153c8523d97f3441a08fef1da5e4169d9c2983db9398364071daa33f59d1) |
 | **Vulnerable Contract** | [0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d](https://bscscan.com/address/0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d) |
 | **Root Cause** | The `pancakeV3FlashCallback` function executes internal asset transfers without validating the caller (`msg.sender`) |

@@ -5,8 +5,9 @@
 | **Date** | 2022-08-26 |
 | **Protocol** | DDC Token |
 | **Chain** | Binance Smart Chain (BSC) |
-| **Loss** | Address unconfirmed (USDT drained) |
-| **Attacker** | Address unconfirmed |
+| **Loss** | ~$104,600 USDT |
+| **Attacker** | [0x5b69...def](https://bscscan.com/address/0x5b69f9c6cbb4958008eae46072886e6b9524fdef) |
+| **Attack Tx** | [0xd08c...054](https://bscscan.com/tx/0xd08cfb22d14bc4f2808970b5ce2557124ae3d7dc9fda756647a3427b8275f054) (block 20,840,080) |
 | **Vulnerable Contract (DDC Token)** | [0x443195AA3a4357242a7427Fc8ce5f20c1E71fcB1](https://bscscan.com/address/0x443195AA3a4357242a7427Fc8ce5f20c1E71fcB1) |
 | **DDC/USDT Pair** | [0x4EFdcabA42cC31cF5198ec99BDC025aff1e32Bb0](https://bscscan.com/address/0x4EFdcabA42cC31cF5198ec99BDC025aff1e32Bb0) |
 | **WBNB** | [0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c](https://bscscan.com/address/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c) |

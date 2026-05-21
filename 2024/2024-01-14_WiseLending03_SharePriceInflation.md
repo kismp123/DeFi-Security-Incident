@@ -5,7 +5,7 @@
 | **Date** | 2024-01-14 |
 | **Protocol** | Wise Lending |
 | **Chain** | Ethereum |
-| **Loss** | ~$464,000 (cumulative) |
+| **Loss** | Unconfirmed (WL03-specific loss amount unverified; WL02 on 2024-01-12 caused ~$464,000) |
 | **Attacker** | [0xb90cf1d7](https://etherscan.io/address/0xb90cf1d740b206b6d80854bc525e609dc42b45dc) |
 | **Attack Contract** | [0x91c49cc7](https://etherscan.io/address/0x91c49cc7fbfe8f70aceeb075952cd64817f9d82c) |
 | **Vulnerable Contract** | [WiseLending 0x37e49bf3](https://etherscan.io/address/0x37e49bf3749513a02fa535f0cbc383796e8107e4) |

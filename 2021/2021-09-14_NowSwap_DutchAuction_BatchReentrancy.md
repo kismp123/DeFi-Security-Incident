@@ -5,9 +5,9 @@
 | **Date** | 2021-09-14 |
 | **Protocol** | NowSwap (Dutch Auction) |
 | **Chain** | Ethereum |
-| **Loss** | Address unconfirmed |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 13,038,771) |
+| **Loss** | Unconfirmed — no on-chain attack tx found |
+| **Attacker** | Unknown |
+| **Attack Tx** | No confirmed on-chain attack tx — simulation PoC demonstrating Dutch Auction batch() reentrancy; the major NowSwap loss ($1M+) was from a separate K-invariant bug in block 13,229,001 (fork block: 13,038,771) |
 | **Vulnerable Contract** | [0x4c4564a1FE775D97297F9e3Dc2e762e0Ed5Dda0e](https://etherscan.io/address/0x4c4564a1FE775D97297F9e3Dc2e762e0Ed5Dda0e) (DutchAuction) |
 | **Root Cause** | When the batch() function makes multiple calls to the same function (commitEth), state is not updated between each call, allowing duplicate participation |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-09/NowSwap_exp.sol) |

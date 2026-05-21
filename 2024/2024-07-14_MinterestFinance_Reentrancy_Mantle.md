@@ -5,7 +5,7 @@
 | **Date** | 2024-07-14 |
 | **Protocol** | Minterest Finance |
 | **Chain** | Mantle (Chain ID: 5000) |
-| **Loss** | ~$1,460,000 (equivalent to ~427 ETH) |
+| **Loss** | ~$1,400,000 (per Halborn and Minterest post-mortem) |
 | **Attacker** | [0x618f...11d1](https://mantlescan.xyz/address/0x618f768af6291705eb13e0b2e96600b3851911d1) |
 | **Attack Contract** | [0x5fda...4d2d](https://mantlescan.xyz/address/0x5fdac50aa48e3e86299a04ad18a68750b2074d2d) |
 | **Inner Contract** | [0x9b50...c06](https://mantlescan.xyz/address/0x9b506584a0f2176494d5f9c858437b54df97bc06) |
@@ -215,7 +215,7 @@ Attacker fallback() → enter myFunction()
     │  │  │  │   USDY → mUSD conversion              │    │
     │  │  │  ├─ wrapAmount -= 383_885...             │    │
     │  │  │  └─ musdy.lendRUSDY(mUSD balance)        │    │
-    │  │  │       mUSD → add mUSDY collateral (累积)  │    │
+    │  │  │       mUSD → add mUSDY collateral (cumulative) │    │
     │  │  │       ↑ [Reentrancy allowed — core vuln] │    │
     │  │  └─────────────────────────────────────────┘    │
     │  │                                                   │

@@ -8,15 +8,13 @@
 | **Loss** | ~$2,600,000 (xFTM) |
 | **Attacker** | [0x9362e8cF30635de48Bdf8DA52139EEd8f1e5d400](https://ftmscan.com/address/0x9362e8cF30635de48Bdf8DA52139EEd8f1e5d400) |
 | **Vulnerable Contract** | Pool [0x880672AB1d46D987E5d663Fc7476CD8df3C9f937](https://ftmscan.com/address/0x880672AB1d46D987E5d663Fc7476CD8df3C9f937) |
-| **Root Cause** | A decimal scaling error in the xFTM output calculation of the `mint()` function caused far more xFTM to be minted than intended per 1 FSM input |
+| **Root Cause** | The `mint()` function accepted native FTM via `msg.value` but the deposit check compared it against an FSM token amount without proper equivalence validation, allowing minting with zero FTM deposited; a secondary decimal scaling error in the xFTM output calculation compounded the over-minting |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-03/Fantasm_exp.sol) |
 
 ---
 ## 1. Vulnerability Overview
 
-Fantasm Finance's Pool contract provided a `mint()` function that minted xFTM tokens in exchange for deposited FSM tokens. The xFTM output amount (`_xftmOut`) calculation logic contained a decimal scale mismatch.
-
-Due to a difference in decimal places (decimals) between FSM and xFTM, or an incorrectly applied scaling factor during intermediate calculations, it was possible to mint a large amount of xFTM with a small FSM input. The attacker exploited this by calling `mint()` followed by `collect()` to receive the xFTM and realize a profit.
+Fantasm Finance's Pool contract provided a `mint()` function that minted xFTM tokens in exchange for native FTM (via `msg.value`) or FSM tokens. The primary vulnerability was that `mint()` checked `msg.value` (native FTM deposited) against a condition that could be bypassed by supplying FSM tokens without any actual FTM, allowing the attacker to mint xFTM with **zero FTM deposited**. A secondary decimal scaling error in the xFTM output calculation (`_xftmOut`) compounded the loss by issuing far more xFTM than the FSM input warranted. The attacker exploited this by calling `mint()` followed by `collect()` to receive the over-minted xFTM and liquidate it for profit.
 
 ---
 ## 2. Vulnerable Code Analysis

@@ -6,8 +6,9 @@
 | **Protocol** | Akropolis (delphi Savings Pool) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$2,000,000 (DAI) |
-| **Attacker** | [0x9f26ae5cd245b84b67c109a0b3e25efb8d1f1ca5](https://etherscan.io/address/0x9f26ae5cd245b84b67c109a0b3e25efb8d1f1ca5) |
-| **Attack Tx** | [0x2b023d8...](https://etherscan.io/tx/0x2b023d65485c4bb68d781960f2d8f05f240dba41e3c78ad71f46a2db2a25c06c) |
+| **Attacker** | [0x9f26...c1c](https://etherscan.io/address/0x9f26aE5cd245bFEeb5926D61497550f79D9C6C1c) |
+| **Attack Contract (Malicious ERC20)** | [0xe230...d62f](https://etherscan.io/address/0xe2307837524Db8961C4541f943598654240bd62f) |
+| **Attack Tx (representative)** | [0xe1f3...04d](https://etherscan.io/tx/0xe1f375a47172b5612d96496a4599247049f07c9a7d518929fbe296b0c281e04d) (block 11,242,695 — 1 of 17 exploit txs) |
 | **Vulnerable Contract** | [0x157c75776F8a966E33028E29d42B6dF6e41E9c75](https://etherscan.io/address/0x157c75776F8a966E33028E29d42B6dF6e41E9c75) |
 | **Root Cause** | Reentrancy via malicious ERC20 token: the deposit function did not follow the Checks-Effects-Interactions pattern, allowing reentry before balance update during callback |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2020-11/Akropolis_exp.sol) |

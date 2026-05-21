@@ -6,8 +6,8 @@
 | **Protocol** | Paribus |
 | **Chain** | Arbitrum |
 | **Loss** | ~$86,000 |
-| **Attacker** | [Unidentified](https://arbiscan.io/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://arbiscan.io) |
+| **Attacker** | [0x5619...e7Ed](https://arbiscan.io/address/0x56190CAC88b8D4b5D5Ed668ef81828913932e7Ed) |
+| **Attack Tx** | [0xf5e7...bd2](https://arbiscan.io/tx/0xf5e753d3da60db214f2261343c1e1bc46e674d2fa4b7a953eaf3c52123aeebd2) |
 | **Vulnerable Contract** | Paribus lending contract (Arbitrum) |
 | **Root Cause** | Collateral valuation logic overestimates the actual value of concentrated liquidity NFTs with extreme tick ranges (-870000~870000), allowing over-borrowing |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/Paribus_exp.sol) |

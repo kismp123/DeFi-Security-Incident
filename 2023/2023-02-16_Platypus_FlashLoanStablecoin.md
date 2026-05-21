@@ -9,7 +9,7 @@
 | **Attacker** | Unknown |
 | **Attack Tx** | [0x1266a937...](https://snowtrace.io/tx/0x1266a937c2ccd970e5d7929021eed3ec593a95c68a99b4920c2efa226679b430) |
 | **Vulnerable Contract** | Platypus USP Stablecoin Contract |
-| **Root Cause** | USP minting did not cross-validate pool balance against actual collateral value, allowing over-issuance via a temporary large deposit |
+| **Root Cause** | `emergencyWithdraw()` does not check the caller's outstanding USP debt, allowing full collateral withdrawal without repayment — flash loan deposit inflates apparent collateral, then emergency withdrawal exits without burning USP |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2023-02/Platypus_exp.sol) |
 
 ---

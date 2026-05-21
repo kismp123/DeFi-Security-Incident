@@ -6,10 +6,10 @@
 | **Protocol** | PRXVT |
 | **Chain** | Base |
 | **Loss** | 32.8 ETH |
-| **Attacker** | Unknown |
-| **Attack Contract** | Unknown |
-| **Attack Tx** | Unknown |
-| **Vulnerable Contract** | PRXVT Staking Contract |
+| **Attacker** | [0x7407f9bdc4140d5e284ea7de32a9de6037842f45](https://basescan.org/address/0x7407f9bdc4140d5e284ea7de32a9de6037842f45) |
+| **Attack Contract** | [0x702980b1ed754c214b79192a4d7c39106f19bce9](https://basescan.org/address/0x702980b1ed754c214b79192a4d7c39106f19bce9) |
+| **Attack Tx** | [0xf42a8fe556d5e4ab59b0b7675ccbcd1425e7e2a6a8e0c9775fc6cd7c48ff55a1](https://basescan.org/tx/0xf42a8fe556d5e4ab59b0b7675ccbcd1425e7e2a6a8e0c9775fc6cd7c48ff55a1) |
+| **Vulnerable Contract** | [0xdac30a5e2612206e2756836ed6764ec5817e6fff](https://basescan.org/address/0xdac30a5e2612206e2756836ed6764ec5817e6fff) (stPRXVT) |
 | **Root Cause** | Transferring stPRXVT to CREATE2-deployed helper contracts causes each helper to be recognized as a new staker, enabling independent reward claims |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) |
 

@@ -6,10 +6,10 @@
 | **Protocol** | MTToken (MT) |
 | **Chain** | BSC |
 | **Loss** | ~$37,000 |
-| **Attacker** | Unknown |
-| **Attack Contract** | Unknown |
-| **Attack Tx** | Unknown |
-| **Vulnerable Contract** | MTToken ERC20 Contract |
+| **Attacker** | [0xe918a1784ceca08e51a1b740f4036fd149339811](https://bscscan.com/address/0xe918a1784ceca08e51a1b740f4036fd149339811) |
+| **Attack Contract** | [0xb64f5d49656fae38655ef2e3c2e3768ddb5f3d5c](https://bscscan.com/address/0xb64f5d49656fae38655ef2e3c2e3768ddb5f3d5c) (flashloan receiver) |
+| **Attack Tx** | Unverified — hash `0xe1e6aa5332deaf0fa0a3584113c17bedc906148730cbbc73efae16306121687b` is the FutureSwap Arbitrum TX (2026-01-10); the actual MTToken BSC TX hash was not independently confirmed |
+| **Vulnerable Contract** | [0x2f3f25046ea518d1e524b8fb6147c656d6722ced](https://bscscan.com/address/0x2f3f25046ea518d1e524b8fb6147c656d6722ced) (MT Token) |
 | **Root Cause** | `transactionFee()` distributes fees without validating that the sum of shares ≤ 100, causing the sender to lose far more tokens than the transfer amount, and making the AMM pair an unintended fee recipient |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) |
 

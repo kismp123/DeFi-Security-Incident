@@ -6,7 +6,7 @@
 | Date | 2023-04-14 |
 | Project | OceanLife (OLIFE) |
 | Chain | BSC |
-| Loss | ~unconfirmed address WBNB |
+| Loss | ~Unconfirmed (WBNB) |
 | Attacker | unconfirmed address |
 | Attack TX | unconfirmed address (BSC) |
 | Vulnerable Contract | OLIFE reflection token (BSC) |
@@ -24,7 +24,7 @@ OLIFE is a reflection ERC20 on BSC. The attacker used a DODO flash loan of 969 W
 Source: Sourcify verified
 
 ```solidity
-// 파일: PancakeRouter.sol
+// File: PancakeRouter.sol
     function swapExactTokensForTokensSupportingFeeOnTransferTokens(  // ❌
 
 // ...

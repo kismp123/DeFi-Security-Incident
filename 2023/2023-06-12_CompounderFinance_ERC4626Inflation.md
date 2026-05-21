@@ -5,7 +5,7 @@
 | **Date** | 2023-06-12 |
 | **Protocol** | Compounder Finance |
 | **Chain** | Ethereum |
-| **Loss** | ~27,174K USD |
+| **Loss** | ~$27,174 (small first-depositor attack; original entry had erroneous "K" suffix making it read as $27.17B) |
 | **Attacker** | [0x0e816b0d...](https://etherscan.io/address/0x0e816b0d0a66252c72af822d3e0773a2676f3278) |
 | **Attack Contract** | [0x2d797317...](https://etherscan.io/address/0x2d7973177d594237a9b347cd41082af4cbb40f2b) |
 | **Attack Tx** | [0xcff84cc1...](https://etherscan.io/tx/0xcff84cc137c92e427f720ca1f2b36fbad793f34ec5117eed127060686e6797b1) |

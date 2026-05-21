@@ -6,7 +6,7 @@
 | **Protocol** | Wise Lending |
 | **Chain** | Ethereum (Mainnet) |
 | **Loss** | ~$464,000 (177 ETH) |
-| **Attacker** | [0xb90c...d8](https://etherscan.io/address/0xb90cf1d740b206b6d8) |
+| **Attacker** | [0xB90C...45Dc](https://etherscan.io/address/0xB90CF1d740B206B6d80854BC525E609Dc42B45Dc) |
 | **Attack Contract** | [0x91c4...82c](https://etherscan.io/address/0x91c49cc7fbfe8f70aceeb075952cd64817f9d82c) |
 | **Attack Tx** | [0x04e1...c31](https://etherscan.io/tx/0x04e16a79ff928db2fa88619cdd045cdfc7979a61d836c9c9e585b3d6f6d8bc31) |
 | **Vulnerable Contract** | [0x37e4...E4](https://etherscan.io/address/0x37e49bf3749513A02FA535F0CbC383796E8107E4) |

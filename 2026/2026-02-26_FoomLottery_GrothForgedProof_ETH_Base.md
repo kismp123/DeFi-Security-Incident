@@ -8,7 +8,7 @@
 | **Total Loss** | **~24.28 trillion FOOM** (≈13.9% of total supply of 175 trillion FOOM) |
 | **ETH Loss** | 19,695,576,757,802 FOOM (30 forged claims) |
 | **Base Loss** | 4,588,196,709,631 FOOM (10 forged claims) |
-| **Root Cause** | Groth16 zkSNARK proof forgery — trusted setup secret (τ) leak or insufficient circuit constraints |
+| **Root Cause** | Groth16 zkSNARK proof forgery — Phase 2 trusted setup was skipped, leaving `gamma2 == delta2` (the default G2 generator); this algebraic degeneracy lets an attacker freely construct valid proofs for arbitrary public inputs without knowing any secret |
 | **ETH Attack TX** | [`0xce20448...e275e48`](https://etherscan.io/tx/0xce20448233f5ea6b6d7209cc40b4dc27b65e07728f2cbbfeb29fc0814e275e48) |
 | **Base Attack TX** | [`0xa88317a...e48d929d`](https://basescan.org/tx/0xa88317a105155b464118431ce1073d272d8b43e87aba528a24b62075e48d929d) |
 | **ETH Attacker** | [`0x46c403e3DcAF219D9D4De167cCc4e0dd8E81Eb72`](https://etherscan.io/address/0x46c403e3DcAF219D9D4De167cCc4e0dd8E81Eb72) |
@@ -22,7 +22,7 @@
 
 This attack **forged zero-knowledge proofs** in a Groth16 zkSNARK-based lottery protocol, enabling the attacker to repeatedly withdraw arbitrary rewards without actually participating in or winning the lottery.
 
-FOOM Lottery is a Tornado Cash-style zkSNARK lottery where participants submit a secret commitment hash (`play()`), the protocol processes them in batches (`reveal()`), and winners claim rewards with a Groth16 proof via `collect()`. The sole line of defense for verifying win eligibility is the `withdraw.verifyProof()` call inside `collect()`. However, **the secret parameter (toxic waste, τ) of the Groth16 trusted setup was leaked**, allowing the attacker to freely generate valid proofs for arbitrary public inputs (root, nullifierHash, rewardbits, recipient, etc.).
+FOOM Lottery is a Tornado Cash-style zkSNARK lottery where participants submit a secret commitment hash (`play()`), the protocol processes them in batches (`reveal()`), and winners claim rewards with a Groth16 proof via `collect()`. The sole line of defense for verifying win eligibility is the `withdraw.verifyProof()` call inside `collect()`. However, **the Phase 2 (circuit-specific) portion of the Groth16 trusted setup was skipped**, leaving the verification key's `gamma2` and `delta2` parameters equal to the default BN254 G2 generator. This algebraic degeneracy allows anyone to construct a valid proof for arbitrary public inputs (root, nullifierHash, rewardbits, recipient, etc.) without knowledge of any secret.
 
 The attacker executed a total of 40 forged claims across ETH and Base, draining ~24.28 trillion FOOM — approximately 13.9% of the total FOOM supply.
 
@@ -152,19 +152,25 @@ function checkField(v) {
 
 This verifier checks that public inputs are within the BN254 scalar field range and performs an elliptic curve pairing check (`e(A, B) = e(alpha, beta) * e(C, delta) * e(input_acc, gamma)`). However, this mathematical verification is only sound under the assumption that **the proving key and verification key were generated from an honest trusted setup**.
 
-**Trusted setup compromise scenario:**
+**Skipped Phase 2 trusted setup — gamma2 == delta2 degeneracy:**
 
-If the secret parameter `τ` (toxic waste) generated during the Groth16 trusted setup is known:
+A correct Groth16 trusted setup runs two phases: Phase 1 (powers-of-tau, circuit-agnostic) and Phase 2 (circuit-specific, generates the proving/verification keys including distinct `gamma2` and `delta2` G2 points). If Phase 2 is skipped, both `gamma2` and `delta2` default to the same well-known G2 generator `G2`. This makes the verification equation:
 
 ```
-// Attacker's proof forgery process with known τ (conceptual)
+e(A, B) = e(alpha, beta) · e(C, delta) · e(input_acc, gamma)
+```
+
+trivially satisfiable: because `delta == gamma == G2`, an attacker can freely choose `A`, `B`, `C` and a matching `input_acc` that satisfies the pairing equation for any public input vector — no knowledge of a secret is required.
+
+```
+// Attacker's proof forgery process (conceptual, gamma2 == delta2 == G2)
 1. Choose arbitrary public inputs x = [root, nullifierHash, rewardbits, ...]
-2. Use τ to directly compute group elements (A, B, C) satisfying the polynomial relations
-3. Verification equation e(A, B) = e(α, β) · e(C, δ) · e(Σ xᵢ·[βuᵢ(τ)+αvᵢ(τ)+wᵢ(τ)]₁, γ) holds
+2. Since gamma2 = delta2 = G2, select A, B, C to trivially balance the pairing equation
+3. Verification equation e(A, B) = e(α, β) · e(C, G2) · e(input_acc, G2) holds
 4. verifyProof() → returns true (accepted as a valid proof)
 ```
 
-This means valid proofs can be generated purely algebraically without needing to actually satisfy any constraints encoded in the circuit (commitment hashes, Merkle paths, etc.).
+This means valid proofs can be generated purely algebraically without needing to satisfy any circuit constraints (commitment hashes, Merkle paths, etc.).
 
 ### 3.3 Remediation Recommendations
 
@@ -388,7 +394,7 @@ This strongly suggests that both attacks were carried out by **the same actor or
 
 | ID | Vulnerability | Severity | CWE | Description |
 |----|--------|--------|-----|------|
-| **V-01** | Trusted Setup Compromise / Proof Forgery | **CRITICAL** | CWE-320 (Key Management Error), CWE-347 (Improper Verification of Cryptographic Signature) | Leaked toxic waste (τ) from Groth16 trusted setup allows attacker to generate valid proofs for arbitrary public inputs |
+| **V-01** | Skipped Phase 2 Trusted Setup / Proof Forgery | **CRITICAL** | CWE-320 (Key Management Error), CWE-347 (Improper Verification of Cryptographic Signature) | Phase 2 of Groth16 trusted setup was skipped, leaving `gamma2 == delta2` (default G2 generator); this algebraic degeneracy allows construction of valid proofs for any public inputs without any secret |
 | **V-02** | Acceptance of Arbitrary Nullifiers | **HIGH** | CWE-345 (Insufficient Verification of Data Authenticity) | `collect()` does not validate the format or origin of nullifierHash, allowing arbitrary values such as sequential integers to be used as nullifiers |
 | **V-03** | Missing Circuit Constraint Enforcement | **HIGH** | CWE-697 (Incorrect Comparison) | Circom circuit does not sufficiently enforce constraints such as `nullifierHash = poseidon(secret, 0)`, or the constraints themselves are nullified by the trusted setup compromise |
 
@@ -402,7 +408,8 @@ This strongly suggests that both attacks were carried out by **the same actor or
 | **Base** | 10 | 4,588,196,709,631 | — |
 | **Total** | **40** | **24,283,773,467,433** | **≈13.9%** (based on ETH supply of 175T) |
 
-- USD loss cannot be calculated as no public FOOM token price was available
+- **USD Loss**: ~$2,260,000 total at FOOM market price at time of attack
+- **White-hat Recovery**: ~$1,840,000 (≈81%) returned via white-hat negotiation; net user loss ~$420,000
 - Approximately 13.9% of total supply being drained in a single incident constitutes a critical blow to the token economy
 
 ---
@@ -440,10 +447,10 @@ This strongly suggests that both attacks were carried out by **the same actor or
 
 ### 10.1 Trusted Setup Is a Single Point of Failure
 
-The security of Groth16 relies entirely on the assumption that the toxic waste (τ) generated during the trusted setup was permanently destroyed. **If this assumption breaks down, the entire proof system is nullified** — no matter how correctly the verifier is implemented on-chain, it cannot reject forged proofs.
+Groth16 requires two setup phases; Phase 2 is circuit-specific and must be completed to produce distinct `gamma2` and `delta2` verification key elements. **If Phase 2 is skipped, both default to the BN254 G2 generator and the verification equation becomes trivially satisfiable for any inputs** — the on-chain verifier will accept any proof regardless of how correctly the pairing arithmetic is implemented.
 
-- A protocol team that conducts its own trusted setup cannot escape suspicion of retaining the toxic waste
-- A **public MPC ceremony with at least dozens of independent participants** is essential
+- Skipping Phase 2 is a catastrophic omission that silently passes unit tests (the verifier contract itself is correct code)
+- A **public MPC ceremony with at least dozens of independent participants for both phases** is essential
 - Where possible, migrate to proof systems that require no trusted setup (PLONK, STARKs, etc.)
 
 ### 10.2 Defense in Depth for zkSNARK-Based Protocols

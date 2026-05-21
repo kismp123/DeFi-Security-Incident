@@ -6,8 +6,8 @@
 | **Protocol** | ZABU Finance |
 | **Chain** | Avalanche |
 | **Loss** | ~$3,200,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 4,177,751) |
+| **Attacker** | [0x9ed2...86](https://snowtrace.io/address/0x9ed2d048e90cffa5e4a778678cbc3acb8a3abf86) |
+| **Attack Tx** | [0x0d65...eb3](https://snowtrace.io/tx/0x0d65ce5c7a0c072b14ec5da08488d07778f334a7ddb6b7a30df97f274f3e1eb3) (block 4,178,715) |
 | **Vulnerable Contract** | ZABU Farm (SPORE token pool 38) |
 | **Root Cause** | Farm's accZABUPerShare calculation references current LP balanceOf() (spot), causing reward-per-unit distortion when reserves are manipulated |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-09/ZABU_exp.sol) |

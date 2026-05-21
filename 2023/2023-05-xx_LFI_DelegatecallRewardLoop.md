@@ -8,7 +8,7 @@
 | Chain | Polygon |
 | Loss | ~$36,000 |
 | Attacker | 0x11576cb3d8d6328cf319e85b10e09a228e84a8de |
-| Attack TX | Address unconfirmed |
+| Attack TX | [0xdd82...c0c](https://polygonscan.com/tx/0xdd82fde0cc2fb7bdc078aead655f6d5e75a267a47c33fa92b658e3573b93ef0c) (block 43,025,776) |
 | Vulnerable Contract | VLFI: 0xfc604b6fD73a1bc60d31be111F798dd0D4137812 |
 | Block | 43,025,776 |
 | CWE | CWE-284 (Improper Access Control — unsafe delegatecall) |

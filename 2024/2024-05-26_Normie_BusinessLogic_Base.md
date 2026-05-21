@@ -5,7 +5,7 @@
 | **Date** | 2024-05-26 |
 | **Protocol** | Normie (NORMIE memecoin) |
 | **Chain** | Base |
-| **Loss** | ~$490,000 (224.98 ETH total drained, 77.5 ETH in this single Tx) |
+| **Loss** | ~$881,686 (224.98 ETH at attack-time price; confirmed CertiK, Neptune Mutual) |
 | **Attacker** | [0xf7f3...717D](https://basescan.org/address/0xf7f3a556Ac21d081F6dBa961B6A84E52e37A717D) |
 | **Attack Contract** | [0xEF0B...beFC](https://basescan.org/address/0xEF0BA56DA26B4DDFEf0959c1D0Fc7a73A908beFC) |
 | **Attack Tx** | [0xa618...c3fd](https://basescan.org/tx/0xa618933a0e0ffd0b9f4f0835cc94e523d0941032821692c01aa96cd6f80fc3fd) |

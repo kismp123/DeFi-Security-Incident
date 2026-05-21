@@ -6,8 +6,8 @@
 | **Protocol** | OMPx Contract |
 | **Chain** | Ethereum |
 | **Loss** | ~4.37 ETH (~11,527 USD) |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x40d1...831](https://etherscan.io/address/0x40d115198d71cab59668b51dd112a07d273d5831) |
+| **Attack Tx** | [0xd927...9b6](https://etherscan.io/tx/0xd927843e30c6b2bf43103d83bca6abead648eac3cad0d05b1b0eb84cd87de9b6) (block 20,468,780) |
 | **Vulnerable Contract** | [0x09A80172ED7335660327cD664876b5df6FE06108](https://etherscan.io/address/0x09A80172ED7335660327cD664876b5df6FE06108) |
 | **Root Cause** | `purchase()`/`buyBack()` functions calculate exchange rate based on internal ETH balance — repeated calls accumulate rate imbalance enabling arbitrage profit |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-08/OMPxContract_exp.sol) |

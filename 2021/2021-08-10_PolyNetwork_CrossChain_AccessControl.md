@@ -5,9 +5,9 @@
 | **Date** | 2021-08-10 |
 | **Protocol** | Poly Network |
 | **Chain** | Ethereum (+ BSC, Polygon) |
-| **Loss** | ~$611,000,000 (Largest DeFi hack in history) |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 12,996,658) |
+| **Loss** | ~$611,000,000 (Largest DeFi hack at the time of the attack) |
+| **Attacker** | [0xC8a6...963](https://etherscan.io/address/0xC8a65Fadf0e0dDAf421F28FEAb69Bf6E2E589963) (ETH) |
+| **Attack Tx** | [0xb1f7...581](https://etherscan.io/tx/0xb1f70464bd95b774c6ce60fc706eb5f9e35cb5f06e6cfe7c17dcda46ffd59581) (ETH block 12,996,659) |
 | **Vulnerable Contract** | EthCrossChainManager [0x838bf9E95CB12Dd76a54C9f9D2E3082EAF928270](https://etherscan.io/address/0x838bf9E95CB12Dd76a54C9f9D2E3082EAF928270) |
 | **Root Cause** | `verifyHeaderAndExecuteTx()` does not block calls to the `EthCrossChainData` contract, allowing cross-chain messages to replace the keeper public key and transfer arbitrary funds |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-08/PolyNetwork_exp.sol) |

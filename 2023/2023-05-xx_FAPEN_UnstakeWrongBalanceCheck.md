@@ -25,7 +25,7 @@ The FAPEN token's `unstake()` function contained a flawed balance check that val
 Source: Bytecode Decompilation
 
 ```solidity
-// 파일: FAPEN_decompiled.sol
+// File: FAPEN_decompiled.sol
     function balanceOf(address account) external view returns (uint256) {}  // ❌
 
 // ...

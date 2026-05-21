@@ -5,8 +5,9 @@
 | **Date** | 2022-07-21 |
 | **Protocol** | Quixotic (NFT Marketplace) |
 | **Chain** | Optimism |
-| **Loss** | Address unconfirmed (OP tokens stolen) |
+| **Loss** | ~$80,000 (OP tokens) |
 | **Attacker** | [0x0A0805082EA0fc8bfdCc6218a986efda6704eFE5](https://optimistic.etherscan.io/address/0x0A0805082EA0fc8bfdCc6218a986efda6704eFE5) |
+| **Attack Tx** | [0x5dc5...3e6](https://optimistic.etherscan.io/tx/0x5dc519726e1236eb846271f6699e03cdd1a8fd593a2900c71cd2aabbdb7c92e6) (block 13,591,384) |
 | **Victim** | [0x4D9618239044A2aB2581f0Cc954D28873AFA4D7B](https://optimistic.etherscan.io/address/0x4D9618239044A2aB2581f0Cc954D28873AFA4D7B) |
 | **Vulnerable Contract (Quixotic)** | [0x065e8A87b8F11aED6fAcf9447aBe5E8C5D7502b6](https://optimistic.etherscan.io/address/0x065e8A87b8F11aED6fAcf9447aBe5E8C5D7502b6) |
 | **OP Token** | [0x4200000000000000000000000000000000000042](https://optimistic.etherscan.io/address/0x4200000000000000000000000000000000000042) |

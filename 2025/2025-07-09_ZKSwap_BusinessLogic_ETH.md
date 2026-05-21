@@ -8,7 +8,7 @@
 | **Loss** | $5,000,000 (USDC, USDT, ETH, and multiple other tokens) |
 | **Attacker** | [0x0a652...a7ba](https://etherscan.io/address/0x0a652decf9caca373e2b50607ecb7b069d71a7ba) |
 | **Attack Contract** | [0x2D3103...613A](https://etherscan.io/address/0x2D3103c8Fdd9d9411E24f555fdad6B22F29F613A) |
-| **Attack Tx (representative)** | [0x0b4979...0605](https://etherscan.io/tx/0x0b4979b7fbe706059b2ee8e4c6d2a20ba77d9d2ef3d2a2c1d65fcae59a67a5b4) |
+| **Attack Tx (Exodus trigger)** | [0xfdb9...182](https://etherscan.io/tx/0xfdb93e00f3b1d24303db7f43eaa5ef50d3fde957ddeec7c0feb8c5497ba11182) (block 22,881,853) |
 | **Vulnerable Contract** | [0x8ECa80...97ad](https://etherscan.io/address/0x8ECa806Aecc86CE90Da803b080Ca4E3A9b8097ad) |
 | **Root Cause** | `verifyExitProof()` unconditionally returns `true` without validating the actual ZK proof — a business logic flaw that allowed draining of L1 bridge funds |
 | **PoC Source** | [DeFiHackLabs (reference)](https://github.com/SunWeb3Sec/DeFiHackLabs) |

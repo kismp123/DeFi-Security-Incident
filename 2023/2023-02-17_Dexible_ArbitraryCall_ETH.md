@@ -4,8 +4,8 @@
 |------|------|
 | **Date** | 2023-02-17 |
 | **Protocol** | Dexible |
-| **Chain** | Ethereum |
-| **Loss** | ~$1,500,000 (tokens stolen from multiple victims) |
+| **Chain** | Ethereum (primary); Arbitrum also attacked in same campaign |
+| **Loss** | ~$2,000,000 (ETH + ARB, drained from 17 victim addresses) |
 | **Attacker** | [0x684B...to be confirmed](https://etherscan.io/address/0xDE62E1b0edAa55aAc5ffBE21984D321706418024) |
 | **Attack Tx** | [0x138d...1a6](https://etherscan.io/tx/0x138daa4cbeaa3db42eefcec26e234fc2c89a4aa17d6b1870fc460b2856fd11a6) |
 | **Vulnerable Contract** | [0xDE62...8024](https://etherscan.io/address/0xDE62E1b0edAa55aAc5ffBE21984D321706418024) (Dexible) |

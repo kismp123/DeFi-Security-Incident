@@ -8,7 +8,7 @@
 | Chain | BSC |
 | Loss | ~$95,000 |
 | Attacker | 0xa3aa817587556c023e78b2285d381c68cee17069 |
-| Attack TX | Address unconfirmed |
+| Attack TX | [0xfe80...136](https://bscscan.com/tx/0xfe80df5d689137810df01e83b4bb51409f13c865e37b23059ecc6b3d32347136) (block 28,092,673) |
 | Vulnerable Contract | StakingRewards: 0x274b3e185c9c8f4ddEF79cb9A8dC0D94f73A7675 |
 | Block | 28,092,673 |
 | CWE | CWE-284 (Improper Access Control — sell() no caller validation) |

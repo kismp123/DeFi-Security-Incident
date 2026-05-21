@@ -5,6 +5,7 @@
 | **Date** | 2022-08 |
 | **Protocol** | XST Token (XStable) |
 | **Chain** | Ethereum Mainnet |
+| **Loss** | ~Unconfirmed |
 | **Attack Tx** | [0x873f7c77d5489c1990f701e9bb312c103c5ebcdcf0a472db726730814bfd55f3](https://etherscan.io/tx/0x873f7c77d5489c1990f701e9bb312c103c5ebcdcf0a472db726730814bfd55f3) |
 | **Vulnerable Contract (XST Token)** | [0x91383A15C391c142b80045D8b4730C1c37ac0378](https://etherscan.io/address/0x91383A15C391c142b80045D8b4730C1c37ac0378) |
 | **XStable2** | [0xb276647E70CB3b81a1cA302Cf8DE280fF0cE5799](https://etherscan.io/address/0xb276647E70CB3b81a1cA302Cf8DE280fF0cE5799) |

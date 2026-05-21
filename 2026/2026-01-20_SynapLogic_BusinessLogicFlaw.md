@@ -6,10 +6,12 @@
 | **Protocol** | SynapLogic |
 | **Chain** | Base |
 | **Loss** | ~27.6 ETH + ~3,450 USDC |
-| **Attacker** | Unknown |
-| **Attack Contract** | Unknown |
-| **Attack Tx** | Unknown |
-| **Vulnerable Contract** | SynapLogic token sale contract |
+| **Attacker (ETH)** | [0x3Aa8bb3A19EECD229Cb33fbc03Ff549473e30F38](https://basescan.org/address/0x3Aa8bb3A19EECD229Cb33fbc03Ff549473e30F38) |
+| **Attacker (USDC)** | [0x11f9564c0e3a203e4c2b427dcae401dfc7ea3b61](https://basescan.org/address/0x11f9564c0e3a203e4c2b427dcae401dfc7ea3b61) |
+| **Attack Contract** | [0x3821f686384c231e2F71ea093Fb6189dE803f482](https://basescan.org/address/0x3821f686384c231e2F71ea093Fb6189dE803f482) |
+| **Attack Tx (ETH)** | [0xc54c00046364b6e889db18c73beee9b81df6b5ca822b6d262b3d30cdf376c4b1](https://basescan.org/tx/0xc54c00046364b6e889db18c73beee9b81df6b5ca822b6d262b3d30cdf376c4b1) |
+| **Attack Tx (USDC, sample)** | [0xdc0f9149ace1a2fe0445fe1c096b098e0dbf06edec675a1f2f2a5c8b72bd5f10](https://basescan.org/tx/0xdc0f9149ace1a2fe0445fe1c096b098e0dbf06edec675a1f2f2a5c8b72bd5f10) |
+| **Vulnerable Contract** | [0xC859aC8429fB4A5E24F24a7BEd3fE3a8Db4fb371](https://basescan.org/address/0xC859aC8429fB4A5E24F24a7BEd3fE3a8Db4fb371) (SynapLogic Sale, implementation) |
 | **Root Cause** | The refund mechanism in the `buy()` function allows repeated refunds exceeding the original payment amount when combining multiple recipients/rates/refund flag combinations |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) |
 

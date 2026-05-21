@@ -5,7 +5,7 @@
 | **Date** | 2025-07-09 |
 | **Protocol** | GMX V1 |
 | **Chain** | Arbitrum |
-| **Loss** | $41,003,649 (WETH, WBTC, USDC, USDe, LINK, UNI, USDT, FRAX, DAI) |
+| **Loss** | ~$42,000,000 (WETH, WBTC, USDC, USDe, LINK, UNI, USDT, FRAX, DAI; per BlockSec, Halborn, CoinDesk) |
 | **Attacker** | [0xDF33...5221](https://arbiscan.io/address/0xDF3340A436c27655bA62F8281565C9925C3a5221) |
 | **Attack Contract** | [0x7D3B...355](https://arbiscan.io/address/0x7D3BD50336f64b7A473C51f54e7f0Bd6771cc355) |
 | **Attack Tx** | [0x0318...6ef](https://arbiscan.io/tx/0x03182d3f0956a91c4e4c8f225bbc7975f9434fab042228c7acdc5ec9a32626ef) |

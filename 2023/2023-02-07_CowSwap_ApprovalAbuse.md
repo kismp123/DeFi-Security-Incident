@@ -5,7 +5,7 @@
 | **Date** | 2023-02-07 |
 | **Protocol** | CowSwap |
 | **Chain** | Ethereum |
-| **Loss** | Unknown (multiple users affected) |
+| **Loss** | ~$166,000–$181,600 (confirmed by CryptoSlate, NewsbtC) |
 | **Attacker** | MEV bot |
 | **Attack Tx** | [0x90b46860...](https://etherscan.io/tx/0x90b468608fbcc7faef46502b198471311baca3baab49242a4a85b73d4924379b) |
 | **Vulnerable Contract** | CowSwap SwapGuard (settlement contract) |

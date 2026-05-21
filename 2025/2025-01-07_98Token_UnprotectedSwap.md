@@ -6,7 +6,7 @@
 | **Protocol** | 98Token |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$28,000 USDT |
-| **Attacker** | [Unidentified](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
+| **Attacker** | [0x67A5...e7E2](https://bscscan.com/address/0x67A5f6bd9F8763c7E6C4EA0b54D1b14B9e5ee7E2) |
 | **Attack Tx** | [0x61da5b50...](https://bscscan.com/tx/0x61da5b502a62d7e9038d73e31ceb3935050430a7f9b7e29b9b3200db3095f91d) |
 | **Vulnerable Contract** | [0xB040D88e...](https://bscscan.com/address/0xB040D88e61EA79a1289507d56938a6AD9955349C) |
 | **Root Cause** | `swapTokensForTokens()` has no access control, allowing anyone to swap tokens held by the contract |

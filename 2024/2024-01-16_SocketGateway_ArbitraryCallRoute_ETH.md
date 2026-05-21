@@ -7,7 +7,7 @@
 | **Chain** | Ethereum |
 | **Loss** | ~$3,300,000 (USDC drained from multiple victims) |
 | **Attacker** | [0x50DF...9066](https://etherscan.io/address/0x50DF5a2217588772471B84aDBbe4194A2Ed39066) |
-| **Attack Contract** | [0xf2D5...05d1](https://etherscan.io/address/0xf2D5951bB0A4d14BdcCC37b66f919f9A1009C05d1) |
+| **Attack Contract** | [0xf2D5...05d1](https://etherscan.io/address/0xf2D5951bB0A4d14BdcC37b66f919f9A1009C05d1) |
 | **Attack Tx** | [0xc6c3...fd6](https://etherscan.io/tx/0xc6c3331fa8c2d30e1ef208424c08c039a89e510df2fb6ae31e5aa40722e28fd6) |
 | **Vulnerable Contract** | [0x3a23...97a5](https://etherscan.io/address/0x3a23F943181408EAC424116Af7b7790c94Cb97a5) (SocketGateway) |
 | **Vulnerable Route** | [0xCC5f...067e](https://etherscan.io/address/0xCC5fDA5e3cA925bd0bb428C8b2669496eE43067e) (WrappedTokenSwapperImpl) |

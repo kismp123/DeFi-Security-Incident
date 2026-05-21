@@ -5,7 +5,7 @@
 | **Date** | 2023-08-18 |
 | **Protocol** | Exactly Protocol |
 | **Chain** | Optimism |
-| **Loss** | ~$7,000,000 (total assets reduced: $12.85M → final $7M after partial recovery) |
+| **Loss** | ~$7,300,000 (4,323.6 ETH; confirmed by The Block, Olympix, Neptune Mutual — no significant recovery occurred; the $12.85M early estimate was revised down to $7.3M in official post-mortem) |
 | **Attacker EOA** | [0x3747...1af9](https://optimistic.etherscan.io/address/0x3747dbbcb5c07786a4c59883e473a2e38f571af9) |
 | **Attack Contract** | [0x6dD6...5B4d](https://optimistic.etherscan.io/address/0x6dd61c69415c8ecab3fefd80d079435ead1a5b4d) |
 | **Vulnerable Contract** | [0x675d...1060 (DebtManager Proxy)](https://optimistic.etherscan.io/address/0x675d410dcf6f343219aae8d1dde0bfab46f52106) |

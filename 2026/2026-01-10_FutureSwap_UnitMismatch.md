@@ -5,11 +5,11 @@
 | **Date** | 2026-01-10 |
 | **Protocol** | FutureSwap |
 | **Chain** | Arbitrum |
-| **Loss** | ~$433,000 (USDC.e) |
-| **Attacker** | Unknown |
-| **Attack Contract** | Unknown |
-| **Attack Tx** | Unknown |
-| **Vulnerable Contract** | FutureSwap FeeManager Contract |
+| **Loss** | ~$394,743 USDC.e (~$433K total including WETH) |
+| **Attacker** | [0xbf6ec059f519b668a309e1b6ecb9a8ea62832d95](https://arbiscan.io/address/0xbf6ec059f519b668a309e1b6ecb9a8ea62832d95) |
+| **Attack Contract** | [0x348df930e825da25552d8b3dc44e871c67846cb5](https://arbiscan.io/address/0x348df930e825da25552d8b3dc44e871c67846cb5) |
+| **Attack Tx** | [0xe1e6aa5332deaf0fa0a3584113c17bedc906148730cbbc73efae16306121687b](https://arbiscan.io/tx/0xe1e6aa5332deaf0fa0a3584113c17bedc906148730cbbc73efae16306121687b) |
+| **Vulnerable Contract** | [0xf7ca7384cc6619866749955065f17bedd3ed80bc](https://arbiscan.io/address/0xf7ca7384cc6619866749955065f17bedd3ed80bc) (FutureSwap Proxy) |
 | **Root Cause** | Fees are calculated and passed as token unit amounts, but FeeManager interprets them as basis points (bps), resulting in abnormally large fees being charged |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) |
 

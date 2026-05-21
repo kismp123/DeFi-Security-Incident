@@ -8,8 +8,9 @@
 | **Loss** | ~$552,000 (~224 ETH) |
 | **Attacker** | [0x0437...fd62](https://sonicscan.org/address/0x04377cfaF4b4A44bb84042218cdDa4cEBCf8fd62) |
 | **Attack Contract (MalCoin)** | [0x79C5...9c7e](https://sonicscan.org/address/0x79C5c002410A67Ac7a0cdE2C2217c3f560859c7e) |
-| **Attack Tx (Ethereum)** | [0x1f15...e87a](https://etherscan.io/tx/0x1f15a193db3f44713d56c4be6679b194f78c2bcdd2ced5b0c7495b7406f5e87a) |
-| **Attack Tx (Sonic)** | [0x8e8d...664f](https://sonicscan.org/tx/0x8e8dbc6b975dd664f1) |
+| **Attack Tx (Ethereum 1)** | [0x1f15...e87a](https://etherscan.io/tx/0x1f15a193db3f44713d56c4be6679b194f78c2bcdd2ced5b0c7495b7406f5e87a) |
+| **Attack Tx (Ethereum 2)** | [0x161a...8b3b](https://etherscan.io/tx/0x161a4e9bd777c81af4b2f2c4062281bf25ce460b9b04fbea83f09fba270c8b3b) |
+| **Attack Tx (Sonic)** | Unverified — no publicly confirmed Sonic chain tx hash; attack scope on Sonic not independently confirmed |
 | **Vulnerable Contract** | [0xCbEe...9DF9](https://sonicscan.org/address/0xCbEe4617ABF667830fe3ee7DC8d6f46380829DF9) (LeverageUsingSiloFlashloanWithGeneralSwap) |
 | **Victim** | [0x60ba...4860](https://sonicscan.org/address/0x60baf994f44dd10c19c0c47cbfe6048a4ffe4860) (SiloDAO test address) |
 | **Root Cause** | Arbitrary external call inside `_fillQuote()` of `openLeveragePosition()` — `swapArgs.exchangeProxy` and `swapCallData` executed without validation, allowing the attacker to inject the `borrow()` function selector and borrow 224 ETH unauthorized using the victim's collateral |

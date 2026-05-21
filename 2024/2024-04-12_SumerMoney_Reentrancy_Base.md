@@ -5,7 +5,7 @@
 | **Date** | 2024-04-12 |
 | **Protocol** | Sumer Money (Compound V2 fork lending protocol) |
 | **Chain** | Base |
-| **Loss** | ~$350,000 (cbETH + USDC) |
+| **Loss** | ~$310,000 (cbETH + USDC; per Neptune Mutual) |
 | **Attacker** | [0xbb34...e77](https://basescan.org/address/0xbb344544ad328b5492397e967fe81737855e7e77) |
 | **Attack Contract** | [0x13d2...fe7](https://basescan.org/address/0x13d27a2d66ea33a4bc581d5fefb0b2a8defe9fe7) |
 | **Attack Tx** | [0x619c...661](https://basescan.org/tx/0x619c44af9fedb8f5feea2dcae1da94b6d7e5e0e7f4f4a99352b6c4f5e43a4661) |

@@ -6,8 +6,8 @@
 | **Protocol** | SBT / SmartBank |
 | **Chain** | BSC |
 | **Loss** | ~56,000 BUSD |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0x3026...e32](https://bscscan.com/address/0x3026c464d3bd6ef0ced0d49e80f171b58176ce32) |
+| **Attack Tx** | [0x9a8c...e0d](https://bscscan.com/tx/0x9a8c4c4edb7a76ecfa935780124c409f83a08d15c560bb67302182f8969be20d) (block 40,378,160) |
 | **Vulnerable Contract** | SmartBank (Bank contract) |
 | **Root Cause** | `Loan_Get()` references a spot price manipulable via `Buy_SBT()` when calculating collateral value — allows excessive USDT borrowing after SBT price manipulation |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2024-07/SBT_exp.sol) |

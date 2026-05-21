@@ -5,7 +5,7 @@
 | **Date** | 2023-04-15 |
 | **Protocol** | Hundred Finance |
 | **Chain** | Optimism |
-| **Loss** | $7,000,000 (approximately 1,034 WBTC equivalent) |
+| **Loss** | ~$7,400,000 (confirmed by Immunebytes, Halborn, CoinTelegraph; "$7M" in earlier reports understated by ~$400K) |
 | **Attacker EOA** | [0x155D...7528](https://optimistic.etherscan.io/address/0x155DA45D374A286d383839b1eF27567A15E67528) |
 | **Attack Contract** | [0x978D...4982](https://optimistic.etherscan.io/address/0x978D0CE23869EC666BFDE9868a8514F3D2754982) |
 | **Attack Tx** | [0x6e9e...f451](https://optimistic.etherscan.io/tx/0x6e9ebcdebbabda04fa9f2e3bc21ea8b2e4fb4bf4f4670cb8483e2f0b2604f451) |

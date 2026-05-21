@@ -6,10 +6,10 @@
 | **Protocol** | Moonwell |
 | **Chain** | Base |
 | **Loss** | $1,780,000 (Bad Debt) |
-| **Attacker** | Unknown |
-| **Attack Contract** | Unknown |
-| **Attack Tx** | Unknown |
-| **Vulnerable Contract** | Moonwell mcbETH market contract |
+| **Attacker** | [0x0100ab3021dE6e00c39BE16424472164c281C308](https://basescan.org/address/0x0100ab3021dE6e00c39BE16424472164c281C308) |
+| **Attack Contract** | [0x083CfA7FD187Be983ce5D519fE7ae78357779998](https://basescan.org/address/0x083CfA7FD187Be983ce5D519fE7ae78357779998) |
+| **Attack Tx** | [0x2f4ff77c77ce2a52c80fcd59a4cac4b05f4285afe1f3b92118b0a004a325953c](https://basescan.org/tx/0x2f4ff77c77ce2a52c80fcd59a4cac4b05f4285afe1f3b92118b0a004a325953c) |
+| **Vulnerable Contract** | [0xEC942bE8A8114bFD0396A5052c36027f2cA6a9d0](https://basescan.org/address/0xEC942bE8A8114bFD0396A5052c36027f2cA6a9d0) (Moonwell Chainlink Oracle) |
 | **Root Cause** | Faulty Chainlink oracle integration caused cbETH price to be overvalued, allowing excessive borrowing followed by unliquidatable bad debt |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) |
 

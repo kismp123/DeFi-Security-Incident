@@ -5,9 +5,9 @@
 | **Date** | 2021-09-21 |
 | **Protocol** | Nimbus DEX |
 | **Chain** | Ethereum |
-| **Loss** | Address unconfirmed (majority of pool liquidity) |
+| **Loss** | ~1.45 ETH (DeFiHackLabs README) |
 | **Attacker** | [0x5676e585bf16387bc159fd4f82416434cda5f1a3](https://etherscan.io/address/0x5676e585bf16387bc159fd4f82416434cda5f1a3) |
-| **Attack Tx** | Address unconfirmed (fork block: 13,225,516) |
+| **Attack Tx** | No confirmed on-chain attack tx — simulation PoC demonstrating K-invariant vulnerability; Nimbus pair contract had no swap activity at exploit date (fork block: 13,225,516) |
 | **Vulnerable Contract** | [0xA0Ff0e694275023f4986dC3CA12A6eb5D6056C62](https://etherscan.io/address/0xA0Ff0e694275023f4986dC3CA12A6eb5D6056C62) (NWETH/NBU Pair) |
 | **Root Cause** | Identical to Uranium Finance — K invariant constant mismatch: reserves multiplied by 10000, but K validation uses 1000^2 |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-09/Nimbus_exp.sol) |

@@ -2,7 +2,7 @@
 
 Incidents where privileged private keys were stolen, leaked, or abused — bypassing on-chain access controls entirely at the infrastructure or operational level.
 
-**Total incidents: 12**
+**Total incidents: 14**
 
 ---
 

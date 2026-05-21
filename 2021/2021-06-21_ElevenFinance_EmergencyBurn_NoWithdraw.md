@@ -6,8 +6,8 @@
 | **Protocol** | Eleven Finance |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$4,500,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | [0x6450d8f4](https://bscscan.com/tx/0x6450d8f4db09972853e948bee44f2cb54b9df786dace774106cd28820e906789) |
+| **Attacker** | [0xc71e...eD6](https://bscscan.com/address/0xc71e2F581b77De945C8A7A191b0B238c81f11eD6) |
+| **Attack Tx** | [0x6450...789](https://bscscan.com/tx/0x6450d8f4db09972853e948bee44f2cb54b9df786dace774106cd28820e906789) (block 8,530,974) |
 | **Vulnerable Contract** | [0x27DD6E51BF715cFc0e2fe96Af26fC9DED89e4BE8](https://bscscan.com/address/0x27DD6E51BF715cFc0e2fe96Af26fC9DED89e4BE8) (Eleven Vault) |
 | **Root Cause** | emergencyBurn() burns vault shares without withdrawing actual LP from MasterChef, enabling double-withdrawal of LP via a subsequent withdraw() call |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-06/Eleven_exp.sol) |

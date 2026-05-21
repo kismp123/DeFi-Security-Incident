@@ -2,7 +2,7 @@
 
 Attacks reusing valid signatures in unintended contexts due to missing nonces, domain separators, or expiry checks.
 
-**Total incidents: 14**
+**Total incidents: 13**
 
 ---
 
@@ -21,7 +21,6 @@ Attacks reusing valid signatures in unintended contexts due to missing nonces, d
 | 2024-05-XX | Tradeonorion | RedeemAtomicSignatureBypass | [2024-05-XX_Tradeonorion_RedeemAtomicSignatureBypass.md](../2024/2024-05-XX_Tradeonorion_RedeemAtomicSignatureBypass.md) |
 | 2025-01-27 | ODOS | ERC6492SignatureBypass | [2025-01-27_ODOS_ERC6492SignatureBypass.md](../2025/2025-01-27_ODOS_ERC6492SignatureBypass.md) |
 | 2026-02-27 | SquidProtocol | SignatureReplay BSC | [2026-02-27_SquidProtocol_SignatureReplay_BSC.md](../2026/2026-02-27_SquidProtocol_SignatureReplay_BSC.md) |
-| 2024-01-01 | Orbit | Chain 서명 위조 | [2024-01-01_Orbit_Chain_서명_위조.md](../2024/2024-01-01_Orbit_Chain_서명_위조.md) |
 
 ---
 

@@ -6,8 +6,8 @@
 | **Protocol** | IPC Token |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$590,000 USDT |
-| **Attacker** | [Unidentified](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://bscscan.com/tx/0x0000000000000000000000000000000000000000000000000000000000000000) |
+| **Attacker** | [0x7CAf...dFdA](https://bscscan.com/address/0x7CAf5f223256f74d378f9770e7F48f863d51dFdA) |
+| **Attack Tx** | [0x3a36...9a44](https://bscscan.com/tx/0x3a3683119e1801821faa15c319cb9c8fb3fcf6ee92b1904a829d82c432e09a44) |
 | **Vulnerable Contract** | IPC Token trading pair (BSC) |
 | **Root Cause** | Timelock could be reset with a 1-unit trade, allowing price manipulation via consecutive swaps |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/IPC_exp.sol) |

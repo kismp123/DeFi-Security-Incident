@@ -2,7 +2,7 @@
 
 Flaws in protocol-specific logic — incorrect accounting, faulty reward math, or broken invariants — that can be exploited for unintended gains.
 
-**Total incidents: 149**
+**Total incidents: 144**
 
 ---
 
@@ -107,10 +107,8 @@ Flaws in protocol-specific logic — incorrect accounting, faulty reward math, o
 | 2026-03-22 | CyrusFinance | BusinessLogic BSC | [2026-03-22_CyrusFinance_BusinessLogic_BSC.md](../2026/2026-03-22_CyrusFinance_BusinessLogic_BSC.md) |
 | 2026-03-23 | BCEToken | BusinessLogic BSC | [2026-03-23_BCEToken_BusinessLogic_BSC.md](../2026/2026-03-23_BCEToken_BusinessLogic_BSC.md) |
 | 2026-03-26 | UnknownStake | BusinessLogic BSC | [2026-03-26_UnknownStake_BusinessLogic_BSC.md](../2026/2026-03-26_UnknownStake_BusinessLogic_BSC.md) |
-| 2024-01-30 | MIM | Spell 이자율 조작 | [2024-01-30_MIM_Spell_이자율_조작.md](../2024/2024-01-30_MIM_Spell_이자율_조작.md) |
 | 2024-03-XX | MO | BorrowRedeemLogicFlaw | [2024-03-XX_MO_BorrowRedeemLogicFlaw.md](../2024/2024-03-XX_MO_BorrowRedeemLogicFlaw.md) |
 | 2024-04-XX | Yield | MintDivestedBurnDivestedLogicFlaw | [2024-04-XX_Yield_MintDivestedBurnDivestedLogicFlaw.md](../2024/2024-04-XX_Yield_MintDivestedBurnDivestedLogicFlaw.md) |
-| 2024-05-30 | Trade | on Orion 주문서 조작 | [2024-05-30_Trade_on_Orion_주문서_조작.md](../2024/2024-05-30_Trade_on_Orion_주문서_조작.md) |
 | 2024-06-XX | DysonMoney | MintHarvestRedeemLogicFlaw | [2024-06-XX_DysonMoney_MintHarvestRedeemLogicFlaw.md](../2024/2024-06-XX_DysonMoney_MintHarvestRedeemLogicFlaw.md) |
 | 2024-11-20 | proxy | b7e1 OrderManipulation | [2024-11-20_proxy_b7e1_OrderManipulation.md](../2024/2024-11-20_proxy_b7e1_OrderManipulation.md) |
 | 2025-08-22 | EverValueCoin | OrderbookManipulation | [2025-08-22_EverValueCoin_OrderbookManipulation.md](../2025/2025-08-22_EverValueCoin_OrderbookManipulation.md) |
@@ -129,8 +127,6 @@ Flaws in protocol-specific logic — incorrect accounting, faulty reward math, o
 | 2023-12-05 | PHIL | TokenSellExploit | [2023-12-05_PHIL_TokenSellExploit.md](../2023/2023-12-05_PHIL_TokenSellExploit.md) |
 | 2023-12-14 | bZx | LoanExploit | [2023-12-14_bZx_LoanExploit.md](../2023/2023-12-14_bZx_LoanExploit.md) |
 | 2023-12-16 | GoodDollar | ReserveExploit | [2023-12-16_GoodDollar_ReserveExploit.md](../2023/2023-12-16_GoodDollar_ReserveExploit.md) |
-| 2024-02-05 | Affine | DeFi 전략 취약점 | [2024-02-05_Affine_DeFi_전략_취약점.md](../2024/2024-02-05_Affine_DeFi_전략_취약점.md) |
-| 2024-02-29 | Particle | Trade 담보 청산 오류 | [2024-02-29_Particle_Trade_담보_청산_오류.md](../2024/2024-02-29_Particle_Trade_담보_청산_오류.md) |
 | 2024-02-XX | ParticleTrade | MaliciousLien | [2024-02-XX_ParticleTrade_MaliciousLien.md](../2024/2024-02-XX_ParticleTrade_MaliciousLien.md) |
 | 2024-03-28 | PrismaFi | MigrateExploit ETH | [2024-03-28_PrismaFi_MigrateExploit_ETH.md](../2024/2024-03-28_PrismaFi_MigrateExploit_ETH.md) |
 | 2024-03-XX | ETHFIN | BuybackManipulation | [2024-03-XX_ETHFIN_BuybackManipulation.md](../2024/2024-03-XX_ETHFIN_BuybackManipulation.md) |
@@ -154,9 +150,8 @@ Flaws in protocol-specific logic — incorrect accounting, faulty reward math, o
 | 2022-10 | RES | ThisAToBManipulation | [2022-10_RES_ThisAToBManipulation.md](../2022/2022-10_RES_ThisAToBManipulation.md) |
 | 2025-05-15 | Unwarp | WETHUnwrapExploit | [2025-05-15_Unwarp_WETHUnwrapExploit.md](../2025/2025-05-15_Unwarp_WETHUnwrapExploit.md) |
 | 2025-05-12 | MBUToken | DepositMint | [2025-05-12_MBUToken_DepositMint.md](../2025/2025-05-12_MBUToken_DepositMint.md) |
-| 2024-04-03 | Hoppy | Frog ERC ERC 취약점 | [2024-04-03_Hoppy_Frog_ERC_ERC_취약점.md](../2024/2024-04-03_Hoppy_Frog_ERC_ERC_취약점.md) |
 | 2024-12-12 | CloberDEX | FakeTokenMint | [2024-12-12_CloberDEX_FakeTokenMint.md](../2024/2024-12-12_CloberDEX_FakeTokenMint.md) |
-| 2024-04-09 | 미확인 | 컨트랙트 0x00C409 미확인 취약점 | [2024-04-09_미확인_컨트랙트_0x00C409_미확인_취약점.md](../2024/2024-04-09_미확인_컨트랙트_0x00C409_미확인_취약점.md) |
+| 2024-04-09 | Unverified Contract 0x00C409 | Unknown Vulnerability | [2024-04-09_UnverifiedContract0x00C409_UnknownVuln.md](../2024/2024-04-09_UnverifiedContract0x00C409_UnknownVuln.md) |
 
 ---
 

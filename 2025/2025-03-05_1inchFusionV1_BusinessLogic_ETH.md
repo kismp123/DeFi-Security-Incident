@@ -5,7 +5,7 @@
 | **Date** | 2025-03-05 |
 | **Protocol** | 1inch Fusion V1 Settlement |
 | **Chain** | Ethereum |
-| **Loss** | ~$5,000,000 (USDC 2.4M + 1,276 WETH) |
+| **Loss** | ~$5,000,000 (USDC + WETH; confirmed by Olympix; the $6.7M figure belongs to the separate May 2026 TrustedVolumes RFQ signer exploit) |
 | **Attacker** | [0xa726...1766](https://etherscan.io/address/0xA7264a43A57Ca17012148c46AdBc15a5F951766e) |
 | **Attack Contract** | [0x019b...70C9](https://etherscan.io/address/0x019BfC71D43c3492926D4A9a6C781F36706970C9) |
 | **Attack Tx** | [0x0497...d03a](https://etherscan.io/tx/0x04975648e0db631b0620759ca934861830472678dae82b4bed493f1e1e3ed03a) |

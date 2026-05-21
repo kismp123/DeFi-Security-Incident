@@ -5,7 +5,7 @@
 | **Date** | 2024-07-12 |
 | **Protocol** | Dough Finance |
 | **Chain** | Ethereum |
-| **Loss** | ~$1,810,000 USD (608 ETH, USDC) |
+| **Loss** | ~$1,960,000 USD total (two-wave attack; first wave ~608 ETH ~$1.8M, second wave added ~$140K) |
 | **Attacker** | [0x6710...1741](https://etherscan.io/address/0x67104175fc5fabbdb5a1876c3914e04b94c71741) |
 | **Attack Contract** | [0x11A8...8978](https://etherscan.io/address/0x11A8DC866C5d03ff06bb74565b6575537B215978) |
 | **Attack Tx** | [0x92cd...ebb2](https://etherscan.io/tx/0x92cdcc732eebf47200ea56123716e337f6ef7d5ad714a2295794fdc6031ebb2e) |

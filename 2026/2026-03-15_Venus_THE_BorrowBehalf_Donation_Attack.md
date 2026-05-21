@@ -5,7 +5,7 @@
 | **Date** | 2026-03-15 |
 | **Protocol** | Venus Protocol |
 | **Chain** | BNB Smart Chain (BSC) |
-| **Loss** | ~913K CAKE + ~1,972 WBNB (~$14.9M total borrowed, $2.15M bad debt) |
+| **Loss** | ~913K CAKE (~$1.31M) + 1.58M USDC + ~1,972 WBNB (~$1.28M) ≈ **$3.7M extracted; $2.15M protocol bad debt** |
 | **Attacker** | [0x43C7...6F82](https://bscscan.com/address/0x43C743e316F40d4511762EEdf6f6D484F67b2F82) |
 | **Attack Contract** | [0x737b...a619](https://bscscan.com/address/0x737bc98F1D34E19539C074B8Ad1169d5d45dA619) |
 | **Attack Tx** | [0x4f47...663f](https://bscscan.com/tx/0x4f477e941c12bbf32a58dc12db7bb0cb4d31d41ff25b2457e6af3c15d7f5663f) |

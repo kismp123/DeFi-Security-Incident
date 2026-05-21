@@ -5,8 +5,8 @@
 | **Date** | 2023-03-17 |
 | **Protocol** | ParaSpace |
 | **Chain** | Ethereum |
-| **Loss** | $7,000,000 (wstETH, USDC, WETH loans drained) |
-| **Attacker** | [Address unconfirmed](https://etherscan.io/address/) |
+| **Loss** | ~$900,000 actual loss (BlockSec white-hat rescued ~2,906 ETH / ~$5M at-risk before theft completed; some sources cite $7M as the total at-risk amount, not the stolen amount) |
+| **Attacker** | [0x0000...26e](https://etherscan.io/address/0x0000003502aa61a5f1b1fdadff2cf947dfda526e) |
 | **Attack Tx** | [0xe3f0d1...116a](https://etherscan.io/tx/0xe3f0d14cfb6076cabdc9057001c3fafe28767a192e88005bc37bd7d385a1116a) |
 | **Vulnerable Contract** | [ParaProxy 0x638a98](https://etherscan.io/address/0x638a98BBB92a7582d07C52ff407D49664DC8b3Ee) |
 | **Root Cause** | External callback triggered during `supply()` processing in the cAPE contract → reentrancy with collateral accounting not yet reflected, allowing excessive cAPE borrowing |

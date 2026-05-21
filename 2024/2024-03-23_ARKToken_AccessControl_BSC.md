@@ -6,9 +6,9 @@
 | **Protocol** | ARK Token (ARK) |
 | **Chain** | BSC (BNB Smart Chain) |
 | **Loss** | ~$200,000 (~348 WBNB) |
-| **Attacker** | [Address unconfirmed](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Contract** | [PoC Test Contract](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [0xe8b0...d677](https://bscscan.com/tx/0xe8b0131fa14d0a9632b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) |
+| **Attacker** | [0xdd30...b22c](https://bscscan.com/address/0xdd309ea4e99b772c1e6a798a6b159211bb95b22c) |
+| **Attack Contract** | [0x9459...f37](https://bscscan.com/address/0x94598ec1eb8f85d57fba787df6b49dbbabb87f37) |
+| **Attack Tx** | [0xe8b0...677](https://bscscan.com/tx/0xe8b0131fa14d0a96327f6b5690159ffa7650d66376db87366ba78d91f17cd677) |
 | **Vulnerable Contract** | [0xde69...9999](https://bscscan.com/address/0xde698B5BBb4A12DDf2261BbdF8e034af34399999) |
 | **Root Cause** | Public `autoBurnLiquidityPairTokens()` function with no access control — anyone can call it repeatedly to burn LP pool tokens and manipulate the price |
 | **PoC Source** | [DeFiHackLabs](https://raw.githubusercontent.com/SunWeb3Sec/DeFiHackLabs/main/src/test/2024-03/ARK_exp.sol) |

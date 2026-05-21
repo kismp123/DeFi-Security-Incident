@@ -10,7 +10,7 @@
 | **Attack Contract** | CSExp (deployed based on test contract) |
 | **Vulnerable Contract (GPT Token)** | [0xa167...1B3](https://bscscan.com/address/0xa1679abEF5Cd376cC9A1C4c2868Acf52e08ec1B3) |
 | **Vulnerable Contract (GPT/BUSD LP)** | [0x77a6...ef](https://bscscan.com/address/0x77a684943aA033e2E9330f12D4a1334986bCa3ef) |
-| **Attack Tx** | [0xb77c...6f7](https://bscscan.com/tx/0xb77cb34cd01204bdadb5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7) |
+| **Attack Tx** | [0xb77c...391](https://bscscan.com/tx/0xb77cb34cd01204bdad930d8c172af12462eef58dea16199185b77147d6533391) |
 | **Attack Block** | 28,494,868 |
 | **Root Cause** | Flawed fee distribution logic in GPT token `_transfer` — unlimited fee extraction via `pair.skim()` |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2023-05/GPT_exp.sol) |

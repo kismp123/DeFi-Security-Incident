@@ -5,7 +5,7 @@
 | **Date** | 2022-07-23 |
 | **Protocol** | Audius |
 | **Chain** | Ethereum Mainnet |
-| **Loss** | ~$1,080,000 (704 ETH) |
+| **Loss** | ~$6,050,000 (18.5M AUDIO tokens drained from community treasury; attacker netted ~$1,080,000 / 704 ETH after Uniswap slippage) |
 | **Attacker** | [0xa0c7bd318d69424603cbf91e9969870f21b8ab4c](https://etherscan.io/address/0xa0c7bd318d69424603cbf91e9969870f21b8ab4c) |
 | **Attack Contract** | [0xbdbb5945f252bc3466a319cdcc3ee8056bf2e569](https://etherscan.io/address/0xbdbb5945f252bc3466a319cdcc3ee8056bf2e569) |
 | **Vulnerable Contract** | [0x4deca517d6817b6510798b7328f2314d3003abac](https://etherscan.io/address/0x4deca517d6817b6510798b7328f2314d3003abac) (Governance Proxy) |
@@ -188,7 +188,7 @@ contract AudiusExploit is Test {
 | **OWASP DeFi** | Governance Manipulation |
 | **Attack Vector** | Governance parameter tampering via `initialize()` re-call |
 | **Prerequisites** | Upgradeable proxy, `initializer` modifier not applied |
-| **Impact** | 99% of governance tokens stolen ($1.08M) |
+| **Impact** | 18.5M AUDIO tokens drained from community treasury (~$6.05M gross; attacker net ~$1.08M / 704 ETH after Uniswap slippage) |
 
 ---
 ## 6. Remediation Recommendations

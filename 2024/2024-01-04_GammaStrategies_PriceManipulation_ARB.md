@@ -5,7 +5,7 @@
 | **Date** | 2024-01-04 |
 | **Protocol** | Gamma Strategies |
 | **Chain** | Arbitrum |
-| **Loss** | ~$6,500,000 (~211.9 ETH + stablecoins) |
+| **Loss** | ~$6,180,000 (official Gamma post-mortem; ~211.9 ETH + stablecoins) |
 | **Attacker EOA** | [0x5351...909c](https://arbiscan.io/address/0x5351536145610aA448A8bF85BA97C71cAf31909c) |
 | **Attack Contract** | [0xfd42...b63e](https://arbiscan.io/address/0xfd42cba85f6567fef32bab24179de21b9851b63e) |
 | **Vulnerable Contract** | [0x1F1C...123E](https://arbiscan.io/address/0x1F1Ca4e8236CD13032653391dB7e9544a6ad123E) |

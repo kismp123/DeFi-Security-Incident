@@ -6,8 +6,8 @@
 | **Protocol** | Value DeFi (vSafe) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$6,000,000 (DAI) |
-| **Attacker** | Unconfirmed (original address was unverified) |
-| **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
+| **Attacker** | [0xa773...9a2f](https://etherscan.io/address/0xa773603b139ae1c52d05b35796df3ee76d8a9a2f) |
+| **Attack Tx** | [0x46a0...50a](https://etherscan.io/tx/0x46a03488247425f845e444b9c10b52ba3c14927c687d38287c0faddc7471150a) (block 11,256,673) |
 | **Vulnerable Contract** | [0x40aF3827F39D0EAcBF4A168f8D4ee67c121D11c9](https://etherscan.io/address/0x40aF3827F39D0EAcBF4A168f8D4ee67c121D11c9) (MultiStablesVault) |
 | **Root Cause** | vSafe directly used Uniswap V2 spot price without TWAP validation for deposit/withdrawal ratio calculations, enabling within-block AMM manipulation for deposit/withdrawal arbitrage |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2020-11/ValueDeFi_exp.sol) |

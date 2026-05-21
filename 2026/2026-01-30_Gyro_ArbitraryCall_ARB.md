@@ -5,15 +5,15 @@
 | **Date** | 2026-01-30 |
 | **Protocol** | Gyro.finance (Arbitrum Liquidity Management Protocol) |
 | **Chain** | Arbitrum |
-| **Loss** | ~$700,000 |
-| **Attacker** | [0x51c2...9a1...](https://arbiscan.io/address/0x51c22898a9b9f519a1) |
+| **Loss** | ~$700,000 (unverified — no public source confirms this figure) |
+| **Attacker** | Unverified — not confirmed in any public report |
 | **Attack Contract** | — (not publicly confirmed) |
-| **Attack Tx** | [0x51c2...9a1...](https://arbiscan.io/tx/0x51c22898a9b9f519a1) |
-| **Vulnerable Contract** | — (Gyro.finance router/vault contract, not publicly confirmed) |
-| **Root Cause** | Arbitrary External Call in router/vault contract — user-controlled calldata executed without input validation |
-| **PoC Source** | DeFiHackLabs (not listed for 2026-01 — no public PoC) |
+| **Attack Tx** | Not found in any public source; DeFiHackLabs has no 2026-01 Gyro entry |
+| **Vulnerable Contract** | — (not publicly confirmed) |
+| **Root Cause** | Unconfirmed — based on pattern inference only |
+| **PoC Source** | None — DeFiHackLabs does not list a Gyro exploit for 2026-01 |
 
-> **Note**: This document was written by applying the Arbitrary Call vulnerability pattern based on publicly available technical reports and similar incidents (SwapNet 2026-01-25, Seneca 2024-02-28, SushiSwap RouteProcessor 2023-04-09). No Gyro.finance-specific public PoC exists in the DeFiHackLabs repository, and no official post-mortem report has been published.
+> ⚠️ **WARNING — UNVERIFIED INCIDENT**: No independent confirmation of this incident exists. No security firm (BlockSec, Halborn, Verichains, SlowMist, CertiK) has published an analysis. No DeFiHackLabs PoC exists. No Gyro.finance official post-mortem has been published. The $700K loss figure, attacker address, TX hash, and root cause are all unconfirmed inferences. **This entry should be reviewed for potential removal from the database.** Retained pending user confirmation.
 
 ---
 

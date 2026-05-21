@@ -6,8 +6,8 @@
 | **Protocol** | AST Token |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$65,000 |
-| **Attacker** | [Unidentified](https://bscscan.com/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://bscscan.com/tx/0x0000000000000000000000000000000000000000000000000000000000000000) |
+| **Attacker** | [0x56f7...EA4f](https://bscscan.com/address/0x56f77AdC522BFfebB3AF0669564122933AB5EA4f) |
+| **Attack Tx** | [0x80dd...3927](https://bscscan.com/tx/0x80dd9362d211722b578af72d551f0a68e0dc1b1e077805353970b2f65e793927) |
 | **Vulnerable Contract** | [0xc10E0319...](https://bscscan.com/address/0xc10E0319337c7F83342424Df72e73a70A29579B2) |
 | **Root Cause** | Bug where AST token is withdrawn twice during liquidity removal, leaving the LP balance 1 unit higher than expected; the surplus is extractable via `skim()` |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/Ast_exp.sol) |

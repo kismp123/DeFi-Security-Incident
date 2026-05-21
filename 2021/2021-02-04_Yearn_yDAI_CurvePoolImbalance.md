@@ -3,7 +3,7 @@
 | Field | Details |
 |------|------|
 | **Date** | 2021-02-04 |
-| **Protocol** | Yearn Finance (yVDAI Vault) |
+| **Protocol** | Yearn Finance (yDAI Vault) |
 | **Chain** | Ethereum |
 | **Loss** | ~$11,000,000 |
 | **Attacker** | Address unidentified |

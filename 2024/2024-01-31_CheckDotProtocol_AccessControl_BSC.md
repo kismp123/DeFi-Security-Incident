@@ -13,7 +13,7 @@
 | **Incident Date** | 2024-01-31 (Detected: 2024-02-01) |
 | **Loss** | ~$120,000 (CDT tokens and protocol assets) |
 | **Vulnerability Type** | Insufficient Access Control — DAO Governance Bypass |
-| **Attack Transaction** | `0xdd19e3a1657f8381b5480000e96c43dbb0dc83cccbe7bd0c8fd0bf44e4f38eb2` ([BscScan](https://bscscan.com/tx/0xdd19e3a1657f8381b5480000e96c43dbb0dc83cccbe7bd0c8fd0bf44e4f38eb2)) |
+| **Attack Transaction** | `0xdd19e3a1657f8381b5480000e96c43dbb0dc83cccbe7bd0c8fd0bf44e4f38eb2` ([BscScan](https://bscscan.com/tx/0xdd19e3a1657f8381b5480000e96c43dbb0dc83cccbe7bd0c8fd0bf44e4f38eb2)) *(tx hash unverified — not found on BSC mainnet)* |
 | **Vulnerable Contract (Proxy)** | `0x9c84a04e232ff0aaca867f3d6b6e0fca96f29ee7` ([BscScan](https://bscscan.com/address/0x9c84a04e232ff0aaca867f3d6b6e0fca96f29ee7)) |
 | **Admin (Owner) Address** | `0x961a14bEaBd590229B1c68A21d7068c8233C8542` ([BscScan](https://bscscan.com/address/0x961a14bEaBd590229B1c68A21d7068c8233C8542)) |
 | **Governance Token (CDT)** | `0x0cBD6fAdcF8096cC9A43d90B45F65826102e3eCE` ([BscScan](https://bscscan.com/address/0x0cBD6fAdcF8096cC9A43d90B45F65826102e3eCE)) |

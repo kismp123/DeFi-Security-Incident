@@ -6,8 +6,8 @@
 | **Protocol** | SorraStaking (SOR Token) |
 | **Chain** | Ethereum |
 | **Loss** | ~8 ETH |
-| **Attacker** | [Unidentified](https://etherscan.io/address/0x0000000000000000000000000000000000000000) |
-| **Attack Tx** | [Unidentified](https://etherscan.io) |
+| **Attacker** | Unidentified (EOA not publicly confirmed) |
+| **Attack Tx** | [0x6439...90d](https://etherscan.io/tx/0x6439d63cc57fb68a32ea8ffd8f02496e8abad67292be94904c0b47a4d14ce90d) |
 | **Vulnerable Contract** | [0x5d16b8Ba...](https://etherscan.io/address/0x5d16b8Ba2a9a4ECA6126635a6FFbF05b52727d50) |
 | **Root Cause** | During staking reward calculation, only the block timestamp was updated while the block number was not, causing accumulated reward errors on repeated withdrawals |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/sorraStaking.sol) |

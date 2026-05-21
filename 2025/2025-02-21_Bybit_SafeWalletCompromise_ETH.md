@@ -6,9 +6,13 @@
 | **Protocol** | Bybit Exchange (Safe{Wallet} multisig) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$1,500,000,000 (~401,346 ETH) |
-| **Attacker EOA** | `0x0fa09c3a3f8b1c4f3a5f93f4e3f3e3f3e3f3e3f3` (partial — Lazarus Group) |
+| **Attacker EOA** | Attributed to Lazarus Group / DPRK state-sponsored actors; no single confirmed EOA |
+| **Fund Receiver** | `0x47666fab8bd0ac7003bce3f5c3585383f09486e2` |
 | **Attack Contract 1** | `0x96221423...` (malicious Safe implementation — partial) |
 | **Attack Contract 2** | `0xbdd077f6...` (proxy exploit contract — partial) |
+| **Impl Upgrade Tx** | [0x46deef0f...](https://etherscan.io/tx/0x46deef0f52e3a983b67abf4714448a41dd7ffd6d32d32da69d62081c68ad7882) |
+| **ETH Drain Tx** | [0xb61413c4...](https://etherscan.io/tx/0xb61413c495fdad6114a7aa863a00b2e3c28945979a10885b12b30316ea9f072c) (401,346 ETH) |
+| **stETH Drain Tx** | [0xa284a1bc...](https://etherscan.io/tx/0xa284a1bc4c7e0379c924c73fcea1067068635507254b03ebbbd3f4e222c1fae0) (90,375 stETH) |
 | **Victim** | Bybit cold wallet Safe multisig |
 | **Root Cause** | Lazarus Group compromised Safe{Wallet} signing infrastructure — malicious JavaScript injected into the signing interface swapped the Safe's implementation contract address during transaction signing, giving attackers full control of the multisig |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-02/Bybit_exp.sol) |

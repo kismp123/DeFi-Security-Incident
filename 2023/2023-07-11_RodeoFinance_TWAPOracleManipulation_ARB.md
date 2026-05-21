@@ -5,7 +5,7 @@
 | **Date** | 2023-07-11 |
 | **Protocol** | Rodeo Finance |
 | **Chain** | Arbitrum |
-| **Loss** | ~472 ETH (~$888,000) |
+| **Loss** | ~472 ETH net (~$888,000); gross drained ~810 ETH (~$1,530,000) before white-hat recovery |
 | **Attacker** | [0x2f37...e328](https://arbiscan.io/address/0x2f3788f2396127061c46fc07bd0fcb91faace328) |
 | **Attack Contract** | [0xe954...a54](https://arbiscan.io/address/0xe9544ee39821f72c4fc87a5588522230e340aa54) |
 | **Vulnerable Contract** | [0xf372...0da (Investor)](https://arbiscan.io/address/0xf3721d8a2c051643e06bf2646762522fa66100da) |

@@ -6,8 +6,8 @@
 | **Protocol** | PancakeHunny |
 | **Chain** | BSC (Binance Smart Chain) |
 | **Loss** | ~$7,000,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0xb9b0...2950](https://bscscan.com/address/0xb9b0090aaa81f374d66d94a8138d80caa2002950) |
+| **Attack Tx** | [0x765d...be8e](https://bscscan.com/tx/0x765de8357994a206bb90af57dcf427f48a2021f2f28ca81f2c00bc3b9842be8e) (block 7,962,339) |
 | **Vulnerable Contract** | HUNNY Minter (mintFor function) |
 | **Root Cause** | mintFor() calculates mint amount using the contract's current balanceOf() instead of the received token amount, making it manipulable via direct transfer |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-06/PancakeHunny_exp.sol) |

@@ -5,7 +5,7 @@
 | **Date** | 2023-05-07 |
 | **Protocol** | Baby Doge Coin |
 | **Chain** | BSC |
-| **Loss** | ~7.5M USD |
+| **Loss** | ~$135,000–$157,000 (actual attacker profit from fee-skim; the $7.5M figure circulated erroneously and belongs to the JimbosProtocol exploit on May 28, 2023) |
 | **Attacker** | [0xcbc0d0c1...](https://bscscan.com/address/0xcbc0d0c1049eb011d7c7cfc4ff556d281f0afebb) |
 | **Attack Tx** | [0x098e7394...](https://bscscan.com/tx/0x098e7394a1733320e0887f0de22b18f5c71ee18d48a0f6d30c76890fb5c85375) |
 | **Vulnerable Contract** | [0xc748673057...](https://bscscan.com/address/0xc748673057861a797275cd8a068abb95a902e8de) |

@@ -6,8 +6,8 @@
 | **Protocol** | Indexed Finance |
 | **Chain** | Ethereum |
 | **Loss** | ~$16,000,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed |
+| **Attacker** | [0xba5e...ebe](https://etherscan.io/address/0xba5ed1488be60ba2facc6b66c6d6f0befba22ebe) |
+| **Attack Tx** | [0x44aa...5aa](https://etherscan.io/tx/0x44aad3b853866468161735496a5d9cc961ce5aa872924c5d78673076b1cd95aa) (block 13,417,949) |
 | **Vulnerable Contract** | DEFI5 Index Pool |
 | **Root Cause** | During re-indexing, `swapExactAmountIn()` allows MAX_IN_RATIO of 50% (excessively high) and `joinswapExternAmountIn()` lacks slippage protection, enabling large swaps to distort the pool's internal price followed by low-cost minting |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-10/IndexedFinance_exp.sol) |

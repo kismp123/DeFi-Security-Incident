@@ -3,7 +3,7 @@
 | Item | Details |
 |------|------|
 | **Date** | 2022-04-30 |
-| **Protocol** | Rari Capital Fuse (Pool 127) |
+| **Protocol** | Rari Capital Fuse (Pools 8, 18, 27, 127, 144, 146, 156 — all 7 affected; Pool 127 was the primary attack vector) |
 | **Chain** | Ethereum Mainnet |
 | **Loss** | ~$80,000,000 (ETH, USDC) |
 | **Attacker** | Attacker address unconfirmed |

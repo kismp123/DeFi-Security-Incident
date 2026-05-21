@@ -5,7 +5,7 @@
 | **Date** | 2023-07-21 |
 | **Protocol** | Conic Finance |
 | **Chain** | Ethereum |
-| **Loss** | ~$3,250,000 USD |
+| **Loss** | ~$4,200,000 USD (~$3,250,000 ETH pool + ~$934,000 crvUSD pool, second attack same day) |
 | **Attacker** | [0x8d67...c8aa](https://etherscan.io/address/0x8d67db0b205e32a5dd96145f022fa18aae7dc8aa) |
 | **Attack Contract** | [0x7435...e4eb](https://etherscan.io/address/0x743599ba5cfa3ce8c59691af5ef279aaafa2e4eb) |
 | **Attack Tx** | [0x8b74...b146](https://etherscan.io/tx/0x8b74995d1d61d3d7547575649136b8765acb22882960f0636941c44ec7bbe146) |

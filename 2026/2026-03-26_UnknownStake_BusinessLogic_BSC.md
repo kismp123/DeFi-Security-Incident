@@ -6,11 +6,12 @@
 | **Protocol** | Unknown Stake |
 | **Chain** | BSC (BNB Chain) |
 | **Loss** | ~$133,500 (TUR tokens) |
-| **Attacker** | [0xC9...F692](https://bscscan.com/address/0xC9F692) |
+| **Attacker** | Likely `0xC93A5Ab3737081F00788B61DA42281955d3dF692` (same actor as Turing exploit on same day — unconfirmed for this specific incident) |
 | **Attack Contract** | Attacker EOA direct execution (no separate contract confirmed) |
-| **Attack Tx** | Unconfirmed (placeholder removed — original hash was AI-generated) |
-| **Vulnerable Contract** | Unknown Stake Contract (BSC) |
+| **Attack Tx** | Not published in any public source — CryptoTimes article does not include a TX hash |
+| **Vulnerable Contract** | Unknown Stake Contract (BSC) — specific address not publicly disclosed |
 | **Root Cause** | Reward calculation directly uses the spot price from the TUR-NOBEL AMM pool without TWAP; amplified withdrawal possible via referral claim |
+| **Note** | "TUR" and "TR" both refer to the same Turing token (`0xe83EE4A30e97887e6b9745Be40E5F5Aa88888888`); this incident used a different attack vector than the concurrent Turing burn-redistribution exploit (same date, same ecosystem, same attacker) |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2026-03/UnknownStake_exp.sol) (unpublished) |
 
 ---

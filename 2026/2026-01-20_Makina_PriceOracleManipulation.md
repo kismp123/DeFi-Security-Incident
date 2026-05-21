@@ -6,9 +6,11 @@
 | **Protocol** | Makina |
 | **Chain** | Ethereum |
 | **Loss** | ~$5,100,000 |
-| **Attacker** | [0x2f934b0fd5c4f99bab37d47604a3a1aeadef1ccc](https://etherscan.io/address/0x2f934b0fd5c4f99bab37d47604a3a1aeadef1ccc) |
+| **Attacker** | [0x2f934b0fd5c4f99bab37d47604a3a1aeadef1ccc](https://etherscan.io/address/0x2f934b0fd5c4f99bab37d47604a3a1aeadef1ccc) (exploit deployer; net profit ~$1M after MEV interception) |
+| **MEV Bot** | [0x935bfb495e33f74d2e9735df1da66ace442ede48](https://etherscan.io/address/0x935bfb495e33f74d2e9735df1da66ace442ede48) (front-ran attacker and captured ~$4.1M of the ~$5.1M pool impact) |
 | **Attack Contract** | Unknown |
-| **Attack Tx** | Unknown |
+| **Attack Tx** | [0x569733b8016ef9418f0b6bde8c14224d9e759e79301499908ecbcd956a0651f5](https://etherscan.io/tx/0x569733b8016ef9418f0b6bde8c14224d9e759e79301499908ecbcd956a0651f5) |
+| **Attack Block** | 24,273,361 (Ethereum) |
 | **Vulnerable Contract** | Makina Caliber + Machine (DUSD-related contracts) |
 | **Root Cause** | Artificially inflated DUSD price via Curve pool manipulation, distorting Makina's totalAum and Caliber accounting |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) |

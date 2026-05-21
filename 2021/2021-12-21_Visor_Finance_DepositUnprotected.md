@@ -6,8 +6,8 @@
 | **Protocol** | Visor Finance |
 | **Chain** | Ethereum |
 | **Loss** | ~$8,200,000 |
-| **Attacker** | Address unconfirmed |
-| **Attack Tx** | Address unconfirmed (fork block: 13,849,006) |
+| **Attacker** | [0x8efa...4b2](https://etherscan.io/address/0x8efab89b497b887cdaa2fb08ff71e4b3827774b2) |
+| **Attack Tx** | [0x6927...f3f](https://etherscan.io/tx/0x69272d8c84d67d1da2f6425b339192fa472898dce936f24818fda415c1c1ff3f) (block 13,849,007) |
 | **Vulnerable Contract** | [0xC9f27A50f82571C1C8423A42970613b8dBDA14ef](https://etherscan.io/address/0xC9f27A50f82571C1C8423A42970613b8dBDA14ef) (IRewardsHypervisor) |
 | **Root Cause** | RewardsHypervisor.deposit() trusted the return value of the recipient's owner(), allowing an attacker contract to return an arbitrary address as owner and drain others' vVISR |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-12/Visor_exp.sol) |

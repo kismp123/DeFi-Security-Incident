@@ -4,8 +4,8 @@
 |------|------|
 | **Date** | 2024-04-19 |
 | **Protocol** | Hedgey Finance |
-| **Chain** | Ethereum (additional impact: Arbitrum) |
-| **Loss** | ~$1,800,000 (ETH) / Total ~$44,700,000 (ETH + ARB combined) |
+| **Chain** | Ethereum + Arbitrum (primary chains; Arbitrum held 95%+ of nominal drained value) |
+| **Loss** | ~$2,100,000 (ETH) / Total ~$44,700,000 nominal (ETH + ARB; Arbitrum nominal ~$42.6M, largely illiquid BONUS tokens) |
 | **Attacker** | [0xDed2...dda2](https://etherscan.io/address/0xDed2b1a426E1b7d415A40Bcad44e98F47181dda2) |
 | **Attack Contract** | [0xC793...F2b3](https://etherscan.io/address/0xC793113F1548B97E37c409f39244EE44241bF2b3) |
 | **Attack Tx (Phase 1)** | [0xa17f...a517](https://etherscan.io/tx/0xa17fdb804728f226fcd10e78eae5247abd984e0f03301312315b89cae25aa517) |

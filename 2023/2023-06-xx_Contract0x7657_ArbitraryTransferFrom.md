@@ -9,7 +9,7 @@
 | Loss | ~$1,300 |
 | Attacker | 0x015d0b51d0a65ad11cf4425de2ec86a7b320db3f |
 | Attack Contract | 0xfe2011dad32ad6dfd128e55490c0fd999f3d2221 |
-| Attack TX | Address unconfirmed |
+| Attack TX | [0x7427...4d5](https://etherscan.io/tx/0x74279a131dccd6479378b3454ea189a6ce350cce51de47d81a0ef23db1b134d5) (block 17,511,177) |
 | Vulnerable Contract | 0x76577603f99eae8320f70b410a350a83D744CB77 |
 | Block | 17,511,177 |
 | CWE | CWE-284 (Improper Access Control — no caller check before transferFrom) |

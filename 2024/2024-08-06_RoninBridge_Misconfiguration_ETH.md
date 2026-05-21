@@ -5,7 +5,7 @@
 | **Date** | 2024-08-06 |
 | **Protocol** | Ronin Bridge (MainchainGatewayV3) |
 | **Chain** | Ethereum |
-| **Loss** | ~$11,810,813 (3,996 ETH + 1,998,046 USDC) |
+| **Loss** | ~$11,810,813 drained (3,996 ETH + 1,998,046 USDC); **all funds returned by white-hat MEV bots; net loss to protocol = $0; $500K bounty paid** |
 | **Attacker (MEV Bot 1)** | [0x4ab1...c0b](https://etherscan.io/address/0x4ab12e7ce31857ee022f273e8580f73335a73c0b) |
 | **Attacker (MEV Bot 2)** | [0x6980...DD0](https://etherscan.io/address/0x6980a47beE930a4584B09Ee79eBe46484FbDBDD0) |
 | **Attack Tx (ETH)** | [0x2619...cb](https://etherscan.io/tx/0x2619570088683e6cc3a38d93c3d98899e5783864e15525d5f5810c11189ba6cb) |

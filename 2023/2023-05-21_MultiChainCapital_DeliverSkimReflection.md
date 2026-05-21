@@ -7,8 +7,8 @@
 | Project | MultiChain Capital (MCC) |
 | Chain | Ethereum |
 | Loss | ~10 ETH |
-| Attacker | Address unconfirmed |
-| Attack TX | Address unconfirmed |
+| Attacker | [0x8a45...305](https://etherscan.io/address/0x8a4571c3a618e00d04287ca6385b6b020ce7a305) |
+| Attack TX | [0xf72f...e26](https://etherscan.io/tx/0xf72f1d10fc6923f87279ce6c0aef46e372c6652a696f280b0465a301a92f2e26) (block 17,221,446) |
 | Vulnerable Contract | MCC Token: 0x1a7981D87E3b6a95c1516EB820E223fE979896b3 |
 | Block | 17,221,445 |
 | CWE | CWE-682 (Incorrect Calculation — reflection ratio manipulation) |

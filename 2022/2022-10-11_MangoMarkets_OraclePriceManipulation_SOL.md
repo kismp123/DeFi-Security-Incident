@@ -27,64 +27,177 @@ The attacker then submitted a governance proposal to have Mango DAO pay $47M fro
 ---
 ## 2. Vulnerable Code Analysis
 
-> ⚠️ Contract not verified on Sourcify — Mango Markets is a Solana-based program written in **Rust** (not Solidity). There is no EVM contract to fetch. The real source code is available in the Mango Markets GitHub repository (open source). The Rust code below is sourced directly from the mango-v3 repository and reflects the actual program logic.
+**Language**: Rust (Solana BPF program, not EVM/Solidity)
+**Source provenance**: Real open-source code from the mango-v3 repository.
+Repository: https://github.com/blockworks-foundation/mango-v3
 
-Source: **Open-source Rust program** — mango-v3 repository
-https://github.com/blockworks-foundation/mango-v3
+The exploit chained three real functions in the program: `cache_prices` (populates oracle cache from on-chain oracle accounts), `get_price` (reads that cache), and `get_health` (computes collateral value using the cached price). For the MNGO token, the oracle account at the time of the exploit was a Mango-controlled **Stub oracle** whose price was updated to reflect the Mango spot market's own fill price — making it self-referential and trivially manipulable.
+
+### 1. Oracle Price Caching (real source: `program/src/processor.rs`, line 1063)
 
 ```rust
-// File: program/src/state.rs — MangoAccount collateral / health calculation
-// Real source language: Rust (Solana BPF program)
+// File: program/src/processor.rs
+// Source: https://github.com/blockworks-foundation/mango-v3/blob/main/program/src/processor.rs
 
-// The oracle price for each market is fetched from the oracle field stored
-// in the MarketInfo. For MNGO/USDC, this pointed to Mango's own CLOB (central
-// limit order book) last-trade price — a self-referential price feed.
+fn cache_prices(program_id: &Pubkey, accounts: &[AccountInfo]) -> MangoResult<()> {
+    let mango_group = MangoGroup::load_checked(mango_group_ai, program_id)?;
+    let mut mango_cache =
+        MangoCache::load_mut_checked(mango_cache_ai, program_id, &mango_group)?;
+    let last_update = clock.unix_timestamp as u64;
 
-pub fn get_health(
-    mango_group: &MangoGroup,
-    mango_account: &MangoAccount,
-    health_type: HealthType,
-    open_orders_ais: &[AccountInfo],
-) -> MangoResult<I80F48> {
-    let mut health = ZERO_I80F48;
-    let prices = &mango_group.oracles; // ❌ oracle prices read from group state
-
-    for i in 0..NUM_TOKENS {
-        let base_net = mango_account.get_net(i); // deposit/borrow position
-        // ❌ prices[i] for MNGO is sourced from the Mango spot market itself —
-        //    the same venue the attacker is trading on.
-        //    By pushing the MNGO/USDC spot price from $0.038 to $0.91,
-        //    the attacker directly controls prices[MNGO_INDEX] here.
-        let weighted_price = if health_type == HealthType::Init {
-            mango_group.get_price(i) * mango_group.spot_markets[i].init_asset_weight // ❌
-        } else {
-            mango_group.get_price(i) * mango_group.spot_markets[i].maint_asset_weight
-        };
-        health += base_net * weighted_price; // ❌ collateral value = position * manipulated oracle price
+    for oracle_ai in oracle_ais.iter() {
+        let oracle_index = mango_group.find_oracle_index(oracle_ai.key).ok_or(throw!())?;
+        // ❌ read_oracle reads from whatever oracle account was registered for this token.
+        //    For MNGO, this was a Stub oracle — whose price was set by the Mango team
+        //    to track the Mango spot market's own last-fill price.
+        if let Ok(price) = read_oracle(
+            &mango_group,
+            oracle_index,
+            oracle_ai,
+            mango_cache.price_cache[oracle_index].price,
+        ) {
+            mango_cache.price_cache[oracle_index] = PriceCache { price, last_update };
+        }
     }
-    Ok(health)
+    Ok(())
 }
+```
 
-// The borrow limit check uses the same health score:
-// if health > 0 after adding proposed borrow, borrow is allowed.
-// With MNGO inflated 24x, health appears massive → unlimited borrowing permitted.
+### 2. Oracle Reading by Type (real source: `program/src/processor.rs`, line 8459)
 
-// ✅ Fix: replace self-referential oracle with Pyth/Switchboard TWAP
-// In mango-v4 (post-exploit), the protocol moved to Pyth and Switchboard
-// price feeds with staleness checks and confidence band rejection:
-//
-//   let oracle_price = load_pyth_price(oracle_ai, clock)?;
-//   require!(oracle_price.confidence / oracle_price.price < MAX_CONFIDENCE_RATIO,
-//            MangoError::OraclePriceConfidenceTooLow);
+```rust
+// File: program/src/processor.rs — pub fn read_oracle (line 8459)
+// Source: https://github.com/blockworks-foundation/mango-v3/blob/main/program/src/processor.rs
+
+pub fn read_oracle(
+    mango_group: &MangoGroup,
+    token_index: usize,
+    oracle_ai: &AccountInfo,
+    last_known_price_in_cache: I80F48,
+) -> MangoResult<I80F48> {
+    let oracle_type = determine_oracle_type(oracle_ai);
+
+    let price = match oracle_type {
+        OracleType::Pyth => {
+            let oracle_data = oracle_ai.try_borrow_data()?;
+            let price_account = pyth_client::load_price(&oracle_data).unwrap();
+            // ✅ Pyth provides an external, manipulation-resistant price feed
+            let value = I80F48::from_num(price_account.agg.price);
+            // ... confidence filter applied ...
+            value
+        }
+        OracleType::Stub => {
+            // ❌ StubOracle price is simply a u128 field set by the program admin.
+            //    For MNGO, this field was periodically updated to the Mango spot price —
+            //    the same venue the attacker was trading on. No TWAP, no external source.
+            let oracle = StubOracle::load(oracle_ai)?;
+            I80F48::from_num(oracle.price)  // ❌ returns the manipulated spot price directly
+        }
+        OracleType::Switchboard => {
+            // ✅ Switchboard is an external feed (used for other tokens, not MNGO)
+            let result = FastRoundResultAccountData::deserialize(&oracle_ai.try_borrow_data()?).unwrap();
+            I80F48::from_num(result.result.result)
+        }
+        OracleType::Unknown => return Err(throw_err!(MangoErrorCode::InvalidOracleType)),
+    };
+    Ok(price)
+}
+```
+
+### 3. Price Retrieval from Cache (real source: `program/src/state.rs`, line 801)
+
+```rust
+// File: program/src/state.rs — impl MangoCache
+// Source: https://github.com/blockworks-foundation/mango-v3/blob/main/program/src/state.rs
+
+pub fn get_price(&self, i: usize) -> I80F48 {
+    if i == QUOTE_INDEX {
+        ONE_I80F48
+    } else {
+        // ❌ Returns whatever was last cached by cache_prices.
+        //    For MNGO: this is the Stub oracle value = Mango's own spot price.
+        self.price_cache[i].price  // ❌ attacker-controlled via on-exchange trading
+    }
+}
+```
+
+### 4. Health / Collateral Calculation (real source: `program/src/state.rs`)
+
+```rust
+// File: program/src/state.rs — impl HealthCache
+// Source: https://github.com/blockworks-foundation/mango-v3/blob/main/program/src/state.rs
+
+pub fn get_health(&mut self, mango_group: &MangoGroup, health_type: HealthType) -> I80F48 {
+    let health_index = health_type as usize;
+    match self.health[health_index] {
+        None => {
+            let mut health = self.quote;  // start with USDC balance
+            for i in 0..mango_group.num_oracles {
+                let spot_market_info = &mango_group.spot_markets[i];
+                let perp_market_info = &mango_group.perp_markets[i];
+
+                let (spot_asset_weight, spot_liab_weight, perp_asset_weight, perp_liab_weight) =
+                    match health_type {
+                        HealthType::Init => (
+                            spot_market_info.init_asset_weight,
+                            spot_market_info.init_liab_weight,
+                            perp_market_info.init_asset_weight,
+                            perp_market_info.init_liab_weight,
+                        ),
+                        // ... Maint / Equity cases ...
+                    };
+
+                if self.active_assets.spot[i] {
+                    let (base, quote) = self.spot[i];
+                    // ❌ `base` is the MNGO position size;
+                    //    the price embedded in `base` comes from get_price(i) above,
+                    //    which returned the Stub oracle value = manipulated spot price.
+                    //    Attacker's 488M MNGO @ $0.91 = $423M phantom collateral.
+                    if base.is_negative() {
+                        health += base * spot_liab_weight + quote;
+                    } else {
+                        health += base * spot_asset_weight + quote;  // ❌ inflated by 24x
+                    }
+                }
+            }
+            self.health[health_index] = Some(health);
+            health
+        }
+        Some(h) => h,
+    }
+}
+```
+
+### Borrow check that approved the theft
+
+```rust
+// File: program/src/processor.rs — withdraw (simplified)
+let health = health_cache.get_health(&mango_group, HealthType::Init);
+// ❌ With ~$423M phantom MNGO collateral, health is strongly positive even after
+//    borrowing the entire $114M treasury. The borrow is approved unconditionally.
+check!(health >= ZERO_I80F48, MangoErrorCode::InsufficientFunds)?;
+```
+
+### Fix applied in mango-v4
+
+```rust
+// ✅ mango-v4 replaced Stub oracles with Pyth + staleness + confidence checks:
+let oracle_price = load_pyth_price(oracle_ai, clock)?;
+// Reject if confidence interval > threshold (price uncertainty too high)
+require!(
+    oracle_price.conf.checked_div(oracle_price.price).unwrap() < MAX_CONFIDENCE_RATIO,
+    MangoError::OraclePriceConfidenceTooLow
+);
+// Additionally: circuit breakers on >20% single-block price moves
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 
-- `get_health()` reads `mango_group.get_price(i)` which for MNGO returned the Mango CLOB's own most-recent fill price.
-- No TWAP window, no external oracle, no staleness check — the price updates in real time with every trade.
-- By executing a large coordinated buy of MNGO on the same exchange, the attacker sets the oracle price to any value.
-- The health calculation multiplies the manipulated price by the attacker's full MNGO position, producing a paper-collateral value of ~$423M.
-- The borrow function checks `health > 0` after adding the proposed debt — with $423M fake collateral and $114M real borrow, health remains positive and the borrow succeeds.
+- `read_oracle()` for the MNGO token dispatched to `OracleType::Stub`, returning `oracle.price` — a plain integer field stored on-chain in a Mango-controlled account, periodically synced to Mango's own spot market last-fill price.
+- There is no TWAP window, no external oracle, and no staleness or confidence check for the Stub oracle path.
+- `get_price(i)` returns this value verbatim from the cache, and `get_health()` multiplies it by the attacker's full MNGO position (488M tokens).
+- At the manipulated price of $0.91/MNGO, the health calculation yields ~$423M phantom collateral.
+- The withdraw path's only guard is `health >= ZERO_I80F48` — trivially satisfied with $423M fake collateral minus $114M real borrow, so every asset in the treasury was released.
 
 ---
 ## 3. Attack Flow

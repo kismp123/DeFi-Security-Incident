@@ -64,14 +64,14 @@ contract SafemMAI {
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — mMAI (`0x3dC7E6FF0fB79770FA6FB05d1ea4deACCe823943`, Polygon) / Curve pool (`0xFb6FE7802bA9290ef8b00CA16Af4Bc26eb663a28`, Polygon)
+Source: **Etherscan-verified** (V2 API, chainid 137) — CErc20Delegator `0x3dC7E6FF0fB79770FA6FB05d1ea4deACCe823943` (Polygon) — proxy only; the oracle/pricing logic resides in the delegated implementation contract which is separate and not retrieved here.
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The mMAI contract is a minimal proxy (delegatecall); the implementation is also unverified on PolygonScan. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ The mMAI contract (`0x3dC7E6FF0fB79770FA6FB05d1ea4deACCe823943`) is verified on Etherscan (ContractName: CErc20Delegator) but is a delegator proxy — it forwards all calls to an implementation via `delegateTo()`. The vulnerable oracle pricing path (`getUnderlyingPrice` → `get_virtual_price`) lives in the implementation contract, not the proxy. Source unavailable for the implementation; the behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
 The PoC shows `mMAI` is a Compound-fork `CErc20Delegate`. Its `borrow()` delegates collateral valuation to an internal oracle that reads Curve LP `get_virtual_price()`. The exploit fires from the attacker's `receive()` callback inside Curve's `remove_liquidity()`:
 
 ```solidity
-// Reconstructed from PoC — NOT verified source
+// ⚠️ RECONSTRUCTED — implementation contract source unavailable; behavior confirmed by on-chain analysis.
 // ❌ mMAI (CErc20Delegate) — borrow() relies on Curve get_virtual_price() which is inconsistent mid-remove_liquidity()
 
 // Oracle path: borrow() → comptroller.borrowAllowed() → oracle.getUnderlyingPrice(mMAI)

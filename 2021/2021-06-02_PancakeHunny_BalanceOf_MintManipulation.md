@@ -64,16 +64,13 @@ function mintFor(address flip, uint256 _withdrawalFee, uint256 _performanceFee, 
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — HunnyMinter / 0x109Ea28dbDea5E6ec126FbC8c33845DFe812a300 (BSC)
-(BSCScan: Source Code Verified — Exact Match; Sourcify: partial match only)
+Source: **Etherscan-verified** (V2 API, chainid 56) — HunnyMinter `0x109Ea28dbDea5E6ec126FbC8c33845DFe812a300`
 
-> ⚠️ Contract not verified on Sourcify — source unavailable from Sourcify. The function below is reconstructed from the DeFiHackLabs PoC comment and the BSCScan-verified source (exact match confirmed on BSCScan), labeled accordingly.
-
-The PoC file at [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-06/PancakeHunny_exp.sol) includes the following verbatim comment containing the vulnerable snippet directly from the verified source:
+The Etherscan V2 API confirms the contract is verified (ContractName: HunnyMinter, source non-empty). The full source exceeds the API response limit; the `mintFor()` body below is taken verbatim from the DeFiHackLabs PoC comment, which the PoC author notes matches the BSCScan-verified source exactly.
 
 ```solidity
 // HunnyMinter — 0x109Ea28dbDea5E6ec126FbC8c33845DFe812a300 (BSC)
-// (verbatim from PoC comment, matches BSCScan-verified source)
+// Etherscan-verified (V2 API, chainid 56); mintFor() verbatim from PoC comment (matches verified source)
 
 function mintFor(
     address flip,

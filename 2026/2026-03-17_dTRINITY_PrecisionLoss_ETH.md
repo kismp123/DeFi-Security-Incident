@@ -27,9 +27,9 @@ The core vulnerability is a combination of two layers:
 2. **Collateral Value Inflation (Phantom Collateral)**: Based on the inflated `liquidityIndex`, subsequent cbBTC deposits had their collateral value calculated at several times the actual amount, allowing the attacker to borrow ~$257,300 worth of dUSD against a deposit of approximately 7.72 cbBTC.
 
 **Related Similar Incidents**:
-- [Radiant Capital (2024-01-02)](./2024-01-02_RadiantCapital_EmptyMarketRounding_ARB.md) — Same Aave V3 fork empty market pattern
-- [Sonne Finance (2024-05-14)](./2024-05-14_SonneFinance_ERC4626Inflation_OP.md) — Compound V2 fork ERC4626 inflation
-- [Polter Finance (2024-11-16)](./2024-11-16_PolterFinance_EmptyMarket_FTM.md) — Empty market flash loan exploitation
+- [Radiant Capital (2024-01-02)](../2024/2024-01-02_RadiantCapital_EmptyMarketRounding_ARB.md) — Same Aave V3 fork empty market pattern
+- [Sonne Finance (2024-05-14)](../2024/2024-05-14_SonneFinance_ERC4626Inflation_OP.md) — Compound V2 fork ERC4626 inflation
+- [Polter Finance (2024-11-16)](../2024/2024-11-19_PolterFinance_EmptyMarket_FTM.md) — Empty market flash loan exploitation
 
 ---
 

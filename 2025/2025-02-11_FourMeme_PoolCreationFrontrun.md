@@ -61,7 +61,7 @@ function migrateToPool(address token, uint256 bnbAmount, uint256 tokenAmount) ex
 
 ### On-chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The FourMeme launchpad contract at `0x5c952063c7fc8610FFDB798152D69F0B9550762b` (BSC) returns HTTP 404 on Sourcify. The vulnerable behavior below is reconstructed from the attack PoC, the DeFiHackLabs analysis, and on-chain transaction traces, not from verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. The FourMeme launchpad contract at `0x5c952063c7fc8610FFDB798152D69F0B9550762b` (BSC) returns HTTP 404 on Sourcify and empty SourceCode on BSCScan. The vulnerable behavior below is reconstructed from the attack PoC, the DeFiHackLabs analysis, and on-chain transaction traces, not from verified source.
 
 **Reconstructed: `addLiquidity()` — No Pool Price Validation**
 ```solidity

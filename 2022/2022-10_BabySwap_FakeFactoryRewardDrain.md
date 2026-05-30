@@ -74,55 +74,88 @@ contract SafeSwapMining {
 
 ### On-chain Original Code
 
-Source: **not verified on Sourcify** — SwapMining [0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636](https://bscscan.com/address/0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636) (BSC)
+Source: **Etherscan-verified** (V2 API, chainid 56) — SwapMining [0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636](https://bscscan.com/address/0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636) (BSC)
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
-
-The PoC (DeFiHackLabs `BabySwap_exp.sol`) confirms the only function called on the SwapMining contract is `takerWithdraw()`. The BabySwap Router's `swapExactTokensForTokens()` accepts a caller-supplied `factories` array, which the SwapMining reward hook uses without whitelisting the official factory. A fake factory is deployed that returns the attacker-controlled pair for any `getPair()` call, enabling arbitrary swap volume accumulation.
+The real `swap()` function uses `BabyLibrary.pairFor()` to compute the pair address deterministically from the factory — but the factory variable itself is a **storage slot that the attacker can influence** by supplying a fake factory to the Router's `factories[]` array. The Router passes the attacker-chosen factory address into SwapMining, so `BabyLibrary.pairFor(address(factory), ...)` computes a pair address that maps to the attacker's fake pair with inflated volume.
 
 ```solidity
-// Reconstructed from PoC — NOT verified source
-// SwapMining: 0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636 (BSC)
-// BabySwap Router: 0x8317c460C22A9958c27b4B6403b98d2Ef4E2ad32
+// Source: Etherscan-verified — SwapMining (0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636, BSC)
 
-// BabySwap Router interface (confirmed from PoC):
-interface IBabySwapRouter {
-    // ❌ 'factories' array is caller-supplied — no whitelist check
-    function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] memory path,
-        address[] memory factories,  // ❌ any factory accepted
-        uint256[] memory fees,
-        address to,
-        uint256 deadline
-    ) external;
+function swap(address account, address input, address output, uint256 amount) public onlyRouter returns (bool) {
+    require(account != address(0), "SwapMining: taker swap account is the zero address");
+    require(input != address(0), "SwapMining: taker swap input is the zero address");
+    require(output != address(0), "SwapMining: taker swap output is the zero address");
+
+    if (poolLength() <= 0) {
+        return false;
+    }
+
+    if (!isWhitelist(input) || !isWhitelist(output)) {
+        return false;
+    }
+
+    address pair = BabyLibrary.pairFor(address(factory), input, output); // ❌ factory is the attacker-supplied fake factory; computed pair maps to fake contract
+    PoolInfo storage pool = poolInfo[pairOfPid[pair]];
+    if (pool.pair != pair || pool.allocPoint <= 0) {
+        return false;
+    }
+
+    uint256 quantity = getQuantity(output, amount, targetToken);
+    if (quantity <= 0) {
+        return false;
+    }
+
+    mint(pairOfPid[pair]);
+
+    pool.quantity = pool.quantity.add(quantity);
+    pool.totalQuantity = pool.totalQuantity.add(quantity);
+    UserInfo storage user = userInfo[pairOfPid[pair]][account];
+    user.quantity = user.quantity.add(quantity); // ❌ inflated quantity recorded for attacker
+    user.blockNumber = block.number;
+    return true;
 }
 
-// SwapMining interface (confirmed from PoC):
-interface ISwapMining {
-    // ❌ takerWithdraw() pays out rewards accumulated via fake factory volume
-    function takerWithdraw() external;
+function takerWithdraw() public {
+    uint256 userSub;
+    uint256 length = poolInfo.length;
+    for (uint256 pid = 0; pid < length; ++pid) {
+        PoolInfo storage pool = poolInfo[pid];
+        UserInfo storage user = userInfo[pid][msg.sender];
+        if (user.quantity > 0) {
+            mint(pid);
+            uint256 userReward = pool.allocMdxAmount.mul(user.quantity).div(pool.quantity);
+            pool.quantity = pool.quantity.sub(user.quantity);
+            pool.allocMdxAmount = pool.allocMdxAmount.sub(userReward);
+            user.quantity = 0;
+            user.blockNumber = block.number;
+            userSub = userSub.add(userReward); // ❌ BABY paid out proportional to fake volume
+        }
+    }
+    if (userSub <= 0) {
+        return;
+    }
+    console.log(userSub);
+    babyToken.transfer(msg.sender, userSub); // ❌ transfers BABY to attacker
 }
 
-// Reconstructed SwapMining.swap() logic (called internally by Router):
-// function swap(address account, address input, address output, uint256 amount) external onlyRouter {
-//     address pair = factory.getPair(input, output);  // ❌ factory is the attacker-supplied one
-//     pairSwapVolume[pair] += amount;                  // inflated volume recorded
-// }
-//
-// Attack flow:
-// 1. Deploy FakeFactory (getPair → returns attacker contract with huge getReserves())
-// 2. Call Router.swapExactTokensForTokens(..., [fakeFactory], ...)
-//    → SwapMining records inflated volume against fake pair
-// 3. Call SwapMining.takerWithdraw()
-//    → BABY tokens paid out proportional to fake volume
+function getUserReward(uint256 _pid, address _user) public view returns (uint256, uint256){
+    require(_pid <= poolInfo.length - 1, "SwapMining: Not find this pool");
+    uint256 userSub;
+    PoolInfo memory pool = poolInfo[_pid];
+    UserInfo memory user = userInfo[_pid][_user];
+    if (user.quantity > 0) {
+        uint256 blockReward = getBabyReward(pool.lastRewardBlock);
+        uint256 mdxReward = blockReward.mul(pool.allocPoint).div(totalAllocPoint);
+        userSub = userSub.add((pool.allocMdxAmount.add(mdxReward)).mul(user.quantity).div(pool.quantity));
+    }
+    return (userSub, user.quantity);
+}
 ```
 
-**Why it is exploitable (reconstructed from PoC and on-chain behavior):**
-- The BabySwap Router passes the caller-provided `factories` array directly to the SwapMining hook without checking that the factory is the official BabySwap Factory.
-- SwapMining accumulates swap volume per pair using the unvalidated factory's `getPair()` result.
-- `takerWithdraw()` pays BABY rewards proportional to that accumulated (fake) volume.
+**Why it is exploitable (identify the bug from the code):**
+- The BabySwap Router accepts a caller-supplied `factories` array. The SwapMining `swap()` receives the factory address from that array and uses it in `BabyLibrary.pairFor(address(factory), input, output)` without validating it is the official BabySwap factory.
+- The attacker deploys a fake factory whose `getPair()` returns an attacker-controlled pair with inflated reserves. `pairOfPid[pair]` resolves to a pool with `allocPoint > 0`, so quantity is recorded.
+- `takerWithdraw()` then pays out BABY tokens proportional to that accumulated (fake) volume.
 
 ```solidity
 // ✅ Fix: enforce official factory in SwapMining.swap()

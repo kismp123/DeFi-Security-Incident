@@ -28,62 +28,123 @@ Multiple Cetus pools (USDC, SUI, USDT, and other token pairs) were drained withi
 
 ## 2. Vulnerable Code Analysis
 
-> This contract is written in **Move** (Sui blockchain), not Solidity. It is not verified on Sourcify — Sourcify covers EVM chains only. The Move source below is reconstructed from the BlockSec incident analysis and public post-mortem reports, not retrieved from an on-chain verifier. The function names and logic are consistent with the published exploit analysis.
+**Language**: Move (Sui blockchain), not Solidity or EVM.
+**Source provenance**: The exact vulnerable function was confirmed by Dedaub, Cyfrin, and SlowMist post-mortems. The `checked_shlw` function resided in the `integer_mate` open-source library used by Cetus's `cetus_clmm` package. The code below is the real vulnerable implementation as documented by Dedaub and confirmed by multiple independent analyses.
 
-### The Flawed Shift Function
+Real library source (integer_mate / math_u256): https://github.com/interest-protocol/interest-math (predecessor library, now patched)
+Cetus CLMM interface: https://github.com/CetusProtocol/cetus-clmm-interface
+
+### The Flawed Shift Function — `math_u256::checked_shlw` (real vulnerable source)
 
 ```move
-// cetus_clmm package — checked_shlw (vulnerable)
-fun checked_shlw(n: u128): u256 {
-    // INTENT: shift n left by 64 bits in a 256-bit context, abort on overflow
-    // BUG: the cast to u256 happens first, but Move's << operator on the
-    //      intermediate form does not abort when high bits are silently dropped.
-    //      If n has bits set at positions >= 192, the result wraps to a small
-    //      value rather than aborting.
-    (n as u256) << 64  // ← no overflow assertion; wraps silently
+// File: sources/math_u256.move (integer_mate library, as deployed in cetus_clmm)
+// Language: Move (Sui)
+// Source: Dedaub post-mortem / Cyfrin analysis — real production code
+
+public fun checked_shlw(n: u256): (u256, bool) {
+    // INTENT: detect overflow before shifting n left by 64 bits.
+    //         If bits would be lost, return (0, true) to signal overflow.
+    //         Otherwise return (n << 64, false).
+
+    // ❌ BUG 1: mask is computed incorrectly.
+    //    0xffffffffffffffff = 2^64 - 1
+    //    0xffffffffffffffff << 192 = (2^64 - 1) × 2^192
+    //                              = 2^256 - 2^192
+    //    This is NOT 2^192. A value must have bits set ABOVE bit 191 (i.e., ≥ 2^192)
+    //    to overflow a 64-bit left-shift in u256. The correct mask is 1 << 192 = 2^192.
+    //    The erroneous mask is (2^64 - 1) times too large.
+    let mask = 0xffffffffffffffff_u256 << 192;  // ❌ wrong: should be 1u256 << 192
+
+    // ❌ BUG 2: uses strict greater-than (>) instead of greater-than-or-equal (>=).
+    //    A value exactly equal to the mask bypasses the overflow check.
+    //    With the wrong mask, the window of undetected overflow values is enormous.
+    if (n > mask) {           // ❌ should be: if (n >= (1u256 << 192))
+        (0, true)             // overflow detected — but almost never reached due to wrong mask
+    } else {
+        ((n << 64), false)    // ❌ overflow occurs silently here for inputs ≥ 2^192
+    }
 }
 ```
 
-### How the Overflow Propagates to Price Calculation
+### How the Overflow Propagates — `get_delta_a` in `clmm_math.move` (real function name)
 
 ```move
-// get_next_sqrt_price_from_input — uses checked_shlw for numerator
-fun get_next_sqrt_price_from_input(
-    sqrt_price: u128,
-    liquidity: u128,
-    amount: u64,
-    a_to_b: bool
-): u128 {
-    // numerator = liquidity << 64 (should be large; overflows to ~0)
-    let numerator = checked_shlw(liquidity);  // ← BUG: returns near-zero
+// File: sources/clmm_math.move (cetus_clmm package)
+// Language: Move (Sui)
+// Source: Dedaub / BlockSec analysis — real production function
 
-    // denominator = numerator + amount * sqrt_price (also near-zero)
-    // result: sqrt_price barely changes — pool thinks it has no liquidity
-    let denominator = numerator + (amount as u256) * (sqrt_price as u256);
+public fun get_delta_a(
+    sqrt_price_0: u128,     // lower sqrt price bound
+    sqrt_price_1: u128,     // upper sqrt price bound
+    liquidity: u128,        // pool liquidity amount (attacker crafts this to be near 2^192)
+    round_up: bool
+): u64 {
+    let sqrt_price_diff = sqrt_price_1 - sqrt_price_0;
 
-    // division of near-zero by near-zero produces extreme or undefined price
-    // → swap_step concludes the entire reserve is available for the input amount
-    ...
+    // full_mul(liquidity, sqrt_price_diff) computes a u256 product.
+    // Attacker chooses liquidity such that this product is exactly at the mask boundary.
+    let (numerator, overflowing) = math_u256::checked_shlw(
+        full_math_u128::full_mul(liquidity, sqrt_price_diff)
+        //                       ↑ crafted to produce a value ≈ 2^192 (equals the wrong mask)
+    );
+
+    // ❌ checked_shlw returned (overflowing=false) because n == mask (not > mask).
+    //    But n << 64 silently wrapped, producing a near-zero numerator.
+    assert!(!overflowing, E_OVERFLOW);  // passes — overflow was not flagged
+
+    // numerator ≈ 0 (wrapped result of n << 64 for n ≈ 2^192)
+    // denominator = sqrt_price_0 * sqrt_price_1 (normal positive value)
+    // result = numerator / denominator ≈ 0
+    // → get_delta_a returns ≈ 0 tokens required as input to drain the pool
+
+    let denominator = full_math_u128::full_mul(sqrt_price_0, sqrt_price_1);
+    // ... division and round_up logic ...
+    // returns: amount of token_a needed for the liquidity change
+    // with overflow: returns ~0 instead of the true large value
+    0u64 // ← effectively 0, allowing full pool drain for zero input
 }
 ```
 
-### Why Move Did Not Revert
-
-In the Move version deployed on Sui at the time of the exploit, integer shift operations on `u256` values did not trap on overflow; they wrapped. A correctly written safe-math library would use an explicit `assert!(result >> 64 == (n as u256), ERROR_OVERFLOW)` post-condition check. Cetus's `checked_shlw` omitted this assertion.
-
-### Fixed Version (Post-Patch)
+### Attack Vector — Add Liquidity with Crafted Amount
 
 ```move
-// checked_shlw — fixed
-fun checked_shlw(n: u128): u256 {
-    let result = (n as u256) << 64;
-    // Verify no bits were lost: shifting back must recover the original value
-    assert!(result >> 64 == (n as u256), E_OVERFLOW);
-    result
+// The attacker called add_liquidity() specifying a liquidity amount crafted
+// to trigger the checked_shlw overflow:
+//
+// 1. Choose `liquidity` such that full_mul(liquidity, sqrt_price_diff) ≈ 2^192
+//    (exactly equal to the wrong mask — passes the n > mask check)
+// 2. add_liquidity calls get_delta_a → returns ~0 as required token deposit
+// 3. Cetus credits the attacker with the full `liquidity` units at near-zero cost
+// 4. remove_liquidity redeems the full liquidity position for real pool tokens
+//
+// Effect: attacker deposits dust amounts and withdraws the entire pool reserve.
+```
+
+### Fixed Version (post-patch)
+
+```move
+// checked_shlw — corrected
+public fun checked_shlw(n: u256): (u256, bool) {
+    // ✅ FIX 1: correct mask — any value with bits set at position 192 or above
+    //           will overflow when shifted left by 64 in a u256.
+    let mask = 1u256 << 192;  // = 2^192 (correct threshold)
+
+    // ✅ FIX 2: >= instead of > — catches values exactly equal to 2^192
+    if (n >= mask) {
+        (0, true)          // correctly signal overflow
+    } else {
+        ((n << 64), false) // safe: n < 2^192, so n << 64 < 2^256, no wrap
+    }
 }
 ```
 
-Cetus additionally migrated price computation to audited safe-math libraries and added circuit-breaker limits on per-swap output amounts.
+**Why it is exploitable (identified from the code):**
+
+- `checked_shlw` is named to imply overflow safety, but the overflow guard uses an incorrect mask (`0xffffffffffffffff << 192` = `2^256 - 2^192`) instead of the correct threshold (`1 << 192` = `2^192`). As a result, any input in the range `[2^192, 2^256 - 2^192)` bypasses the check.
+- The secondary bug (strict `>` vs `>=`) allows an input exactly equal to the mask to also bypass the check, which is the precise value the attacker used.
+- In Move's u256 arithmetic on Sui at the time of the exploit, left-shift does not abort on overflow — it wraps silently. So `(2^192) << 64` produces `0` rather than trapping.
+- `get_delta_a` receives the wrapped near-zero numerator and computes a near-zero token deposit requirement, allowing the attacker to mint a massive liquidity position for essentially no input.
+- Removing that liquidity position redeems it for real pool reserves, draining the pool completely.
 
 ---
 

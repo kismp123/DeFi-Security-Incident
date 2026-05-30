@@ -30,9 +30,9 @@ interface IKR is IERC20 {
 ---
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-The KR token contract (0x15b1Ed79cA9D7955AF3E169d7B323c4F1eeb5D12, BSC) is not verified on Sourcify (chainid 56) and is not publicly verified on BSCscan. The following is reconstructed from the DeFiHackLabs PoC (`KR_exp.sol`):
+The KR token contract (0x15b1Ed79cA9D7955AF3E169d7B323c4F1eeb5D12, BSC) is not verified on Sourcify (chainid 56) and is confirmed unverified on BSCScan (Etherscan V2 API returned empty SourceCode). The following is reconstructed from the DeFiHackLabs PoC (`KR_exp.sol`):
 
 ```solidity
 // RECONSTRUCTED — not verified source

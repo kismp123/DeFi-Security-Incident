@@ -408,6 +408,6 @@ Attack sequence confirmed via Phalcon analysis and DeFiHackLabs PoC code:
 
 ---
 
-*Related incidents: [SafeMoon (2023-03-28)](./2023-03-28_SafeMoon_PublicBurnLP_BSC.md) | [MovieToken (2026-03-10)](./2026-03-10_MovieToken_MT_PendingBurnLP_BSC.md) | [BRA Token (2023-01-10)](./2023-01-10_BRAToken_BusinessLogic_BSC.md)*
+*Related incidents: [SafeMoon (2023-03-28)](../2023/2023-03-28_SafeMoon_PublicBurnLP_BSC.md) | [MovieToken (2026-03-10)](../2026/2026-03-10_MovieToken_MT_PendingBurnLP_BSC.md) | [BRA Token (2023-01-10)](../2023/2023-01-10_BRAToken_BusinessLogic_BSC.md)*
 
 *Pattern references: `11_logic_error.md` (Business Logic) | `02_flash_loan.md` (Flash Loan) | `07_token_integration.md` (Fee-on-Transfer)*

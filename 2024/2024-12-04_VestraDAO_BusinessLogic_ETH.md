@@ -433,8 +433,8 @@ The above pattern repeats 60 times. Total log count: 420 entries (predominantly 
 - [Vulnerable Contract — Etherscan](https://etherscan.io/address/0x8a30d684b1d3f8f36b36887a3deca0ef2a36a8e3)
 - [Attack Tx (Primary)](https://etherscan.io/tx/0x213991ca681019f599f8f52a25ab6a5e39e690eac2ad206faf24f0c549e844c7)
 - [Attack Tx (Initial)](https://etherscan.io/tx/0xa0dcf9b177702c58c5d0353aff2caeab12589bce204fb2d0e62ccbf5717f1798)
-- [Related Pattern: 17_staking_reward.md](../patterns/17_staking_reward.md)
-- [Related Pattern: 11_logic_error.md](../patterns/11_logic_error.md)
+- Related Pattern: 17_staking_reward.md
+- Related Pattern: 11_logic_error.md
 
 ---
 

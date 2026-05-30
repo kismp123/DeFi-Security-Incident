@@ -46,32 +46,122 @@ function swapProfitFees() external onlyOwner {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+Source: **Etherscan-verified** (V2 API, chainid 56) — FortuneWheel 0x384b9fb6E42dab87F3023D87ea1575499A69998E
 
-The PoC (`JPulsepot_exp.sol`) confirms the victim is `0x384b9fb6E42dab87F3023D87ea1575499A69998E` and directly calls `IFortuneWheel(victim).swapProfitFees()` with no arguments. The function is accessible to any external caller (confirmed by the PoC being able to call it without privilege). The following is reconstructed from the PoC and the post-mortem (CertiK alert, 2025-01-13):
+The real `swapProfitFees()` is considerably more complex than the simplified reconstruction, but retains the critical flaws: it is `external` with no access-control modifier, and every internal swap to ETH or tokens uses `0` as the minimum output (`amountOutMin = 0`).
 
 ```solidity
-// ⚠️ RECONSTRUCTED — not verified source
-// Victim: FortuneWheel / 0x384b9fb6E42dab87F3023D87ea1575499A69998E (BSC)
-// Confirmed callable via: IFortuneWheel(victim).swapProfitFees() in DeFiHackLabs PoC
+// Source: Etherscan-verified — FortuneWheel (0x384b9fb6E42dab87F3023D87ea1575499A69998E, BSC)
 
 function swapProfitFees() external { // ❌ No access control — callable by anyone
-    uint256 bnbBalance = address(this).balance;
+    IPancakeRouter02 router = IPancakeRouter02(pancakeRouterAddr);
     address[] memory path = new address[](2);
-    path[0] = WBNB;
-    path[1] = LINK;
-    IUniswapV2Router(router).swapExactETHForTokens{value: bnbBalance}(
-        0,                  // ❌ amountOutMin = 0 — no slippage protection whatsoever
-        path,
-        address(this),
-        block.timestamp
-    );
+    uint256 totalBNBForGame;
+    uint256 totalBNBForLink;
+    uint256 length = casinoCount;
+    uint256 BNBPPool = 0;
+
+    // Swap each token to BNB
+    for (uint256 i = 1; i <= length; ++i) {
+        Casino memory casinoInfo = tokenIdToCasino[i];
+        IERC20 token = IERC20(casinoInfo.tokenAddress);
+
+        if (casinoInfo.liquidity == 0) continue;
+
+        uint256 availableProfit = casinoInfo.profit < 0 ? 0 : uint256(casinoInfo.profit);
+        if (casinoInfo.liquidity < availableProfit) {
+            availableProfit = casinoInfo.liquidity;
+        }
+
+        uint256 gameFee = (availableProfit * casinoInfo.fee) / 100;
+        uint256 amountForLinkFee = getTokenAmountForLink(casinoInfo.tokenAddress, linkSpent[i]);
+        _updateProfitInfo(i, uint256(gameFee), availableProfit);
+        casinoInfo.liquidity = tokenIdToCasino[i].liquidity;
+
+        if (gameFee < amountForLinkFee) {
+            if (casinoInfo.liquidity < (amountForLinkFee - gameFee)) {
+                amountForLinkFee = gameFee + casinoInfo.liquidity;
+                tokenIdToCasino[i].liquidity = 0;
+            } else {
+                tokenIdToCasino[i].liquidity -= (amountForLinkFee - gameFee);
+            }
+            gameFee = 0;
+        } else {
+            gameFee -= amountForLinkFee;
+        }
+
+        _updateLinkConsumptionInfo(i, amountForLinkFee);
+
+        if (casinoInfo.tokenAddress == address(0)) {
+            totalBNBForGame += gameFee;
+            totalBNBForLink += amountForLinkFee;
+            continue;
+        }
+        if (casinoInfo.tokenAddress == BNBPAddress) {
+            BNBPPool += gameFee;
+            gameFee = 0;
+        }
+
+        path[0] = casinoInfo.tokenAddress;
+        path[1] = wbnbAddr;
+
+        if (gameFee + amountForLinkFee == 0) {
+            continue;
+        }
+        token.approve(address(router), gameFee + amountForLinkFee);
+        uint256[] memory swappedAmounts = router.swapExactTokensForETH(
+            gameFee + amountForLinkFee,
+            0, // ❌ amountOutMin = 0 — no slippage protection
+            path,
+            address(this),
+            block.timestamp
+        );
+        totalBNBForGame += (swappedAmounts[1] * gameFee) / (gameFee + amountForLinkFee);
+        totalBNBForLink += (swappedAmounts[1] * amountForLinkFee) / (gameFee + amountForLinkFee);
+    }
+
+    path[0] = wbnbAddr;
+    // Convert to LINK
+    if (totalBNBForLink > 0) {
+        path[1] = linkTokenAddr;
+
+        uint256 linkAmount = router.swapExactETHForTokens{ value: totalBNBForLink }(
+            0, // ❌ amountOutMin = 0 — accepts any price, fully vulnerable to sandwich
+            path,
+            address(this),
+            block.timestamp
+        )[1];
+
+        IERC20(linkTokenAddr).approve(pegSwapAddr, linkAmount);
+        PegSwap(pegSwapAddr).swap(linkAmount, linkTokenAddr, link677TokenAddr);
+
+        LinkTokenInterface(link677TokenAddr).transferAndCall(
+            coordinatorAddr,
+            linkAmount,
+            abi.encode(subscriptionId)
+        );
+        emit SuppliedLink(linkAmount);
+    }
+
+    if (totalBNBForGame > 0) {
+        path[1] = BNBPAddress;
+        BNBPPool += router.swapExactETHForTokens{ value: totalBNBForGame }(
+            0, // ❌ amountOutMin = 0
+            path, address(this), block.timestamp)[1];
+    }
+
+    if (BNBPPool > 0) {
+        IERC20(BNBPAddress).approve(potAddress, BNBPPool);
+        IPotLottery(potAddress).addAdminTokenValue(BNBPPool);
+
+        emit SuppliedBNBP(BNBPPool);
+    }
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 - `swapProfitFees()` has no `onlyOwner` or access-control modifier — any EOA or contract can call it at any time.
-- `amountOutMin = 0` means the protocol accepts any output amount, no matter how unfavorable the price.
+- Every `swapExactTokensForETH` and `swapExactETHForTokens` call inside uses `0` as `amountOutMin`, meaning the protocol accepts any output amount, no matter how unfavorable the price.
 - An attacker can call this inside a flash-loan callback after first purchasing a large amount of LINK (suppressing the BNB/LINK rate), forcing the protocol to swap BNB for LINK at a deeply unfavorable price. The attacker then reverses the trade for profit.
 
 ```solidity

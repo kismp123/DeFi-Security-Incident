@@ -65,11 +65,7 @@ function claimReferral(address referrer) external nonReentrant {
 
 ### On-chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
-
-Source: **not verified on Sourcify** — StepHeroNFTs `0x9823E10A0bF6F64F59964bE1A7f83090bf5728aB` (BSC, chainid 56)
-Sourcify URL: https://sourcify.dev/server/files/any/56/0x9823E10A0bF6F64F59964bE1A7f83090bf5728aB
-(BSCscan also shows no verified source for this address.)
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. StepHeroNFTs `0x9823E10A0bF6F64F59964bE1A7f83090bf5728aB` (BSC, chainid 56) is unverified on both Sourcify and BSCScan/Etherscan V2 API (status: "Contract source code not verified").
 
 **Reconstructed vulnerable function** — `claimReferral()` (from PoC `StepHeroNFTs_exp.sol`, not verified source):
 

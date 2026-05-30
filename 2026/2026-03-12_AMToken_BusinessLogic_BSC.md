@@ -546,6 +546,6 @@ This attack was detected in real time by BlockSec Phalcon. However, funds had al
 - [BscScan — AM Token Contract](https://bscscan.com/address/0x27f9787DbdcA43F92cCC499892a082494c23213f)
 - [BscScan — Attack Transaction](https://bscscan.com/tx/0xd0d13179645985eae599c029574e866d79b286fbea395b66504f87f31629f859)
 - [BscScan — Attacker Address](https://bscscan.com/address/0x0B9a1391269e95162bfeC8785E663258C209333B)
-- [Similar Case: LAXO Token (2026-02-22)](./2026-02-22_LAXOToken_ReserveManipulation.md)
+- [Similar Case: LAXO Token (2026-02-22)](../2026/2026-02-22_LAXOToken_LPBurnManipulation_BSC.md)
 - [Similar Case: BCE Token (2026-03-23)](./2026-03-23_BCEToken_BusinessLogic_BSC.md)
 - [Similar Case: Movie Token MT (2026-03-10)](./2026-03-10_MovieToken_MT_PendingBurnLP_BSC.md)

@@ -68,7 +68,9 @@ function swapExactETHForTokens(...) external payable {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The Meter Passport bridge handler on Moonriver (chainid 1285) is not present on Sourcify's verified registry (neither token0 `0x868892cccedbff0b028f3b3595205ea91b99376b` nor token1 `0x639A647fbe20b6c8ac19E48E2de44ea792c62c5C` were found). The vulnerable behavior below is reconstructed from the attack PoC, the ChainBridge codebase (open source), and on-chain traces — not from verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
+
+The Meter Passport bridge handler on Moonriver (chainid 1285) is not present on Sourcify's verified registry. The Etherscan V2 API (chainid 1285) confirms the two token contracts referenced in the PoC are verified (`AnyswapV5ERC20` at 0x639A647... and `ERC20MinterBurnerPauser` at 0x868892...) but these are standard token contracts, not the bridge handler. The vulnerable bridge handler contract itself is not among the verified addresses. The SushiSwap Router (0x1b02dA8...) is verified as `UniswapV2Router02` but is not the vulnerable component — the bug is in the Meter Passport bridge handler that calls it. The vulnerable behavior below is reconstructed from the attack PoC, the ChainBridge codebase (open source), and on-chain traces — not from verified source.
 
 The Meter Passport bridge was forked from ChainBridge. In ChainBridge's `ERC20Handler`, when a resource is registered as "burnable" (i.e., a mintable/burnable wrapped token like WBNB), the handler calls `burn()` on the token with the **amount taken directly from calldata** without checking `msg.value`. For native-wrapped tokens, the amount should come from `msg.value`, but it does not.
 

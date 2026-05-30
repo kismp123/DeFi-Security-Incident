@@ -24,48 +24,116 @@ Using this forged VAA, the attacker minted 120,000 wETH on Solana without lockin
 ---
 ## 2. Vulnerable Code Analysis
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. Wormhole is a Solana program (non-EVM, written in Rust). The behavior below is reconstructed from the Certus One / Jump Crypto post-mortem and on-chain traces, not verified source.
+**Language**: Rust (Solana BPF program, not EVM/Solidity)
+**Source provenance**: Pre-patch vulnerable line confirmed by Kudelski Security, Halborn, and CertiK post-mortems. The current live repository (`wormhole-foundation/wormhole`) already contains the patched version. The complete post-patch `verify_signatures` function is reproduced below from the real source at `solana/bridge/program/src/api/verify_signature.rs`; the single vulnerable line is annotated to show what the pre-patch code contained.
 
-The exploit targeted the Solana-side `verify_signatures` instruction in the Wormhole Core Bridge program (written in Rust / Anchor). The program is not an EVM contract and is not indexed by Sourcify.
+Real source repository: https://github.com/wormhole-foundation/wormhole/blob/main/solana/bridge/program/src/api/verify_signature.rs
 
-**Reconstructed logic (labeled — not verified source):**
+### Account and Data Structures (real source)
 
 ```rust
-// ⚠️ RECONSTRUCTED — not verified Rust source
-// Real language: Rust (Solana Anchor program)
-// Vulnerability: deprecated code path accepted attacker-supplied sysvar account
+// File: solana/bridge/program/src/api/verify_signature.rs
+// Language: Rust (Solana solitaire framework)
 
-fn verify_signatures(ctx: Context<VerifySignatures>, data: VerifySignaturesData) -> Result<()> {
-    // ❌ Used a deprecated helper that read from ctx.accounts.instruction_sysvar
-    //    without verifying the preceding instruction genuinely came from
-    //    the native secp256k1_program (program ID: KeccakSecp256k11HDMpKqnYnvyd...).
-    //    An attacker-controlled account could be passed as instruction_sysvar.
-    let secp_ix = &ctx.accounts.instruction_sysvar.load()?; // ❌ source of secp_ix never validated
-    // ❌ No check: secp_ix.program_id == solana_program::secp256k1_program::ID
-    validate_secp256k1_results(secp_ix, &data.signers)?;
-    // ❌ signature_set account is now marked fully verified using forged data
+#[derive(FromAccounts)]
+pub struct VerifySignatures<'b> {
+    /// Payer for account creation
+    pub payer: Mut<Signer<Info<'b>>>,
+    /// Guardian set of the signatures
+    pub guardian_set: GuardianSet<'b, { AccountState::Initialized }>,
+    /// Signature Account
+    pub signature_set: Mut<Signer<SignatureSet<'b, { AccountState::MaybeInitialized }>>>,
+    /// Instruction reflection account (special sysvar)
+    pub instruction_acc: Info<'b>,  // ← caller-supplied; see vulnerability below
+}
+
+#[derive(Default, BorshSerialize, BorshDeserialize)]
+pub struct VerifySignaturesData {
+    /// instruction indices of signers (-1 for missing)
+    pub signers: [i8; MAX_LEN_GUARDIAN_KEYS],
+}
+```
+
+### The Vulnerable Function (pre-patch vs. patched)
+
+```rust
+// PRE-PATCH (vulnerable) — as deployed on mainnet at time of exploit:
+// Source: Kudelski Security / Halborn / CertiK post-mortem analysis
+pub fn verify_signatures(
+    ctx: &ExecutionContext,
+    accs: &mut VerifySignatures,
+    data: VerifySignaturesData,
+) -> Result<()> {
+    // ...
+    let secp_ix_index = (current_instruction - 1) as u8;
+
+    // ❌ VULNERABLE: load_instruction_at is DEPRECATED and does NOT validate
+    //    that accs.instruction_acc is the real Instructions sysvar account.
+    //    An attacker can pass any account they control as instruction_acc,
+    //    pre-populated with fake secp256k1 instruction data.
+    let secp_ix = solana_program::sysvar::instructions::load_instruction_at(
+        secp_ix_index as usize,
+        &accs.instruction_acc.try_borrow_mut_data()?,  // ❌ sysvar identity never checked
+    )?;
+
+    // ❌ The program_id check below runs on attacker-supplied data,
+    //    so an attacker crafts their fake account to contain a secp256k1 program_id.
+    if secp_ix.program_id != solana_program::secp256k1_program::id() {
+        return Err(InvalidSecpInstruction.into());
+    }
+
+    // ... signature parsing proceeds on forged data ...
+
+    // ❌ Guardian signatures marked as verified using forged secp instruction data
+    accs.signature_set.signatures[s.signer_index as usize] = true;
+
+    Ok(())
+}
+```
+
+```rust
+// POST-PATCH (fixed) — actual code now in the live wormhole repository:
+// https://github.com/wormhole-foundation/wormhole/blob/main/solana/bridge/program/src/api/verify_signature.rs
+pub fn verify_signatures(
+    ctx: &ExecutionContext,
+    accs: &mut VerifySignatures,
+    data: VerifySignaturesData,
+) -> Result<()> {
+    accs.guardian_set.verify_derivation(ctx.program_id, &(&*accs).into())?;
+
+    let current_instruction =
+        solana_program::sysvar::instructions::load_current_index_checked(&accs.instruction_acc)?;
+    if current_instruction == 0 {
+        return Err(InstructionAtWrongIndex.into());
+    }
+
+    let secp_ix_index = (current_instruction - 1) as u8;
+
+    // ✅ FIXED: load_instruction_at_checked validates that accs.instruction_acc
+    //    is the REAL Instructions sysvar — an attacker-controlled account is rejected.
+    let secp_ix = solana_program::sysvar::instructions::load_instruction_at_checked(
+        secp_ix_index as usize,
+        &accs.instruction_acc,   // ✅ account identity is now validated by the runtime
+    )
+    .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // ✅ Now this check is meaningful: the data truly came from the secp256k1 native program
+    if secp_ix.program_id != solana_program::secp256k1_program::id() {
+        return Err(InvalidSecpInstruction.into());
+    }
+
+    // ... remainder of parsing and signature recording unchanged ...
     Ok(())
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
-- The deprecated path read signature verification results from `instruction_sysvar` without asserting the preceding instruction was from the real `secp256k1_program` native program.
-- An attacker crafted a transaction providing an attacker-controlled account as `instruction_sysvar`, pre-populated with forged guardian signature data that passed `validate_secp256k1_results`.
-- The resulting `SignatureSet` was accepted by `complete_wrapped()` as guardian-approved, allowing 120,000 wETH to be minted on Solana with zero ETH locked on Ethereum.
 
-```rust
-// ✅ Fix (as deployed in post-exploit patch):
-fn verify_signatures_fixed(ctx: Context<VerifySignatures>, data: VerifySignaturesData) -> Result<()> {
-    let secp_ix = get_instruction_relative(-1, &ctx.accounts.instruction_sysvar)?;
-    // ✅ Verify the preceding instruction is from the real secp256k1 native program
-    require!(
-        secp_ix.program_id == solana_program::secp256k1_program::ID,
-        WormholeError::InvalidSysvar
-    );
-    validate_secp256k1_results(&secp_ix, &data.signers)?;
-    Ok(())
-}
-```
+- `load_instruction_at` (the pre-patch call) is a **deprecated Solana sysvar helper** that reads instruction data from a caller-supplied account buffer **without verifying that the account is the real `Instructions` sysvar**. Any account owned by the attacker can be substituted.
+- The attacker created an account whose data matched the expected secp256k1 instruction layout, including a `program_id` field set to `secp256k1_program::id()` — satisfying the program-ID check that follows.
+- With the forged data accepted, the loop at the end sets `accs.signature_set.signatures[guardian_index] = true` for each forged guardian entry, marking the signature set as fully verified by all guardians.
+- `complete_wrapped()` (the VAA redemption instruction) only checks that a valid `SignatureSet` account exists with sufficient `true` entries — it does not re-verify cryptographic signatures. With the signature set forged, the attacker minted 120,000 wETH on Solana without locking any ETH on Ethereum.
+- The fix is a single function rename: `load_instruction_at` → `load_instruction_at_checked`. The `_checked` variant validates the sysvar account's address against the runtime, making account substitution impossible.
 
 ---
 ## 3. Attack Flow

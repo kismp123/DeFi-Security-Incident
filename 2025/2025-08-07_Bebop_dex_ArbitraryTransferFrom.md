@@ -58,12 +58,10 @@ function settle(...) external payable {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — Sourcify returns 404 for 0xbeb0b0623f66bE8cE162EbDfA2ec543A522F4ea6 on Arbitrum (chainid 42161). The source below is from the **public Bebop JAM contracts repository** (https://github.com/bebop-dex/bebop-jam-contracts), which matches the deployed bytecode per the Bebop post-mortem and the DeFiHackLabs PoC.
+Source: **Etherscan-verified** (V2 API, chainid 42161) — JamSettlement `0xbeb0b0623f66bE8cE162EbDfA2ec543A522F4ea6`
 
 ```solidity
-// JamSettlement.sol — Bebop JAM contracts (Solidity ^0.8.27, UNLICENSED)
-// Arbitrum deployment: 0xbeb0b0623f66bE8cE162EbDfA2ec543A522F4ea6
-
+// settle() — ❌ validateOrder() skipped when order.taker == msg.sender; interactions executed without selector filtering
 function settle(
     JamOrder calldata order,
     bytes calldata signature,
@@ -72,12 +70,9 @@ function settle(
     address balanceRecipient
 ) external payable nonReentrant {
     JamHooks.Def memory hooks = hooksData.length != 0 ?
-        abi.decode(hooksData, (JamHooks.Def)) :
-        JamHooks.Def(new JamInteraction.Data[](0), new JamInteraction.Data[](0));
+        abi.decode(hooksData, (JamHooks.Def)) : JamHooks.Def(new JamInteraction.Data[](0), new JamInteraction.Data[](0));
     bytes32 hooksHash = hooksData.length != 0 ? JamHooks.hash(hooks) : JamHooks.EMPTY_HOOKS_HASH;
-
-    validateOrder(order, signature, hooksHash); // ❌ skipped when order.taker == msg.sender (see below)
-
+    validateOrder(order, signature, hooksHash);
     if (hooksHash != JamHooks.EMPTY_HOOKS_HASH){
         require(JamInteraction.runInteractionsM(hooks.beforeSettle, balanceManager), BeforeSettleHooksFailed());
     }
@@ -86,42 +81,48 @@ function settle(
     } else {
         balanceManager.transferTokens(order.sellTokens, order.sellAmounts, order.taker, balanceRecipient);
     }
-
     require(JamInteraction.runInteractions(interactions, balanceManager), InteractionsFailed()); // ❌ arbitrary calls executed
-
     uint256[] memory buyAmounts = order.buyAmounts;
     transferTokensFromContract(order.buyTokens, order.buyAmounts, buyAmounts, order.receiver, order.partnerInfo, false);
-    // ...
+    if (order.receiver == address(this)){
+        require(!hasDuplicates(order.buyTokens), DuplicateTokens());
+    }
+    emit BebopJamOrderFilled(
+        order.nonce, order.taker, order.sellTokens, order.buyTokens, order.sellAmounts, buyAmounts
+    );
+    if (hooksHash != JamHooks.EMPTY_HOOKS_HASH){
+        require(JamInteraction.runInteractionsM(hooks.afterSettle, balanceManager), AfterSettleHooksFailed());
+    }
 }
 
-// JamValidation.sol — validateOrder()
+// validateOrder() — ❌ KEY BYPASS: if order.taker == msg.sender, NO signature is required
 function validateOrder(JamOrder calldata order, bytes calldata signature, bytes32 hooksHash) internal {
-    // ❌ KEY BYPASS: if order.taker == msg.sender, NO signature is required
+    // Allow settle from user without sig; For permit2 case, we already validated witness during the transfer
     if (order.taker != msg.sender && !order.usingPermit2) {
         bytes32 orderHash = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), order.hash(hooksHash)));
         validateSignature(order.taker, orderHash, signature);
     }
-    // ... nonce, executor, expiry checks ...
+    if (!order.usingPermit2 || order.expiry == INF_EXPIRY){
+        invalidateOrderNonce(order.taker, order.nonce, order.expiry == INF_EXPIRY);
+    }
+    require(
+        order.executor == msg.sender || order.executor == address(0) || block.timestamp > order.exclusivityDeadline,
+        InvalidExecutor()
+    );
+    require(order.buyTokens.length == order.buyAmounts.length, BuyTokensInvalidLength());
+    require(order.sellTokens.length == order.sellAmounts.length, SellTokensInvalidLength());
+    require(block.timestamp < order.expiry, OrderExpired());
 }
 
-// JamInteraction.sol — runInteractions() (the core vulnerable function)
-library JamInteraction {
-    struct Data {
-        bool result;   // if true, revert on failure; if false, ignore failure
-        address to;    // ❌ arbitrary target address — any contract on Arbitrum
-        uint256 value;
-        bytes data;    // ❌ arbitrary calldata — including USDC.transferFrom(victim, attacker, amount)
+// runInteractions() — ❌ only balanceManager blocked; any other address with any calldata permitted
+function runInteractions(Data[] calldata interactions, IJamBalanceManager balanceManager) internal returns (bool) {
+    for (uint i; i < interactions.length; ++i) {
+        Data calldata interaction = interactions[i];
+        require(interaction.to != address(balanceManager), CallToBalanceManagerNotAllowed());
+        (bool execResult,) = payable(interaction.to).call{ value: interaction.value }(interaction.data); // ❌ arbitrary external call
+        if (!execResult && interaction.result) return false;
     }
-
-    function runInteractions(Data[] calldata interactions, IJamBalanceManager balanceManager) internal returns (bool) {
-        for (uint i; i < interactions.length; ++i) {
-            Data calldata interaction = interactions[i];
-            require(interaction.to != address(balanceManager), CallToBalanceManagerNotAllowed()); // only balanceManager is blocked
-            (bool execResult,) = payable(interaction.to).call{ value: interaction.value }(interaction.data); // ❌ arbitrary external call
-            if (!execResult && interaction.result) return false;
-        }
-        return true;
-    }
+    return true;
 }
 ```
 

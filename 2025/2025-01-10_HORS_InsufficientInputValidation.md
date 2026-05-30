@@ -44,11 +44,7 @@ function executeWithRouter(address router, bytes calldata data) external onlyOwn
 
 ### On-chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
-
-Source: **not verified on Sourcify** — HORS `0x6f3390c6C200e9bE81b32110CE191a293dc0eaba` (BSC, chainid 56)
-Sourcify URL: https://sourcify.dev/server/files/any/56/0x6f3390c6C200e9bE81b32110CE191a293dc0eaba
-(BSCscan also shows no verified source for this address.)
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. HORS `0x6f3390c6C200e9bE81b32110CE191a293dc0eaba` (BSC, chainid 56) is unverified on both Sourcify and BSCScan/Etherscan V2 API (status: "Contract source code not verified").
 
 The contract exposes three functions: two read-only getters (selectors `0x7494d122`, `0xc1459c03`) and one execution function (`0xf78283c7`). Based on the PoC (`HORS_exp.sol`) and on-chain trace, the exploit calls selector `0xf78283c7` with a fake router address — the contract then executes an `approve` + external call targeting the LP token without validating the supplied address.
 

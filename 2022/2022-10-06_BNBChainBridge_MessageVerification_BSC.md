@@ -24,50 +24,150 @@ The BSC validator community detected the anomaly and coordinated an emergency ha
 ---
 ## 2. Vulnerable Code Analysis
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The BNB Beacon Chain bridge verification logic is implemented in Go (not Solidity) inside the BNB Beacon Chain node software (`bnc-cosmos-sdk` / `iavl` library). No Solidity source exists for the on-chain proof verifier on the Beacon Chain side. The BSC TokenHub contract (Solidity) receives and forwards the already-verified cross-chain packet; the IAVL proof verification flaw was in the off-chain Go runtime. The reconstructed pseudocode below is based on SlowMist, PeckShield, and Binance's official post-mortem; it is not verified source.
+> **Source**: REAL — `github.com/cosmos/iavl` commit `807f8c54` (pre-fix state, August 2022 — the version in production at time of exploit). Fix landed in commit `2022-10-08` ("error on both left and right being set", security advisory GHSA-gf4j-mf57-3762). The BNB Beacon Chain bridge compiled this library into its Go node binary. No Solidity source exists for the proof verifier; the BSC TokenHub (Solidity) merely accepts packets that the Go relay has already verified.
+>
+> Source URL: https://github.com/cosmos/iavl/blob/807f8c542e48369d35622d582f56da5187d128b3/proof.go
+
+### 2.1 `ProofInnerNode` — the vulnerable struct
 
 ```go
-// File: cosmos/iavl — RangeProof.Verify() (Go, reconstructed from post-mortem)
-// The vulnerability was in how inner nodes of a RangeProof were validated.
-// Certain hand-crafted inner node hashes could satisfy the top-level root hash
-// check without any leaf node (key-value pair) actually existing in the tree.
+// File: github.com/cosmos/iavl — proof.go (commit 807f8c54, pre-fix)
+// REAL SOURCE — verbatim from cosmos/iavl at the time of the BNB bridge exploit
 
-func (proof RangeProof) Verify(root []byte) error {
-    // ❌ Validates only that inner node hashes compose to the root hash.
-    //    Does NOT enforce that a valid leaf node (actual key-value commitment)
-    //    must terminate the path — allowing forged "absence" proofs to be
-    //    interpreted as "presence" proofs for an arbitrary message payload.
-    if err := proof.verify(root); err != nil {
-        return err
-    }
-    return nil  // ❌ Forged proofs with crafted inner nodes pass this check
+type ProofInnerNode struct {
+    Height  int8   `json:"height"`
+    Size    int64  `json:"size"`
+    Version int64  `json:"version"`
+    Left    []byte `json:"left"`   // hash of the left child
+    Right   []byte `json:"right"`  // hash of the right child
 }
 
-// The attacker submitted a forged cross-chain transfer packet (1,000,000 BNB)
-// whose IAVL proof had no real leaf commitment but still passed Verify(root).
-// BSC TokenHub accepted the packet and minted BNB accordingly.
+// Hash computes this inner node's contribution to the Merkle root.
+// childHash is the hash of the child being traversed down to.
+func (pin ProofInnerNode) Hash(childHash []byte) ([]byte, error) {
+    hasher := sha256.New()
 
-// ✅ Fix applied post-incident: enforce strict leaf existence verification
-func (proof RangeProof) VerifyItem(key, value []byte) error {
-    // Requires the proof to contain the specific key-value leaf, and
-    // validates the entire path from leaf to root — not only inner nodes.
-    // This makes it cryptographically impossible to forge a proof for a
-    // key-value pair that was never committed to the tree.
-    ...
+    buf := bufPool.Get().(*bytes.Buffer)
+    buf.Reset()
+    defer bufPool.Put(buf)
+
+    err := encoding.EncodeVarint(buf, int64(pin.Height))
+    if err == nil {
+        err = encoding.EncodeVarint(buf, pin.Size)
+    }
+    if err == nil {
+        err = encoding.EncodeVarint(buf, pin.Version)
+    }
+
+    // ❌ MISSING CHECK: no rejection when BOTH Left and Right are set.
+    //    In a valid IAVL tree, an inner node on the proof path has exactly one
+    //    side occupied (the sibling hash) and the other side occupied by childHash.
+    //    When Left == nil, the encoder uses childHash as left and pin.Right as right.
+    //    When Left != nil, it uses pin.Left as left and childHash as right.
+    //    But if an attacker supplies a ProofInnerNode where BOTH Left AND Right are
+    //    non-empty, the code still falls into the `else` branch (Left != nil) and
+    //    silently ignores the supplied Right value, hashing only Left + childHash.
+    //    This means the attacker can freely choose any childHash they want and the
+    //    resulting hash still matches — Right is never validated.
+
+    if len(pin.Left) == 0 {
+        if err == nil {
+            err = encoding.EncodeBytes(buf, childHash) // child goes to left slot
+        }
+        if err == nil {
+            err = encoding.EncodeBytes(buf, pin.Right) // sibling goes to right slot
+        }
+    } else {
+        // ❌ Entered whenever Left is non-empty — even if Right is also non-empty.
+        //    The supplied pin.Right is completely ignored here.
+        if err == nil {
+            err = encoding.EncodeBytes(buf, pin.Left)  // sibling goes to left slot
+        }
+        if err == nil {
+            err = encoding.EncodeBytes(buf, childHash) // child goes to right slot
+        }
+    }
+
+    if err != nil {
+        return nil, fmt.Errorf("failed to hash ProofInnerNode: %v", err)
+    }
+
+    _, err = hasher.Write(buf.Bytes())
+    if err != nil {
+        return nil, err
+    }
+    return hasher.Sum(nil), nil
 }
 ```
 
-**Why it is exploitable (identify the bug from the code):**
-
-- The IAVL `RangeProof.Verify(root)` call validated that inner node hashes chain up to the Merkle root but did not require a valid leaf node (key-value commitment) to anchor the proof.
-- An attacker who studied the proof format could craft inner nodes whose concatenated hashes equalled the expected root, with no real leaf entry corresponding to any Beacon Chain transaction.
-- The BSC TokenHub's `handlePackage()` called this verification and, upon success, minted the claimed amount of BNB — 1,000,000 BNB per forged proof, submitted twice.
-- The root fix was adding `VerifyItem(key, value)` — a leaf-existence check — as a mandatory step before accepting any cross-chain packet.
+### 2.2 `RangeProof.Verify()` — accepts the forged proof
 
 ```go
-// ✅ Fix: always call VerifyItem after Verify to confirm leaf existence
-if err := proof.VerifyItem(key, value); err != nil {
-    return fmt.Errorf("leaf existence verification failed: %w", err)
+// File: github.com/cosmos/iavl — proof_range.go (commit 807f8c54, pre-fix)
+// REAL SOURCE — verbatim from cosmos/iavl
+
+func (proof *RangeProof) Verify(root []byte) error {
+    if proof == nil {
+        return errors.Wrap(ErrInvalidProof, "proof is nil")
+    }
+    err := proof.verify(root)
+    return err
+}
+
+func (proof *RangeProof) verify(root []byte) (err error) {
+    rootHash := proof.rootHash
+    if rootHash == nil {
+        derivedHash, err := proof.computeRootHash()
+        if err != nil {
+            return err
+        }
+        rootHash = derivedHash
+    }
+    if !bytes.Equal(rootHash, root) {
+        return errors.Wrap(ErrInvalidRoot, "root hash doesn't match")
+    }
+    // ❌ Sets rootVerified = true as soon as hashes match.
+    //    No check that any real key-value leaf exists in the proof.
+    //    An attacker crafted a proof whose _computeRootHash() produces the
+    //    known Beacon Chain root hash, using the Left+Right trick above,
+    //    without any real leaf entry corresponding to a chain transaction.
+    proof.rootVerified = true
+    return nil
+}
+```
+
+### 2.3 Exploit Mechanic — Forging the Inner Node
+
+The attacker forged a `ProofInnerNode` at position `LeftPath[1]` of the proof:
+
+```
+Legitimate inner node:   Left = <sibling-hash>   Right = nil
+Forged inner node:       Left = <sibling-hash>   Right = <attacker-chosen-hash>
+```
+
+Because `Hash()` only encodes `Left + childHash` whenever `Left != nil`, and **silently ignores `Right`**, the attacker could supply any value for `Right` (including the hash of a fabricated 1,000,000-BNB transfer message) without affecting the root-hash computation. The root hash still matched the Beacon Chain's known root, so `Verify()` returned `nil` (success).
+
+The cross-chain packet claimed a transfer of 1,000,000 BNB from Beacon Chain → BSC. The TokenHub contract called `handlePackage()` which called `Verify()` → success → minted 1,000,000 BNB. Repeated once more for a total of 2,000,000 BNB minted.
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `ProofInnerNode.Hash()` branches on `len(pin.Left) == 0` to decide which side `childHash` goes. When `pin.Left != nil`, the function encodes `pin.Left + childHash` and **never reads `pin.Right`**.
+- There is no guard `if len(pin.Left) > 0 && len(pin.Right) > 0 { return nil, error }` — both fields can be set simultaneously without rejection.
+- An attacker who sets `Left` to a legitimate sibling hash and `Right` to an arbitrary payload hash gets a root hash computed purely from `Left + childHash` — `Right` is ignored, so the root still matches the real Beacon Chain root.
+- `RangeProof.Verify(root)` then sets `rootVerified = true`, which is all the bridge checks before minting BNB.
+- The protocol never called `VerifyItem(key, value)` (leaf-existence check) before accepting the cross-chain packet.
+
+### 2.4 Fix — One-Line Guard in `Hash()`
+
+```go
+// ✅ Fix: github.com/cosmos/iavl commit 2022-10-08 (GHSA-gf4j-mf57-3762)
+// Added immediately after the Version encoding block:
+
+if len(pin.Left) > 0 && len(pin.Right) > 0 {
+    // ✅ Reject any inner node where both child sides are pre-populated.
+    //    A real proof path node has exactly one sibling hash and one slot
+    //    for childHash — never both. This one guard closes the forgery window.
+    return nil, errors.New("both left and right child hashes are set")
 }
 ```
 

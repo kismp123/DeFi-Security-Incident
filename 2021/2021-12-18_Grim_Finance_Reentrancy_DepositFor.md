@@ -80,9 +80,9 @@ function depositFor(address token, uint256 _amount, address user)
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — GrimBoostVault (`0x660184CE8AF80e0B1e5A1172A16168b15f4136bF`, Fantom)
+Source: **not verified on Sourcify or Etherscan** — GrimBoostVault (`0x660184CE8AF80e0B1e5A1172A16168b15f4136bF`, Fantom)
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. GrimFinance has no public repositories. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. GrimFinance has no public repositories. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
 The PoC (DeFiHackLabs) directly targets `GrimBoostVault.depositFor()`. From the PoC interface and the attacker's malicious token `transferFrom()` hook, the vulnerable function shape is:
 

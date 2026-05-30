@@ -70,11 +70,12 @@ Tx #1 (10.9 USDC) is a probe; subsequent txs are full cycles. Each withdrawal ro
 
 > ⚠️ Contract not verified on Sourcify — the Hyperlane warp route proxy (`0xd05909852aE07118857f9D071781671D12c0f36c`, Ethereum) and the Base/Celo counterpart contracts have no Sourcify entries. The Solidity snippets below are reconstructed from the Hyperlane open-source warp route implementation and the on-chain transaction data, not verified source.
 
-Source: **not verified on Sourcify** — `0xd05909852aE07118857f9D071781671D12c0f36c` (Ethereum mainnet)
-Sourcify URL: https://sourcify.dev/server/files/any/1/0xd05909852aE07118857f9D071781671D12c0f36c (not found)
+Source: **Etherscan-verified** (V2 API, chainid 1) — TransparentUpgradeableProxy `0xd05909852aE07118857f9D071781671D12c0f36c` (Ethereum mainnet) — proxy only; `transferRemote()` and `handle()` reside in the implementation contract behind the proxy and are not directly exposed in the proxy source.
+
+> ⚠️ The proxy contract is verified on Etherscan (ContractName: TransparentUpgradeableProxy) but `transferRemote()` and `handle()` are in the proxied implementation, not the proxy itself. The implementation source is not separately verified. The function bodies below are reconstructed from the Hyperlane open-source warp route implementation and on-chain traces, not verified source.
 
 ```solidity
-// ⚠️ RECONSTRUCTED — not verified source. Derived from Hyperlane open-source warp route
+// ⚠️ RECONSTRUCTED — implementation behind proxy not separately verified. Derived from Hyperlane open-source warp route
 // pattern and on-chain traces. Real language: Solidity (EVM).
 
 // Base chain — oUSDT HyperlaneERC20WarpRoute (collateral: USDC)

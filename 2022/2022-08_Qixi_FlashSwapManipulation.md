@@ -55,9 +55,9 @@ function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-The QIXI token (0x65F11B2de17c4af7A8f70858D6CcB63AAC215601, BSC) and its PancakeSwap V2 pair (0x88fF4f62A75733C0f5afe58672121568a680DE84) are not verified on Sourcify or BSCScan. The pair contract is standard PancakeSwap V2; the exploitable behavior arises from the interaction between QIXI's fee-on-transfer `_transfer` and the pair's K invariant check.
+The QIXI token (0x65F11B2de17c4af7A8f70858D6CcB63AAC215601, BSC) is not verified on BSCScan or Sourcify. Its PancakeSwap V2 pair (0x88fF4f62A75733C0f5afe58672121568a680DE84) is verified as a standard PancakeSwap V2 `PancakePair` (Etherscan V2 API, chainid 56); the exploitable behavior arises from the interaction between QIXI's fee-on-transfer `_transfer` and the pair's K invariant check.
 
 The following is reconstructed from the PoC and on-chain traces:
 

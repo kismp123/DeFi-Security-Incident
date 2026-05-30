@@ -59,7 +59,7 @@ function subscribe(uint256 _amount, uint256 userMaxSlippage) external payable {
 Source: **Sourcify-verified** (partial match) — `xWinDefi.sol` / `0x1Bf7fe7568211ecfF68B6bC7CCAd31eCd8fe8092` (BSC)
 Sourcify URL: https://sourcify.dev/server/files/any/56/0x1Bf7fe7568211ecfF68B6bC7CCAd31eCd8fe8092
 
-> Note: The orchestrator contract (`xWinDefi`) is Sourcify-verified. The underlying xWin Fund contract (`PCLPXWIN` at `0x8f52e0C41164169818C1FB04B263FDC7c1e56088`) where the swap executes is **not verified on Sourcify**. The Fund's swap logic is reconstructed from the PoC below.
+> Note: The orchestrator contract (`xWinDefi`) is Sourcify-verified. The underlying xWin Fund contract (`xWinFarm` at `0x8f52e0C41164169818C1FB04B263FDC7c1e56088`) is **Etherscan-verified** (chainid 56) — real source recovered below.
 
 **Verified — xWinDefi.sol `Subscribe()` (orchestrator that forwards TradeParams including attacker-supplied `priceImpactTolerance`):**
 
@@ -101,36 +101,54 @@ function Subscribe(xWinLib.TradeParams memory _tradeParams)
 }
 ```
 
-**xWin Fund swap — reconstructed (0x8f52, not verified on Sourcify):**
+**xWin Fund Subscribe + _swapBNBToTokens — Etherscan-verified source:**
+
+Source: **Etherscan-verified** (V2 API, chainid 56) — xWinFarm 0x8f52e0C41164169818C1FB04B263FDC7c1e56088
 
 ```solidity
-// ⚠️ RECONSTRUCTED — not verified source. Derived from PoC + on-chain trace.
-// xWinFund (PCLPXWIN) — 0x8f52e0C41164169818C1FB04B263FDC7c1e56088
+function Subscribe(
+    TradeParams memory _tradeParams,
+    address _investorAddress
+    ) external onlyxWinProtocol payable returns (uint256) {
+    
+    uint256 halfAmt =  _tradeParams.amount.mul(5000).div(10000);
+    uint256 swapOutput = _swapBNBToTokens(farmToken, halfAmt, _tradeParams.deadline, address(this), _tradeParams.priceImpactTolerance); // ❌ priceImpactTolerance passed directly from caller — no cap enforced
 
-function Subscribe(xWinLib.TradeParams memory _tradeParams, address _investorAddress)
-    external payable returns (uint256 mintQty)
-{
-    // BNB forwarded by the orchestrator is swapped into fund constituent tokens
-    // ❌ priceImpactTolerance from _tradeParams is used directly as slippage limit
-    _swapBNBToAllTokens(_tradeParams.amount, _tradeParams.priceImpactTolerance, _tradeParams.deadline);
-    // ...mint fund shares to _investorAddress proportionally...
+    uint amountBToGo = _getQuoteAdjusted(halfAmt, swapOutput);
+    (uint amountToken, uint amountBNB, uint liquidity) = _addLiquidityBNB(amountBToGo, halfAmt, _tradeParams.deadline);
+
+    mint(_investorAddress, liquidity);
+    
+    if(performFarm) _addToPancakeFarm(liquidity);
+
+    if(_tradeParams.amount.sub(amountBNB).sub(halfAmt) > 0) TransferHelper.safeTransferBNB(_investorAddress, _tradeParams.amount.sub(amountBNB).sub(halfAmt));
+
+    if(swapOutput.sub(amountToken) > 0) TransferHelper.safeTransfer(farmToken, _investorAddress, swapOutput.sub(amountToken));
+    
+    return liquidity;
 }
 
-function _swapBNBToAllTokens(uint256 _amount, uint256 _priceImpactTolerance, uint256 _deadline) internal {
-    for (uint i = 0; i < targetToken.length; i++) {
-        uint256 tokenQty = _amount * targetWeight[i] / totalWeight;
-        uint256 expectedOut = _getExpectedOut(tokenQty, targetToken[i]);
-        // ❌ minOut calculated using caller-supplied priceImpactTolerance
-        // With _priceImpactTolerance = 10_000 (100%), minOut = expectedOut * 0 / 10_000 = 0
-        uint256 minOut = expectedOut * (10_000 - _priceImpactTolerance) / 10_000; // ❌ = 0
-        router.swapExactETHForTokens{value: tokenQty}(
-            minOut,           // ❌ effectively 0 — any price accepted
-            _getPath(targetToken[i]),
-            address(this),
-            _deadline         // ❌ 99999999999 — far-future deadline
-        );
+function _swapBNBToTokens(
+        address toDest,
+        uint amountIn, 
+        uint deadline,
+        address destAddress,
+        uint priceImpactTolerance  // ❌ caller-supplied — attacker passes 10_000 (100%)
+        )
+internal returns (uint){
+        
+        address[] memory path = new address[](2);
+        path[0] = pancakeSwapRouter.WETH();
+        path[1] = toDest;
+        
+        (uint reserveA,  uint reserveB) = PancakeLibrary.getReserves(pancakeSwapRouter.factory(), pancakeSwapRouter.WETH(), farmToken);
+        uint quote = PancakeLibrary.quote(amountIn, reserveA, reserveB);
+        uint[] memory amounts = pancakeSwapRouter.swapExactETHForTokens{value: amountIn}(
+            quote.sub(quote.mul(priceImpactTolerance).div(10000)), // ❌ with priceImpactTolerance=10_000 → minOut = quote - quote = 0
+            path, destAddress, deadline);
+        
+        return amounts[amounts.length - 1];
     }
-}
 ```
 
 **Why it is exploitable (identify the bug from the code):**

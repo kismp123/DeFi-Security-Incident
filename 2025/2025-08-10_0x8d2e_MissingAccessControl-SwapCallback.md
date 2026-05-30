@@ -46,9 +46,10 @@ function uniswapV3SwapCallback(
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — `0x8d2Ef0d39A438C3601112AE21701819E13c41288` (Base) — https://sourcify.dev/server/files/any/8453/0x8d2Ef0d39A438C3601112AE21701819E13c41288
+Source: **not verified on Sourcify or Etherscan** — `0x8d2Ef0d39A438C3601112AE21701819E13c41288` (Base, chainid 8453)
+Sourcify URL: https://sourcify.dev/server/files/any/8453/0x8d2Ef0d39A438C3601112AE21701819E13c41288 (not found); Etherscan V2 API (chainid 8453) also returns empty source.
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The contract is also unverified on BaseScan. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
 The PoC calls `uniswapV3SwapCallback(int256(balance), 0, abi.encode(USDC, attacker))` directly on the victim — no swap, no pool. This means the callback transfers all USDC unconditionally, confirming the shape:
 

@@ -45,15 +45,11 @@ contract KRCToken {
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — PancakePair KRC/USDT (`0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5`, BSC) — BscScan verified (Exact Match, Solidity v0.5.16) — https://bscscan.com/address/0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5#code
+Source: **Etherscan-verified** (V2 API, chainid 56) — PancakePair `0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5`
 
 The vulnerable contract is the **PancakeSwap V2 pair** (standard PancakePair, open-source). The KRC token contract itself is not the target; the exploit abuses the pair's `skim()` function which is part of the verified PancakePair code:
 
 ```solidity
-// Source: PancakeSwap V2 PancakePair.sol (verified, open-source)
-// https://github.com/pancakeswap/pancake-swap-core/blob/master/contracts/PancakePair.sol
-// KRC/USDT pair: 0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5 (BSC)
-
 // ❌ skim() — no access control, callable by anyone
 function skim(address to) external lock {
     address _token0 = token0; // gas savings
@@ -73,24 +69,25 @@ function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data)
 
     uint balance0;
     uint balance1;
-    { // scope to avoid stack too deep
-        address _token0 = token0;
-        address _token1 = token1;
-        require(to != _token0 && to != _token1, 'Pancake: INVALID_TO');
-        if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out);
-        if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out);
-        if (data.length > 0) IPancakeCallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
-        balance0 = IERC20(_token0).balanceOf(address(this));
-        balance1 = IERC20(_token1).balanceOf(address(this));
+    { // scope for _token{0,1}, avoids stack too deep errors
+    address _token0 = token0;
+    address _token1 = token1;
+    require(to != _token0 && to != _token1, 'Pancake: INVALID_TO');
+    if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+    if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+    if (data.length > 0) IPancakeCallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
     }
     uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
     uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, 'Pancake: INSUFFICIENT_INPUT_AMOUNT');
-    { // k-invariant check
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(2));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(2));
-        require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'Pancake: K');
+    { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
+    uint balance0Adjusted = (balance0.mul(10000).sub(amount0In.mul(25)));
+    uint balance1Adjusted = (balance1.mul(10000).sub(amount1In.mul(25)));
+    require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(10000**2), 'Pancake: K');
     }
+
     _update(balance0, balance1, _reserve0, _reserve1);
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
 }

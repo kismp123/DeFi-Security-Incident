@@ -67,7 +67,7 @@ function mint(uint256 fsmAmount, uint256 minXftm) external {
 
 Source: **not verified on Sourcify** — Pool [0x880672AB1d46D987E5d663Fc7476CD8df3C9f937](https://ftmscan.com/address/0x880672AB1d46D987E5d663Fc7476CD8df3C9f937) (Fantom)
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. (Fantom chain, chainid 250, is not supported by Etherscan V2 API; FTMScan was unreachable.)
 
 The PoC (DeFiHackLabs `Fantasm_exp.sol`) calls two functions on the Pool contract: `mint(uint256 fsmAmount, uint256 minXftm)` and `collect()`. The `mint()` function takes FSM tokens from the caller and queues an xFTM output amount (`pendingRewards`), which is then withdrawn via `collect()`. The decimal scaling error occurs in the computation of the xFTM output — the price ratio is applied without correctly accounting for both tokens' 18-decimal representation, causing the output to be inflated by up to 1e18× per unit of FSM input.
 

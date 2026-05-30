@@ -42,73 +42,97 @@ function buy(uint256 tokenAmount) external returns (uint256) {
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — BankrollNetworkStack / 0x16d0a151297a0393915239373897bCc955882110 (BSC)
-(Sourcify returned HTTP 404; BSCScan: Source Code Verified — Exact Match, contract `BankrollNetworkStack`, Solidity v0.6.8)
-
-> ⚠️ Contract not verified on Sourcify — source unavailable from Sourcify. The behavior below is reconstructed from the DeFiHackLabs PoC, the BSCScan-verified ABI, and the well-documented BankrollNetwork / PoWH3D (Proof-of-Weak-Hands) dividend contract pattern that this contract forks. The core dividend accounting model is publicly known; the reconstruction below matches the on-chain behavior confirmed by the PoC.
+Source: **Etherscan-verified** (V2 API, chainid 56) — BankrollNetworkStack `0x16d0a151297a0393915239373897bCc955882110`
 
 ```solidity
-// ⚠️ RECONSTRUCTED from PoC + BSCScan ABI + known BankrollNetwork fork pattern.
-// BankrollNetworkStack — 0x16d0a151297a0393915239373897bCc955882110 (BSC)
-// Compiler: v0.6.8. Funding token: BUSD (0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56)
-
-// State variables (BankrollNetwork / PoWH3D dividend pattern)
-uint256 constant internal magnitude = 2**64;
-uint256 internal profitPerShare_;                              // accumulated dividends per token share
-mapping(address => uint256) internal tokenBalanceLedger_;     // internal token balances
-mapping(address => int256)  internal payoutsTo_;              // dividend baseline per address
-mapping(address => uint256) internal ambassadorAccumulatedQuota_;
-
-function buy(uint256 tokenAmount) external returns (uint256) {
-    IERC20(fundingToken).transferFrom(msg.sender, address(this), tokenAmount);
-
-    uint256 taxed = tokenAmount - calculateTax(tokenAmount);  // entry fee applied
-    uint256 tokens = tokensReceived(taxed);                   // internal token amount
-
-    tokenBalanceLedger_[msg.sender] += tokens;
-
-    // ❌ payoutsTo_ is set based on current profitPerShare_ — but when profitPerShare_
-    //    is already elevated (from prior donatePool calls or earlier activity),
-    //    this baseline is ALSO elevated, making dividendsOf() return zero immediately after buy.
-    //    However, when sell() runs, the token price has already been factored into the payout,
-    //    and the token-to-BUSD conversion produces a surplus over the buy price.
-    payoutsTo_[msg.sender] += (int256)(profitPerShare_ * tokens);  // ❌ baseline should exclude past dividends attacker didn't earn
-    return tokens;
+// buy() — Etherscan-verified verbatim (delegates to buyFor)
+function buy(uint buy_amount) public returns (uint256)  {
+    return buyFor(msg.sender, buy_amount);
 }
 
-function sell(uint256 tokenAmount) external {
-    require(tokenBalanceLedger_[msg.sender] >= tokenAmount);
-
-    uint256 busdAmount = tokensToBusd(tokenAmount);           // converts tokens back to BUSD
-    uint256 taxed = busdAmount - calculateTax(busdAmount);    // exit fee applied
-
-    tokenBalanceLedger_[msg.sender] -= tokenAmount;
-    // ❌ payoutsTo_ reduction on sell releases accumulated dividend credit
-    payoutsTo_[msg.sender] -= (int256)(profitPerShare_ * tokenAmount);
-    // The delta between buy-price and sell-price, combined with profitPerShare_ movement,
-    // creates a positive dividendsOf() balance even with zero holding time.
+// buyFor() / purchaseTokens() — Etherscan-verified verbatim (core buy logic)
+function buyFor(address _customerAddress, uint buy_amount) public returns (uint256)  {
+    require(token.transferFrom(msg.sender, address(this), buy_amount));
+    totalDeposits += buy_amount;
+    uint amount = purchaseTokens(_customerAddress, buy_amount);
+    emit onLeaderBoard(_customerAddress,
+        stats[_customerAddress].invested,
+        tokenBalanceLedger_[_customerAddress],
+        stats[_customerAddress].withdrawn,
+        now
+    );
+    distribute();
+    return amount;
 }
 
-function dividendsOf(address customer) public view returns (uint256) {
-    return (uint256)(
-        (int256)(profitPerShare_ * tokenBalanceLedger_[customer]) - payoutsTo_[customer]
-    ) / magnitude;  // ❌ can be positive immediately after buy+sell due to accounting delta
+function purchaseTokens(address _customerAddress, uint256 _incomingeth) internal returns (uint256) {
+    if (stats[_customerAddress].invested == 0 && stats[_customerAddress].receivedTokens == 0) {
+        players += 1;
+    }
+    totalTxs += 1;
+    uint256 _undividedDividends = SafeMath.mul(_incomingeth, entryFee_) / 100;
+    uint256 _amountOfTokens = SafeMath.sub(_incomingeth, _undividedDividends);
+    emit onTokenPurchase(_customerAddress, _incomingeth, _amountOfTokens, now);
+    require(_amountOfTokens > 0 && SafeMath.add(_amountOfTokens, tokenSupply_) > tokenSupply_);
+    if (tokenSupply_ > 0) {
+        tokenSupply_ += _amountOfTokens;
+    } else {
+        tokenSupply_ = _amountOfTokens;
+    }
+    allocateFees(_undividedDividends);
+    tokenBalanceLedger_[_customerAddress] = SafeMath.add(tokenBalanceLedger_[_customerAddress], _amountOfTokens);
+    // ❌ payoutsTo_ set based on current profitPerShare_ — does not block retroactive dividend claims
+    // after a sell(), the accounting delta between entry and exit creates a positive dividendsOf()
+    int256 _updatedPayouts = (int256) (profitPerShare_ * _amountOfTokens);
+    payoutsTo_[_customerAddress] += _updatedPayouts;
+    stats[_customerAddress].invested += _incomingeth;
+    stats[_customerAddress].xInvested += 1;
+    return _amountOfTokens;
 }
 
-function withdraw() external {
-    uint256 dividends = dividendsOf(msg.sender);
-    require(dividends > 0);
-    payoutsTo_[msg.sender] += (int256)(dividends * magnitude); // mark as paid
-    IERC20(fundingToken).transfer(msg.sender, dividends);       // ❌ pays out inflated dividends
+// sell() — Etherscan-verified verbatim
+function sell(uint256 _amountOfTokens) onlyBagholders public {
+    address _customerAddress = msg.sender;
+    require(_amountOfTokens <= tokenBalanceLedger_[_customerAddress]);
+    uint256 _undividedDividends = SafeMath.mul(_amountOfTokens, exitFee_) / 100;
+    uint256 _taxedeth = SafeMath.sub(_amountOfTokens, _undividedDividends);
+    tokenSupply_ = SafeMath.sub(tokenSupply_, _amountOfTokens);
+    tokenBalanceLedger_[_customerAddress] = SafeMath.sub(tokenBalanceLedger_[_customerAddress], _amountOfTokens);
+    // ❌ payoutsTo_ reduction releases accumulated dividend credit — exploitable via buy→sell cycle
+    int256 _updatedPayouts = (int256) (profitPerShare_ * _amountOfTokens + (_taxedeth * magnitude));
+    payoutsTo_[_customerAddress] -= _updatedPayouts;
+    allocateFees(_undividedDividends);
+    emit onTokenSell(_customerAddress, _amountOfTokens, _taxedeth, now);
+    distribute();
+}
+
+// dividendsOf() — Etherscan-verified verbatim
+function dividendsOf(address _customerAddress) public view returns (uint256) {
+    return (uint256) ((int256) (profitPerShare_ * tokenBalanceLedger_[_customerAddress]) - payoutsTo_[_customerAddress]) / magnitude; // ❌ positive after buy+sell due to accounting delta
+}
+
+// withdraw() — Etherscan-verified verbatim
+function withdraw() onlyStronghands public {
+    address _customerAddress = msg.sender;
+    uint256 _dividends = myDividends();
+    payoutsTo_[_customerAddress] += (int256) (_dividends * magnitude);
+    token.transfer(_customerAddress,_dividends); // ❌ pays out inflated dividends
+    stats[_customerAddress].withdrawn = SafeMath.add(stats[_customerAddress].withdrawn, _dividends);
+    stats[_customerAddress].xWithdrawn += 1;
+    totalTxs += 1;
+    totalClaims += _dividends;
+    emit onWithdraw(_customerAddress, _dividends, now);
+    emit onLeaderBoard(_customerAddress, stats[_customerAddress].invested, tokenBalanceLedger_[_customerAddress], stats[_customerAddress].withdrawn, now);
+    distribute();
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 
-- `buy(28,300 BUSD)` mints internal tokens at the current bonding-curve price and sets `payoutsTo_[attacker]` proportional to the current `profitPerShare_`.
-- `sell(myTokens)` immediately converts all tokens back to BUSD at exit price and reduces `payoutsTo_[attacker]` proportionally — but the bonding-curve sell price is slightly below the buy price (entry/exit taxes cancel partially), and the `profitPerShare_` accounting delta creates a small positive `dividendsOf()` reading.
-- `withdraw()` pays out that `dividendsOf()` balance: the attacker receives slightly more BUSD than they deposited, profiting at the expense of the contract's liquidity pool.
-- The root cause is that the dividend baseline (`payoutsTo_`) does not correctly exclude retroactive profit claims: a flash-loan-funded buy/sell cycle extracts accrued dividends that the attacker was not entitled to.
+- `buy(28,300 BUSD)` calls `purchaseTokens()`, which sets `payoutsTo_[attacker] += profitPerShare_ * _amountOfTokens`. This records the current accumulated dividend baseline so the buyer is excluded from past dividends.
+- `sell(myTokens)` immediately reduces `payoutsTo_[attacker]` by `profitPerShare_ * _amountOfTokens + _taxedeth * magnitude`. The `_taxedeth` term (exit-fee-adjusted token amount) is subtracted from `payoutsTo_`, creating an artificial credit: after the sell, `dividendsOf()` returns a non-zero positive value even though the attacker held tokens for zero time.
+- `withdraw()` pays out that `dividendsOf()` balance via `token.transfer()`, draining BUSD from the pool.
+- The root cause is the `_taxedeth * magnitude` term added to `payoutsTo_` reduction in `sell()` — it over-credits the payout baseline relative to what was set in `purchaseTokens()`, leaving a collectible dividend after an atomic buy→sell cycle.
 
 ```solidity
 // ✅ Fix: enforce a minimum holding period to block same-block buy/sell

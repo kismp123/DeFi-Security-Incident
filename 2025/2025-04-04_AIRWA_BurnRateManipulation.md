@@ -50,9 +50,9 @@ contract AIRWAToken {
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-The AIRWA token (0x3Af7DA38C9F68dF9549Ce1980eEf4AC6B635223A, BSC) is not verified on Sourcify (chainid 56). BSCscan also shows no verified source. The following is reconstructed from the DeFiHackLabs PoC (`AIRWA_exp.sol`), which shows the exact attack sequence:
+The AIRWA token (0x3Af7DA38C9F68dF9549Ce1980eEf4AC6B635223A, BSC) is not verified on Sourcify (chainid 56) or Etherscan V2 (SourceCode field is empty). The following is reconstructed from the DeFiHackLabs PoC (`AIRWA_exp.sol`), which shows the exact attack sequence:
 
 ```solidity
 // RECONSTRUCTED — not verified source

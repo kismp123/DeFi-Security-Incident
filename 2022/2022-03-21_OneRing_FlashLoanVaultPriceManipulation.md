@@ -70,10 +70,10 @@ contract OneRingVaultFixed {
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — OneRing Vault / 0x4e332D616b5bA1eDFd87c899E534D996c336a2FC (Fantom)
-(Sourcify returned HTTP 404; FTMScan source not retrievable via WebFetch)
+Source: **not verified on Sourcify or Etherscan** — OneRing Vault / 0x4e332D616b5bA1eDFd87c899E534D996c336a2FC (Fantom)
+(Sourcify returned HTTP 404; Fantom is not supported by the Etherscan V2 API)
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces (Knownsec Blockchain Lab analysis), not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. The behavior below is reconstructed from the attack PoC and on-chain traces (Knownsec Blockchain Lab analysis), not verified source.
 
 The DeFiHackLabs PoC calls `vault.depositSafe(amount0, address(usdc), 1)` and `vault.withdraw(vault.balanceOf(address(this)), address(usdc))`. The Knownsec post-mortem traces the price path as: `depositSafe` → `_deposit` → `_doHardWorkAll` → `getSharePrice` → `balanceWithInvested` → `investedBalanceInUSD` (reads current reserves). Reconstructed from on-chain traces:
 

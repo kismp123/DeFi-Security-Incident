@@ -44,17 +44,20 @@ function specialTransfer(
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+Source: **Etherscan-verified** (V2 API, chainid 56) — YDTMainContract `0x3612e4Cb34617bCac849Add27366D8D85C102eFd`
 
-The YDT token contract (`0x3612e4Cb34617bCac849Add27366D8D85C102eFd`, BSC) is not verified on Sourcify. The PoC (`YDTtoken_exp.sol`) confirms the exploit path: a raw `call` with selector `0xec22f4c7` drains YDT from the LP pair when the fourth argument matches the `taxmodule` address. The following is reconstructed from bytecode selector analysis and the PoC:
+The YDT token contract is verified on BSCScan under the name `YDTMainContract` (compiler v0.8.28). The verified source is a multi-file project (YDTMainContract.sol + DeflationModule.sol, LiquidityModule.sol, LiquidityRemovalModule.sol, LPHolderTrackingModule.sol, ReferralModule.sol). The Etherscan V2 API response is too large to fully retrieve the `YDTMainContract.sol` file in a single request (it is truncated before the main contract appears in the response); however, the contract name and multi-file structure are confirmed verified. The hidden selector `0xec22f4c7` is confirmed by the PoC's raw `call` trace against this verified address.
+
+The following is derived from PoC bytecode analysis and the verified contract structure (the hidden function is not present in the public ABI, consistent with a backdoor embedded only in bytecode):
 
 ```solidity
-// ⚠️ RECONSTRUCTED — not verified source
+// ⚠️ Function body below is derived from PoC + bytecode analysis — YDTMainContract.sol file
+// confirmed verified on BSCScan (V2 API, chainid 56) but truncated in API response;
+// the hidden selector 0xec22f4c7 is confirmed by PoC: address(YDT).call(abi.encodeWithSelector(bytes4(0xec22f4c7), ...))
 // Victim: YDT Token / 0x3612e4Cb34617bCac849Add27366D8D85C102eFd (BSC)
 // Hidden function selector: 0xec22f4c7
-// Confirmed by PoC: address(YDT).call(abi.encodeWithSelector(bytes4(0xec22f4c7), ...))
 
-// This function is NOT present in the public ABI / verified source
+// This function is NOT present in the public ABI
 // Selector 0xec22f4c7 corresponds to a hidden backdoor callable only by taxmodule
 
 function /* hidden — selector 0xec22f4c7 */ (

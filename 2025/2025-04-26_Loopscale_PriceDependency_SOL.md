@@ -31,110 +31,191 @@ The protocol lacked a TWAP buffer, a price deviation guard, and any flash-loan-m
 
 ## 2. Vulnerable Code Analysis
 
-> ⚠️ Contract not verified on Sourcify — Solana is a non-EVM chain (Rust/Anchor programs); Sourcify does not index Solana programs. The code below is Rust/Anchor pseudocode reconstructed from Loopscale's official post-mortem, community analysis, and the Raydium CLMM oracle manipulation pattern. It is not retrieved verified source.
+> **Source**: ANALYZED / RECONSTRUCTED — Loopscale's Solana programs are closed-source and not published. The Rust/Anchor code below is reconstructed from Loopscale's official incident statement ([Twitter/X, 2025-04-26](https://x.com/LoopscaleLabs/status/1916230435291713786)), the Halborn and AuditOne post-mortems, and the Raydium CLMM on-chain oracle pattern. All function names are illustrative. Code is labeled `// ⚠️ ANALYZED/RECONSTRUCTED`.
+>
+> The confirmed facts from post-mortems: (1) the exploit targeted **RateX PT token collateral** in Loopscale's newly-launched SOL and USDC Genesis vaults; (2) Loopscale's contract priced RateX PT tokens using a **spot price** from a low-liquidity on-chain source (a Raydium CLMM pool or RateX internal accumulator); (3) the attacker manipulated that price within a single Solana transaction by deploying a crafted price feed or executing a large swap, then called Loopscale's `create_loan` function while the inflated price was active.
 
-### 2.1 Spot-Price Oracle — No TWAP or Deviation Guard
+### 2.1 RateX PT Token Price Calculation — Spot-Price Dependency
 
 ```rust
-// Loopscale collateral valuation — vulnerable (Rust/Anchor pseudocode)
-pub fn get_collateral_value(
-    collateral_mint: Pubkey,
-    collateral_amount: u64,
-    pool: &RaydiumPool,
-) -> u64 {
-    // BUG: reads instantaneous spot price from AMM pool
-    // This price can be moved within the same transaction via a large swap
-    let spot_price = pool.current_sqrt_price.to_price();
+// ⚠️ ANALYZED/RECONSTRUCTED — not verbatim source
+// File: loopscale-program/src/pricing.rs  (illustrative name)
+//
+// RateX PT tokens are principal tokens from a yield-stripping protocol.
+// Their value depends on the price of the underlying asset and the time-to-maturity.
+// Loopscale computed collateral value by reading the spot price of the PT token
+// from a Raydium Concentrated Liquidity Market Maker (CLMM) pool.
 
-    // No TWAP window, no deviation check, no flash-loan protection
-    collateral_amount * spot_price
+use anchor_lang::prelude::*;
+
+// Raydium CLMM pool state (simplified — actual layout from raydium-clmm on-chain)
+// The `sqrt_price_x64` field is the current instantaneous price as sqrt(price) * 2^64.
+// This value changes atomically whenever a swap executes in the same transaction.
+#[account]
+pub struct RaydiumClmmPoolState {
+    pub sqrt_price_x64: u128,  // ❌ current slot-level spot price — manipulable
+    pub liquidity: u128,
+    pub tick_current: i32,
+    // ... other fields omitted
+}
+
+/// Compute the USD value of a given amount of RateX PT collateral.
+/// Called inside create_loan() to determine maximum borrow capacity.
+pub fn get_pt_collateral_value(
+    pt_amount: u64,
+    pool_state: &RaydiumClmmPoolState,
+) -> Result<u64> {
+    // ❌ Reads sqrt_price_x64 from the current slot state of the Raydium CLMM pool.
+    //    On Solana, all instructions in a transaction execute atomically in the same slot.
+    //    If a prior instruction in the same transaction already swapped a large amount
+    //    into this pool, sqrt_price_x64 now reflects the manipulated price.
+    let sqrt_price = pool_state.sqrt_price_x64;
+
+    // Convert sqrt(price) * 2^64 → price (simplified; actual uses fixed-point math)
+    // price = (sqrt_price / 2^64)^2
+    let price_x64 = (sqrt_price as u128)
+        .checked_mul(sqrt_price as u128)
+        .ok_or(ErrorCode::MathOverflow)?
+        >> 64;
+
+    // ❌ No TWAP: price reflects only the current slot, not a time-weighted average
+    // ❌ No deviation guard: any price the pool reports is accepted unconditionally
+    // ❌ No secondary oracle cross-check (Pyth, Switchboard)
+    let collateral_value = (pt_amount as u128)
+        .checked_mul(price_x64)
+        .ok_or(ErrorCode::MathOverflow)? as u64;
+
+    Ok(collateral_value)
 }
 ```
 
+### 2.2 `create_loan` — Calls Vulnerable Pricing with No Manipulation Guard
+
 ```rust
-// Fixed version — use Pyth/Switchboard TWAP with staleness + deviation guards
-pub fn get_collateral_value_safe(
-    collateral_mint: Pubkey,
+// ⚠️ ANALYZED/RECONSTRUCTED — not verbatim source
+// Confirmed by post-mortems: attacker called create_loan() with RateX PT collateral
+// while the PT price was artificially inflated within the same transaction.
+
+#[derive(Accounts)]
+pub struct CreateLoan<'info> {
+    #[account(mut)]
+    pub borrower: Signer<'info>,
+    pub collateral_mint: Account<'info, Mint>,
+    /// ❌ The pool whose spot price is read — can be manipulated in the same tx
+    pub raydium_pool: Account<'info, RaydiumClmmPoolState>,
+    #[account(mut)]
+    pub vault: Account<'info, LendingVault>,
+    // ... other accounts
+}
+
+pub fn create_loan(
+    ctx: Context<CreateLoan>,
     collateral_amount: u64,
+    requested_borrow: u64,
+) -> Result<()> {
+    // ❌ Collateral value computed from manipulable spot price in same transaction
+    let collateral_value = get_pt_collateral_value(
+        collateral_amount,
+        &ctx.accounts.raydium_pool,
+    )?;
+
+    // LTV = loan-to-value ratio (e.g., 80%)
+    let max_borrow = collateral_value
+        .checked_mul(LTV_BPS)
+        .ok_or(ErrorCode::MathOverflow)?
+        / 10_000;
+
+    // ❌ No check that collateral_value is consistent with a trusted external feed
+    // ❌ No check that current slot != last price update slot (flash-loan protection)
+    require!(
+        requested_borrow <= max_borrow,
+        ErrorCode::BorrowExceedsCollateral
+    );
+
+    // Transfer borrowed USDC/SOL from vault to borrower
+    transfer_from_vault(ctx, requested_borrow)?;
+    record_debt(ctx, requested_borrow, collateral_amount)?;
+    Ok(())
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `get_pt_collateral_value()` reads `pool_state.sqrt_price_x64` — the instantaneous CLMM slot price. On Solana, all instructions in a transaction share the same slot, so a swap instruction that precedes `create_loan` in the same transaction has already moved this value.
+- There is no TWAP accumulator, no staleness check, and no secondary oracle comparison. Whatever `sqrt_price_x64` reports is accepted directly as the collateral price.
+- `create_loan` performs no same-slot detection: it does not compare the pool's `last_updated_slot` against the current slot, so flash-loan manipulation within one transaction is indistinguishable from a legitimate price.
+- With an inflated PT price, `collateral_value` is artificially high, `max_borrow` exceeds the real collateral worth by a large multiple, and the attacker withdraws USDC/SOL far beyond what their collateral covers.
+
+### 2.3 Fixed Version — Pyth Oracle with Staleness and Deviation Guards
+
+```rust
+// ✅ Fixed version — use Pyth attested price feed instead of AMM spot
+// (not verbatim; represents the correct pattern)
+
+use pyth_sdk_solana::load_price_feed_from_account_info;
+
+const MAX_STALENESS_SECS: i64 = 60;   // reject prices older than 60 s
+const MAX_CONF_RATIO: u64 = 20;        // confidence must be < price/20 (5%)
+const MAX_DEVIATION_BPS: u64 = 500;    // ≤ 5% deviation between oracles
+
+pub fn get_pt_collateral_value_safe(
+    pt_amount: u64,
     pyth_price_account: &AccountInfo,
     clock: &Clock,
 ) -> Result<u64> {
-    let price_feed = load_price_feed_from_account_info(pyth_price_account)?;
+    let price_feed = load_price_feed_from_account_info(pyth_price_account)
+        .map_err(|_| ErrorCode::InvalidOracleAccount)?;
+
+    // ✅ Staleness check: reject if price feed not updated within MAX_STALENESS_SECS
     let current_price = price_feed
         .get_price_no_older_than(clock.unix_timestamp, MAX_STALENESS_SECS)
         .ok_or(ErrorCode::StaleOraclePrice)?;
 
-    // Confidence interval guard: reject if uncertainty is too wide
+    // ✅ Confidence interval guard: rejects if Pyth uncertainty is too wide
     require!(
         current_price.conf <= current_price.price as u64 / MAX_CONF_RATIO,
         ErrorCode::OraclePriceTooUncertain
     );
 
-    // Optional: cross-validate against a secondary oracle (Switchboard)
-    let secondary_price = get_switchboard_price(switchboard_feed)?;
-    let deviation = abs_diff(current_price.price as u64, secondary_price);
-    require!(
-        deviation * 10_000 / secondary_price <= MAX_DEVIATION_BPS,
-        ErrorCode::OraclePriceDeviation
-    );
-
-    Ok(collateral_amount * current_price.price as u64)
+    Ok(pt_amount
+        .checked_mul(current_price.price as u64)
+        .ok_or(ErrorCode::MathOverflow)?)
 }
-```
 
-**Problem**: `pool.current_sqrt_price` reflects state at the current slot only. A swap that occurs in the same transaction (or the same block on networks without intra-block finality boundaries) changes this value before the oracle read, making the manipulation atomic and capital-efficient with a flash loan.
-
-### 2.2 Missing Flash-Loan Manipulation Guard at Position Open
-
-```rust
-// Vulnerable: no check that the price is consistent with recent history
-pub fn open_loop_position(
-    ctx: Context<OpenPosition>,
+pub fn create_loan(
+    ctx: Context<CreateLoan>,
     collateral_amount: u64,
-    leverage: u64,
+    requested_borrow: u64,
 ) -> Result<()> {
-    // BUG: collateral value computed from manipulated spot price
-    let collateral_value = get_collateral_value(
-        ctx.accounts.collateral_mint.key(),
-        collateral_amount,
-        &ctx.accounts.raydium_pool,
-    );
-
-    let borrow_amount = collateral_value * (leverage - 1);
-    // No sanity check — borrow_amount can be tens of times the real value
-    mint_debt_and_transfer(ctx, borrow_amount)?;
-    Ok(())
-}
-```
-
-```rust
-// Fixed: validate price age and cross-check with trusted oracle
-pub fn open_loop_position(
-    ctx: Context<OpenPosition>,
-    collateral_amount: u64,
-    leverage: u64,
-) -> Result<()> {
-    let collateral_value = get_collateral_value_safe(
-        ctx.accounts.collateral_mint.key(),
+    // ✅ Use Pyth attested price — cannot be moved within a single transaction
+    let collateral_value = get_pt_collateral_value_safe(
         collateral_amount,
         &ctx.accounts.pyth_price_account,
         &ctx.accounts.clock,
     )?;
 
-    // Circuit breaker: compare trusted price against pool spot price
-    let spot_value = get_collateral_value(
-        ctx.accounts.collateral_mint.key(),
+    // ✅ Cross-validate: compare Pyth price against pool spot
+    let spot_value = get_pt_collateral_value(
         collateral_amount,
         &ctx.accounts.raydium_pool,
-    );
-    let deviation = abs_diff(collateral_value, spot_value);
+    )?;
+    let deviation = (collateral_value as i128 - spot_value as i128).unsigned_abs() as u64;
     require!(
-        deviation * 10_000 / collateral_value <= MAX_ORACLE_DEVIATION_BPS,
-        ErrorCode::SuspiciousPriceDeviation // reject if spot diverged too far
+        deviation.checked_mul(10_000).ok_or(ErrorCode::MathOverflow)?
+            / collateral_value <= MAX_DEVIATION_BPS,
+        ErrorCode::SuspiciousPriceDeviation
     );
 
-    let borrow_amount = collateral_value * (leverage - 1);
-    mint_debt_and_transfer(ctx, borrow_amount)?;
+    // ✅ Same-slot protection: require price was NOT updated in this exact slot
+    require!(
+        ctx.accounts.raydium_pool.last_observation_slot < ctx.accounts.clock.slot,
+        ErrorCode::PriceUpdatedInSameSlot
+    );
+
+    let max_borrow = collateral_value * LTV_BPS / 10_000;
+    require!(requested_borrow <= max_borrow, ErrorCode::BorrowExceedsCollateral);
+    transfer_from_vault(ctx, requested_borrow)?;
+    record_debt(ctx, requested_borrow, collateral_amount)?;
     Ok(())
 }
 ```

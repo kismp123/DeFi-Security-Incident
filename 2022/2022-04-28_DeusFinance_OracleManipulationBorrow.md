@@ -66,7 +66,7 @@ contract TWAPOracle {
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. (Fantom chainid 250 is not supported by Etherscan V2 API; FTMScan did not respond.)
 
 The PoC (DeFiHackLabs) confirms the following interface for `DeiLenderSolidex` at `0x8D643d954798392403eeA19dB8108f595bB8B730` and `IOracle` at `0x8129026c585bCfA530445a6267f9389057761A00` on Fantom:
 

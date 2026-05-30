@@ -74,62 +74,84 @@ contract SafeLSW is ERC4626 {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and post-mortem analysis, not from verified source.
+Source: **Etherscan-verified** (V2 API, chainid 43114) — lendingSwitchErc20 0xfF152e21C5A511c478ED23D1b89Bb9391bE6de96
 
-The LSW contract at `0xfF152e21C5A511c478ED23D1b89Bb9391bE6de96` (Avalanche) returns HTTP 404 on Sourcify. The following is reconstructed from the DeFiHackLabs PoC interface, the Halborn/MetaTrust post-mortems, and the on-chain call trace. The root cause is a **missing reentrancy guard on `flashLoan()`** — not an ERC4626 rounding mismatch (the rounding description in Section 2's illustrative snippet is incorrect; it is retained in the vulnerability classification for context but the actual exploit is reentrancy-based).
-
-**Reconstructed: `flashLoan()` — Missing Reentrancy Guard**
+**Verified: `flashLoan()` — Missing Reentrancy Guard**
 ```solidity
-// RECONSTRUCTED — not verified source; derived from ERC3156 interface + post-mortem analysis
-// ❌ LSW contract: 0xfF152e21C5A511c478ED23D1b89Bb9391bE6de96
 function flashLoan(
-    address receiver,
+    IERC3156FlashBorrower receiver,
     address token,
     uint256 amount,
     bytes calldata data
-) external returns (bool) {
-    // ❌ No nonReentrant modifier — reentrant calls to deposit() are allowed
+) external virtual returns (bool) {
+    require(token == address(asset),"flash borrow token Error!");
     uint256 fee = flashFee(token, amount);
-    IERC20(token).transfer(receiver, amount);         // ← sends USDC to attacker
-
-    // ❌ onFlashLoan() callback executes attacker code while flashLoan is in-flight
-    // During this callback, the vault's USDC balance = original + loaned amount
-    // (loan has been sent out but repayment not yet checked)
+    onWithdraw(address(receiver),amount); // ❌ sends asset to receiver before callback
     require(
-        IERC3156FlashBorrower(receiver).onFlashLoan(
-            msg.sender, token, amount, fee, data
-        ) == keccak256("ERC3156FlashBorrower.onFlashLoan"),
-        "invalid callback"
+        receiver.onFlashLoan(msg.sender, token, amount, fee, data) == _RETURN_VALUE,
+        "invalid return value"
     );
-
-    // ❌ Repayment check happens AFTER callback — but during callback,
-    // attacker already called deposit() with the inflated vault balance visible
-    IERC20(token).transferFrom(receiver, address(this), amount + fee);
+    // ❌ No nonReentrant modifier — onFlashLoan() callback can reenter deposit()
+    // while vault accounting reflects the not-yet-repaid loan amount
+    onDeposit(address(receiver),amount + fee,0); // repayment pulled here, after callback
+    emit FlashLoan(msg.sender,address(receiver),token,amount);
     return true;
 }
 ```
 
-**Reconstructed: `deposit()` — Called Reentrantly During Flash Loan**
+**Verified: `deposit()` — Called Reentrantly During Flash Loan**
 ```solidity
-// RECONSTRUCTED — not verified source
-// ❌ deposit() has no reentrancy guard and is callable during active flashLoan()
-function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
-    // ❌ totalAssets() reads address(this).balance or USDC.balanceOf(address(this))
-    // During flashLoan(), the vault's USDC is out on loan — the vault balance is
-    // temporarily LOWER than normal. Shares minted against this lower base are FEWER,
-    // but when redeemed after repayment, assets returned = shares * (restored totalAssets)
-    // → attacker receives more USDC on redemption than they deposited
-    uint256 totalAssets = IERC20(usdc).balanceOf(address(this));
-    shares = assets * totalSupply() / totalAssets; // ❌ double-counting the loaned funds
-    _mint(receiver, shares);
-    IERC20(usdc).transferFrom(msg.sender, address(this), assets);
+function deposit(uint256 _amount, address receiver) external returns (uint256){
+    uint256 amount = _deposit(msg.sender,_amount,receiver); // ❌ no reentrancy guard
+    emit Deposit(msg.sender,receiver,_amount,amount);
+    return amount;
+}
+```
+
+**Verified: `_deposit()` — Share Minting Against Live Balance**
+```solidity
+function _deposit(address from,uint256 _amount, address receiver) internal returns (uint256){
+    uint256 totaStake = getTotalAssets(); // ❌ reads live balance — distorted during flashLoan
+    uint256 totalShares = totalSupply();
+    _amount = onDeposit(from,_amount,feeRate[enterFeeID]);
+    if (totalShares == 0 || totaStake == 0) {
+        _mint(receiver, _amount);
+        return _amount;
+    }
+    else {
+        uint256 what = _amount.mul(totalShares)/totaStake; // ❌ ratio uses distorted totaStake
+        require(what>0,"super token mint 0!");
+        _mint(receiver, what);
+        return what;
+    }
+}
+```
+
+**Verified: `redeem()` and `convertToAssets()`**
+```solidity
+function redeem(uint256 shares,address receiver,address owner) external returns (uint256) {
+    uint256 _value = convertToAssets(shares); // redeems at post-repayment restored balance
+    _withdraw(_value,shares,receiver,owner);
+    emit Withdraw(msg.sender,receiver,_value,shares);
+    return _value;
+}
+
+function convertToAssets(uint256 _shareNum) public view returns(uint256){
+    return _shareNum.mul(getTotalAssets())/totalSupply();
+    // ❌ when called after loan repayment, getTotalAssets() is restored to full value,
+    // yielding more assets per share than the shares were minted for
+}
+
+function convertToShares(uint256 _assetNum) public view returns(uint256){
+    return _assetNum.mul(totalSupply())/getTotalAssets();
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 
-- `flashLoan()` lacks `nonReentrant`. After transferring USDC to the receiver and invoking `onFlashLoan()`, the vault's USDC balance is temporarily different from its steady-state value.
-- Inside `onFlashLoan()`, the attacker calls `deposit()`. The share calculation (`assets * totalSupply() / totalAssets`) uses the vault's current USDC balance — which is distorted because the flash-loaned USDC is still in flight (not yet repaid). This causes the share mint to be computed against an incorrect base, creating a discrepancy that becomes profit when the shares are immediately redeemed after the flash loan is repaid.
+- `flashLoan()` has no `nonReentrant` modifier. After `onWithdraw()` sends USDC to the receiver, it invokes `receiver.onFlashLoan()`. At this moment vault USDC is temporarily deflated.
+- Inside `onFlashLoan()`, the attacker calls `deposit()`. The share minting in `_deposit()` reads `getTotalAssets()` (live balance) which is currently low — so the attacker gets MORE shares per USDC deposited than the shares are worth at steady state.
+- After `onFlashLoan()` returns, `onDeposit()` pulls repayment, restoring the full balance. The attacker then calls `redeem()` — `convertToAssets()` now uses the restored (full) `getTotalAssets()`, so shares redeem for MORE USDC than was deposited.
 - The fix is `nonReentrant` on `flashLoan()`, `deposit()`, and `redeem()` — preventing any vault state mutation during an active flash loan callback.
 
 ## 3. Attack Flow (ASCII Diagram)

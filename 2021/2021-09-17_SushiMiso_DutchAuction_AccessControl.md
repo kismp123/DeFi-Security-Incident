@@ -76,56 +76,104 @@ function setWallet(address payable _wallet) external onlyOperator {
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
->
-> Victim contract: `0x4c4564a1FE775D97297F9e3Dc2e762e0Ed5Dda0e` (MISO DutchAuction, Ethereum mainnet)
-
-The on-chain PoC (`Sushimiso_exp.sol`) directly calls `initAuction()` with the attacker address as `_wallet`. The reconstructed signature matches the known MISO launchpad interface:
+Source: **Etherscan-verified** (V2 API, chainid 1) — DutchAuction `0x4c4564a1FE775D97297F9e3Dc2e762e0Ed5Dda0e`
 
 ```solidity
-// ⚠️ RECONSTRUCTED from PoC — NOT verified source; presented as pseudocode only
-// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-09/Sushimiso_exp.sol
-
 function initAuction(
     address _funder,
     address _token,
-    uint256 _tokenSupply,
+    uint256 _totalTokens,
     uint256 _startTime,
     uint256 _endTime,
     address _paymentCurrency,
     uint256 _startPrice,
     uint256 _minimumPrice,
-    address _operator,
+    address _admin,
     address _pointList,
-    address payable _wallet   // ❌ receives all auction proceeds
-) external {
-    // ❌ No validation that _wallet belongs to the legitimate project operator.
-    // ❌ No event emitted immediately so the community can verify the wallet.
-    // ❌ Called once during deployment — caller is the deployment script (attacker-controlled).
-    wallet = _wallet;          // ❌ permanently set; no timelock for post-deploy change
-    // ... other init logic ...
+    address payable _wallet
+) public {
+    require(_startTime < 10000000000, "DutchAuction: enter an unix timestamp in seconds, not miliseconds");
+    require(_endTime < 10000000000, "DutchAuction: enter an unix timestamp in seconds, not miliseconds");
+    require(_startTime >= block.timestamp, "DutchAuction: start time is before current time");
+    require(_endTime > _startTime, "DutchAuction: end time must be older than start price");
+    require(_totalTokens > 0,"DutchAuction: total tokens must be greater than zero");
+    require(_startPrice > _minimumPrice, "DutchAuction: start price must be higher than minimum price");
+    require(_minimumPrice > 0, "DutchAuction: minimum price must be greater than 0"); 
+    require(_admin != address(0), "DutchAuction: admin is the zero address");
+    require(_wallet != address(0), "DutchAuction: wallet is the zero address");
+    require(IERC20(_token).decimals() == 18, "DutchAuction: Token does not have 18 decimals");
+    if (_paymentCurrency != ETH_ADDRESS) {
+        require(IERC20(_paymentCurrency).decimals() > 0, "DutchAuction: Payment currency is not ERC20");
+    }
+
+    marketInfo.startTime = BoringMath.to64(_startTime);
+    marketInfo.endTime = BoringMath.to64(_endTime);
+    marketInfo.totalTokens = BoringMath.to128(_totalTokens);
+
+    marketPrice.startPrice = BoringMath.to128(_startPrice);
+    marketPrice.minimumPrice = BoringMath.to128(_minimumPrice);
+
+    auctionToken = _token;
+    paymentCurrency = _paymentCurrency;
+    wallet = _wallet;  // ❌ wallet set to attacker-supplied address with no registry check
+
+    initAccessControls(_admin);
+
+    _setList(_pointList);
+    _safeTransferFrom(_token, _funder, _totalTokens);
 }
 
-// Funds collected by commitEth() accumulate:
-function commitEth(address payable _beneficiary, bool readAndAgreedToMarketParticipationAgreement)
-    public payable {
-    // ETH sent by investors is tracked against msg.sender
-    // ...
+function commitEth(
+    address payable _beneficiary,
+    bool readAndAgreedToMarketParticipationAgreement
+)
+    public payable
+{
+    require(paymentCurrency == ETH_ADDRESS, "DutchAuction: payment currency is not ETH address"); 
+    if(readAndAgreedToMarketParticipationAgreement == false) {
+        revertBecauseUserDidNotProvideAgreement();
+    }
+    uint256 ethToTransfer = calculateCommitment(msg.value);
+
+    uint256 ethToRefund = msg.value.sub(ethToTransfer);
+    if (ethToTransfer > 0) {
+        _addCommitment(_beneficiary, ethToTransfer);
+    }
+    if (ethToRefund > 0) {
+        _beneficiary.transfer(ethToRefund);
+    }
 }
 
-// On finalize(), proceeds sent to wallet:
-function finalize() external onlyOperator {
-    // ...
-    _safeTransferETH(wallet, address(this).balance); // ❌ goes to attacker's wallet
+function finalize() public nonReentrant
+{
+    require(hasAdminRole(msg.sender) 
+            || hasSmartContractRole(msg.sender) 
+            || wallet == msg.sender
+            || finalizeTimeExpired(), "DutchAuction: sender must be an admin");
+    MarketStatus storage status = marketStatus;
+
+    require(!status.finalized, "DutchAuction: auction already finalized");
+    if (auctionSuccessful()) {
+        /// @dev Successful auction
+        /// @dev Transfer contributed tokens to wallet.
+        _safeTokenPayment(paymentCurrency, wallet, uint256(status.commitmentsTotal)); // ❌ goes to attacker's wallet
+    } else {
+        /// @dev Failed auction
+        /// @dev Return auction tokens back to wallet.
+        require(block.timestamp > uint256(marketInfo.endTime), "DutchAuction: auction has not finished yet"); 
+        _safeTokenPayment(auctionToken, wallet, uint256(marketInfo.totalTokens));
+    }
+    status.finalized = true;
+    emit AuctionFinalized();
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 
-- `initAuction()` accepts an arbitrary `_wallet` address and stores it without any validation against a registry or operator multisig.
-- The function is called exactly once — during deployment — by the entity controlling the deployment script. An insider who controls the script can silently pass their own address.
-- No on-chain event announces the wallet address in a way that would trigger automated monitoring before funds accumulate.
-- `finalize()` unconditionally transfers the entire ETH balance to `wallet`, so all investor funds flow to the attacker the moment the auction ends.
+- `initAuction()` checks `_wallet != address(0)` but performs no further validation — any non-zero address is accepted without checking against a registry or operator multisig.
+- The function is called exactly once — during deployment — by the entity controlling the deployment script. An insider who controls the script can silently pass their own address as `_wallet`.
+- No on-chain event announces the wallet address set at initialization, so there is no automated monitoring opportunity before funds accumulate.
+- `finalize()` calls `_safeTokenPayment(paymentCurrency, wallet, uint256(status.commitmentsTotal))`, transferring all investor commitments to `wallet` — so all funds flow to the attacker's address the moment the auction finalizes successfully.
 
 ```solidity
 // ✅ Fix: validate wallet against an on-chain operator registry and emit an auditable event

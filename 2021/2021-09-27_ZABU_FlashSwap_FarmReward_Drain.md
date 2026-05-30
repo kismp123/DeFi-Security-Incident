@@ -66,10 +66,9 @@ function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-Source: **not verified on Sourcify** — ZABUFarm `0xf61b4f980A1F34B55BBF3b2Ef28213Efcc6248C4` (Avalanche, chainid 43114)
-Sourcify URL: https://sourcify.dev/server/files/any/43114/0xf61b4f980A1F34B55BBF3b2Ef28213Efcc6248C4
+Source: **not verified on Sourcify or Etherscan** — ZABUFarm `0xf61b4f980A1F34B55BBF3b2Ef28213Efcc6248C4` (Avalanche, chainid 43114)
 
 **Reconstructed vulnerable functions** — `updatePool()` / `deposit()` (from PoC traces, not verified source):
 

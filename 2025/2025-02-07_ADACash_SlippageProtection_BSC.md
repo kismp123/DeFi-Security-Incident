@@ -690,8 +690,8 @@ function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
 - [ADACash Staking Documentation](https://cashverse.gitbook.io/adacash/staking/adacash-staking)
 - [ImmuneBytes — What Are Slippage Attacks in DEXs?](https://immunebytes.com/blog/what-are-slippage-attacks-in-decentralized-exchanges-dexs/)
 - [Smart Contract Security Field Guide — Unprotected Swaps](https://scsfg.io/hackers/unprotected-swaps/)
-- [BEARNDAO Lack of Slippage Protection Analysis (Similar Case)](../2023-12-05_BEARNDAO_SlippageProtection_BSC.md)
-- [EGA Token Lack of Slippage Protection Analysis (Similar Case)](../2024-10-05_EGAToken_SlippageProtection_BSC.md)
+- [BEARNDAO Lack of Slippage Protection Analysis (Similar Case)](../2023/2023-12-05_BEARNDAO_SlippageProtection_BSC.md)
+- [EGA Token Lack of Slippage Protection Analysis (Similar Case)](../2024/2024-10-05_EGAToken_SlippageProtection_BSC.md)
 
 ---
 

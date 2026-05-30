@@ -28,10 +28,10 @@ function getCash() public view returns (uint256) {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-Source: **not verified on Sourcify** — `0x5578f2e245e932a599c46215a0ca88707230f17b` (Ethereum)
-Sourcify URL: https://sourcify.dev/server/files/any/1/0x5578f2e245e932a599c46215a0ca88707230f17b (404 — not found)
+Source: **not verified on Sourcify or Etherscan** — `0x5578f2e245e932a599c46215a0ca88707230f17b` (Ethereum, chainid 1)
+Sourcify URL: https://sourcify.dev/server/files/any/1/0x5578f2e245e932a599c46215a0ca88707230f17b (404 — not found); Etherscan V2 API also returns empty source.
 
 MetaLend is an unverified Compound fork. The donation attack pattern is structurally identical across all Compound v2 forks. The following is reconstructed from the Compound v2 reference implementation and the PoC ([MetaLend_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2023-11/MetaLend_exp.sol)):
 

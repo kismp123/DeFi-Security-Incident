@@ -62,9 +62,9 @@ function mintFor(address flip, uint _withdrawalFee, uint _performanceFee, addres
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-The BunnyMinterV2 contract on BSC (targeted by the PoC at VaultFlipToFlip 0x633e538EcF0bee1a18c2EDFE10C4Da0d6E71e77B) is not verified on Sourcify (chainid 56) and is not publicly verified on BSCscan. The following is reconstructed pseudocode from the DeFiHackLabs PoC and post-mortems:
+The BunnyMinterV2 contract on BSC (targeted by the PoC at VaultFlipToFlip 0x633e538EcF0bee1a18c2EDFE10C4Da0d6E71e77B) is not verified on Sourcify (chainid 56) and returns no source from the Etherscan V2 API (chainid 56) — the proxy at 0x633e is an AdminUpgradeabilityProxy whose implementation contract is also unverified. The following is reconstructed pseudocode from the DeFiHackLabs PoC and post-mortems:
 
 ```solidity
 // RECONSTRUCTED — not verified source

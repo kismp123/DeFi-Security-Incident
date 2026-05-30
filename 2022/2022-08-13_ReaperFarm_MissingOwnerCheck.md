@@ -71,9 +71,9 @@ function redeem(
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 >
-> Victim contract: `0xcdA5deA176F2dF95082f4daDb96255Bdb2bc7C7D` (rfUSDC Vault, Fantom)
+> Victim contract: `0xcdA5deA176F2dF95082f4daDb96255Bdb2bc7C7D` (rfUSDC Vault, Fantom — chainid 250 is not supported by Etherscan V2 API)
 
 The PoC (`ReaperFarm_exp.sol`) directly calls `redeem(victimShares, attacker, victim)` with no prior `approve()` step, confirming the allowance check is absent. The reconstructed interface matches ERC4626 minus the mandatory allowance gate:
 

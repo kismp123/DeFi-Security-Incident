@@ -81,9 +81,9 @@ contract SafeZoomSwap {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-The following is reconstructed from the DeFiHackLabs PoC interface stubs and on-chain transaction analysis. The Swap contract at `0x5a9846062524631C01ec11684539623DAb1Fae58` and the BatchToken contract at `0x47391071824569F29381DFEaf2f1b47A4004933B` are not verified on Sourcify.
+The Swap contract at `0x5a9846062524631C01ec11684539623DAb1Fae58` and the BatchToken contract at `0x47391071824569F29381DFEaf2f1b47A4004933B` are not verified on Sourcify and return empty source from the Etherscan V2 API (chainid 56). The following is reconstructed from the DeFiHackLabs PoC interface stubs and on-chain transaction analysis.
 
 **Reconstructed: `batchToken()` — No Access Control on Reserve Injection**
 ```solidity

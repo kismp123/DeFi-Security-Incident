@@ -61,66 +61,59 @@ function isValidSigImpl(
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — OdosLimitOrderRouter / 0xb6333e994fd02a9255e794c177efbdeb1fe779c7 (Base)
-(Sourcify returned HTTP 404; BaseScan: Source Code Verified — contract `OdosLimitOrderRouter`, Solidity v0.8.19)
-
-> ⚠️ Contract not verified on Sourcify — source unavailable from Sourcify. The function below is the reference implementation from [ERC-6492](https://github.com/ethereum/ERCs/blob/master/ERCS/erc-6492.md) (the standard the ODOS contract implements), which matches the on-chain behavior confirmed by the PoC. ODOS deployed this implementation with `allowSideEffects` exposed as a public parameter — the key deviation from safe usage.
+Source: **Etherscan-verified** (V2 API, chainid 8453) — OdosLimitOrderRouter 0xb6333e994fd02a9255e794c177efbdeb1fe779c7
 
 ```solidity
-// Reference: ERC-6492 official spec implementation (ethereum/ERCs)
-// OdosLimitOrderRouter — 0xb6333e994fd02a9255e794c177efbdeb1fe779c7 (Base)
-// ODOS exposed this as a public function with allowSideEffects controllable by the caller
-
-bytes32 private constant ERC6492_DETECTION_SUFFIX =
-    0x6492649264926492649264926492649264926492649264926492649264926492;
-
 function isValidSigImpl(
     address _signer,
     bytes32 _hash,
     bytes calldata _signature,
-    bool allowSideEffects,   // ❌ caller-controlled — attacker passes true
-    bool tryPrepare
-) public returns (bool) {   // ❌ public + non-view: state changes are possible
-    uint contractCodeLen = address(_signer).code.length;
+    bool allowSideEffects   // ❌ caller-controlled — attacker passes true
+  ) public returns (bool) {   // ❌ public + non-view: state changes are possible
+    uint256 contractCodeLen = address(_signer).code.length;
     bytes memory sigToValidate;
-
-    bool isCounterfactual = bytes32(_signature[_signature.length-32:_signature.length])
-        == ERC6492_DETECTION_SUFFIX;
-
+    bool isCounterfactual = _signature.length >= 32
+      && bytes32(_signature[_signature.length-32:_signature.length]) == ERC6492_DETECTION_SUFFIX;
     if (isCounterfactual) {
-        address create2Factory;
-        bytes memory factoryCalldata;
-        (create2Factory, factoryCalldata, sigToValidate) =
-            abi.decode(_signature[0:_signature.length-32], (address, bytes, bytes));
+      address create2Factory;
+      bytes memory factoryCalldata;
+      (create2Factory, factoryCalldata, sigToValidate) = abi.decode(_signature[0:_signature.length-32], (address, bytes, bytes));
 
-        if (contractCodeLen == 0 || tryPrepare) {
-            (bool success, bytes memory err) = create2Factory.call(factoryCalldata); // ❌ arbitrary external call
-            if (!success) revert ERC6492DeployFailed(err);
-        }
+      if (contractCodeLen == 0) {
+        (bool success, bytes memory err) = create2Factory.call(factoryCalldata); // ❌ arbitrary external call
+        if (!success) revert ERC6492DeployFailed(err);
+      }
     } else {
-        sigToValidate = _signature;
+      sigToValidate = _signature;
     }
 
     if (isCounterfactual || contractCodeLen > 0) {
-        try IERC1271Wallet(_signer).isValidSignature(_hash, sigToValidate)
-            returns (bytes4 magicValue)
-        {
-            bool isValid = magicValue == ERC1271_SUCCESS;
+      try IERC1271Wallet(_signer).isValidSignature(_hash, sigToValidate) returns (bytes4 magicValue) {
+        bool isValid = magicValue == ERC1271_SUCCESS;
 
-            if (contractCodeLen == 0 && isCounterfactual && !allowSideEffects) {
-                // ✅ safe path: revert to undo side effects when allowSideEffects=false
-                assembly {
-                    mstore(0, isValid)
-                    revert(31, 1)
-                }
-            }
-            return isValid;  // ❌ when allowSideEffects=true, the call above persists
-        } catch (bytes memory err) {
-            revert ERC1271Revert(err);
+        if (contractCodeLen == 0 && isCounterfactual && !allowSideEffects) {
+          // ✅ safe path: revert to undo side effects when allowSideEffects=false
+          assembly {
+           mstore(0, isValid)
+           revert(31, 1)
+          }
         }
+
+        return isValid;  // ❌ when allowSideEffects=true, the call above persists
+      } catch (bytes memory err) { revert ERC1271Revert(err); }
     }
-    // ... ecrecover fallback ...
-}
+
+    if (_signature.length != 65) {
+      revert InvalidSignatureLength();
+    }
+    bytes32 r = bytes32(_signature[0:32]);
+    bytes32 s = bytes32(_signature[32:64]);
+    uint8 v = uint8(_signature[64]);
+    if (v != 27 && v != 28) {
+      revert InvalidSignatureVValue();
+    }
+    return ECDSA.recover(_hash, v, r, s) == _signer;
+  }
 ```
 
 **Why it is exploitable (identify the bug from the code):**

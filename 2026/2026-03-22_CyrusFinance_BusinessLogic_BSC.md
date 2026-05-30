@@ -477,5 +477,5 @@ nftManager.decreaseLiquidity(
 - [SmartContractHacking — Cyrus Finance Hack 2026](https://smartcontractshacking.com/hacks/cyrus-finance-hack-2026)
 - [CyrusTreasury Vulnerable Contract](https://bscscan.com/address/0xb042Ea7b35826e6e537a63bb9fc9fb06b50aE10b)
 - [Attack Transaction](https://bscscan.com/tx/0x2b7efdac5f052ee9a8a4b58fb5f5d1c09e4a28d9498a59f1ef5f5b39456e47b9)
-- [Pattern Reference: 02_flash_loan.md — Spot Price Dependency](../patterns/02_flash_loan.md)
-- [Pattern Reference: 04_oracle_manipulation.md — slot0 Manipulation](../patterns/04_oracle_manipulation.md)
+- Pattern Reference: 02_flash_loan.md — Spot Price Dependency
+- Pattern Reference: 04_oracle_manipulation.md — slot0 Manipulation

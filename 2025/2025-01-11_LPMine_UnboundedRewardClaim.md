@@ -46,61 +46,57 @@ function extractReward(uint256 tokenId) external nonReentrant {
 
 ### On-Chain Source Code
 
-Source: **not verified on Sourcify** — verified on BscScan — LPMine (`0x6BBeF6DF8db12667aE88519090984e4F871e5feb`, BSC) — https://bscscan.com/address/0x6BBeF6DF8db12667aE88519090984e4F871e5feb#code
+Source: **Etherscan-verified** (V2 API, chainid 56) — LPMine `0x6BBeF6DF8db12667aE88519090984e4F871e5feb`
 
 ```solidity
-// ✅ Source: BscScan-verified (Exact Match), Solidity v0.8.12, License: Apache-2.0
-// Contract: LPMine at 0x6BBeF6DF8db12667aE88519090984e4F871e5feb (BSC)
-
+// extractReward() — Etherscan-verified verbatim
 function extractReward(uint256 _tokenId) external {
     Token memory _token = tokens[_tokenId];
-    (uint256 _wtoAmount, uint256 _coarAmount) = getCanClaimed(_msgSender()); // ❌ reads current state BEFORE any guard
+    (uint256 _wtoAmount,uint256 _coarAmount) = getCanClaimed(_msgSender()); // ❌ reads current state BEFORE any guard
     PledgeInfo storage _pledge = userPledge[_msgSender()];
     uint256 _canReward;
-    if (_tokenId == wtoTokenId) {
+    if(_tokenId == wtoTokenId){
         _canReward = _wtoAmount;
-        _pledge.wtoRewardTime = block.timestamp; // ❌ timestamp updated AFTER reward is transferred (see below)
+        _pledge.wtoRewardTime = block.timestamp; // ❌ timestamp reset to block.timestamp — identical for every same-block call
     }
-    if (_tokenId == coarTokenId) {
+    if(_tokenId == coarTokenId){
         _canReward = _coarAmount;
-        _pledge.coarRewardTime = block.timestamp; // ❌ same: update happens after claimToken()
+        _pledge.coarRewardTime = block.timestamp; // ❌ same: within one block, block.timestamp never changes
     }
-    rewardPool.claimToken(_token.tokenAddress, _canReward, _msgSender()); // ❌ external call — reward paid here
-    rewardParent(_tokenId, _token.tokenAddress, _canReward, _msgSender());
-    emit ReceiveRewird(_msgSender(), _token.tokenAddress, _canReward, block.timestamp);
+    rewardPool.claimToken(_token.tokenAddress,_canReward,_msgSender()); // ❌ external call — reward paid out here
+    rewardParent(_tokenId,_token.tokenAddress,_canReward,_msgSender());
+    emit ReceiveRewird(_msgSender(),_token.tokenAddress,_canReward,block.timestamp);
 }
 
-// getCanClaimed() — calculates reward based on live pair reserves and elapsed time
-function getCanClaimed(address _user) public view returns (uint256 _wtoAmount, uint256 _coarAmount) {
+// getCanClaimed() — Etherscan-verified verbatim
+function getCanClaimed(address _user) public view returns(uint256 _wtoAmount,uint256 _coarAmount) {
     PledgeInfo memory _pledge = userPledge[_user];
     Token memory _wtoToken = tokens[wtoTokenId];
     Token memory _coarToken = tokens[coarTokenId];
-    if (_pledge.wtoLpAmount > 0) {
-        (uint256 _removeUsdt,) = getRemoveTokens(_wtoToken.pair, usdtAddress, _wtoToken.tokenAddress, _pledge.wtoLpAmount);
+    if(_pledge.wtoLpAmount > 0) {
+        (uint256 _removeUsdt,) = getRemoveTokens(_wtoToken.pair,usdtAddress,_wtoToken.tokenAddress,_pledge.wtoLpAmount);
         uint256 _valueU = _removeUsdt.mul(2);
         uint256 _rewardTime = block.timestamp.sub(_pledge.wtoRewardTime); // ❌ uses live block.timestamp
-        (uint256 _secondWtoAmount, uint256 _secondCoarAmount) = getEachReward(_valueU, monthFee, _wtoToken.tokenAddress, _coarToken.tokenAddress, usdtAddress);
-        _wtoAmount += _rewardTime.mul(_secondWtoAmount); // ❌ reward = elapsed_seconds * per-second-rate
+        (uint256 _secondWtoAmount,uint256 _secondCoarAmount) = getEachReward(_valueU,monthFee,_wtoToken.tokenAddress,_coarToken.tokenAddress,usdtAddress);
+        _wtoAmount += _rewardTime.mul(_secondWtoAmount); // ❌ reward = elapsed_seconds × per-second-rate
         _coarAmount += _rewardTime.mul(_secondCoarAmount);
     }
-    if (_pledge.coarLpAmount > 0) {
-        (uint256 _removeUsdt,) = getRemoveTokens(_coarToken.pair, usdtAddress, _coarToken.tokenAddress, _pledge.coarLpAmount);
+    if(_pledge.coarLpAmount > 0){
+        (uint256 _removeUsdt,) = getRemoveTokens(_coarToken.pair,usdtAddress,_coarToken.tokenAddress,_pledge.coarLpAmount);
         uint256 _valueU = _removeUsdt.mul(2);
         uint256 _rewardTime = block.timestamp.sub(_pledge.coarRewardTime); // ❌ uses live block.timestamp
-        (uint256 _secondWtoAmount, uint256 _secondCoarAmount) = getEachReward(_valueU, monthFee, _wtoToken.tokenAddress, _coarToken.tokenAddress, usdtAddress);
+        (uint256 _secondWtoAmount,uint256 _secondCoarAmount) = getEachReward(_valueU,monthFee,_wtoToken.tokenAddress,_coarToken.tokenAddress,usdtAddress);
         _wtoAmount += _rewardTime.mul(_secondWtoAmount);
         _coarAmount += _rewardTime.mul(_secondCoarAmount);
-    }
+    }     
 }
 
-// getRemoveTokens() — reads live pair balanceOf() (spot reserves), not a checkpoint
-function getRemoveTokens(address _pair, address _usdtAddress, address _tokenAddress, uint256 _liquidity)
-    private view returns (uint256 _removeUsdt, uint256 _removeToken)
-{
-    uint _usdtAmount  = IERC20(_usdtAddress).balanceOf(_pair);  // ❌ live balance — inflatable via flash loan
+// getRemoveTokens() — Etherscan-verified verbatim
+function getRemoveTokens(address _pair,address _usdtAddress,address _tokenAddress,uint256 _liquidity) private view returns(uint256 _removeUsdt,uint256 _removeToken){
+    uint _usdtAmount = IERC20(_usdtAddress).balanceOf(_pair);  // ❌ live balance — inflatable via flash loan
     uint _tokenAmount = IERC20(_tokenAddress).balanceOf(_pair);
     uint _totalSupply = IERC20(_pair).totalSupply();
-    _removeUsdt  = _liquidity.mul(_usdtAmount)  / _totalSupply;
+    _removeUsdt = _liquidity.mul(_usdtAmount) / _totalSupply; 
     _removeToken = _liquidity.mul(_tokenAmount) / _totalSupply;
 }
 ```

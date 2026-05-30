@@ -90,59 +90,218 @@ contract SafeELPExchange {
 
 ### On-Chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
-
-The ELP Exchange contract at `0x4ae1Da57f2d6b2E9a23d07e264Aa2B3bBCaeD19A` shows as a partial match on Snowtrace but full source is not available for retrieval. The interface confirmed by the PoC:
+Source: **Etherscan-verified** (V2 API, chainid 43114) — Exchange `0x4ae1Da57f2d6b2E9a23d07e264Aa2B3bBCaeD19A`
 
 ```solidity
-// Reconstructed from PoC interfaces — NOT verified source
-// Source: DeFiHackLabs PoC + Snowtrace partial ABI
-// ELP Exchange: 0x4ae1Da57f2d6b2E9a23d07e264Aa2B3bBCaeD19A (Avalanche)
+// ❌ addLiquidity: internalBalances updated via MathLib — diverges from actual balanceOf() when
+//    tokens are donated directly to the contract, enabling reserve imbalance exploitation
+function addLiquidity(
+    uint256 _baseTokenQtyDesired,
+    uint256 _quoteTokenQtyDesired,
+    uint256 _baseTokenQtyMin,
+    uint256 _quoteTokenQtyMin,
+    address _liquidityTokenRecipient,
+    uint256 _expirationTimestamp
+) external nonReentrant() isNotExpired(_expirationTimestamp) {
+    uint256 totalSupply = this.totalSupply();
+    MathLib.TokenQtys memory tokenQtys =
+        MathLib.calculateAddLiquidityQuantities(
+            _baseTokenQtyDesired,
+            _quoteTokenQtyDesired,
+            _baseTokenQtyMin,
+            _quoteTokenQtyMin,
+            IERC20(baseToken).balanceOf(address(this)),
+            totalSupply,
+            internalBalances
+        );
 
-interface ELPExchange is IERC20 {
-    struct InternalBalances {
-        uint256 baseTokenReserveQty;   // internal TIC reserve tracking
-        uint256 quoteTokenReserveQty;  // internal USDC.E reserve tracking
-        uint256 kLast;
+    internalBalances.kLast =
+        internalBalances.baseTokenReserveQty *
+        internalBalances.quoteTokenReserveQty;
+
+    if (tokenQtys.liquidityTokenFeeQty != 0) {
+        _mint(
+            IExchangeFactory(exchangeFactoryAddress).feeAddress(),
+            tokenQtys.liquidityTokenFeeQty
+        );
     }
 
-    function internalBalances() external view returns (InternalBalances memory);
+    bool isExchangeEmpty = totalSupply == 0;
+    if (isExchangeEmpty) {
+        require(
+            tokenQtys.liquidityTokenQty > MINIMUM_LIQUIDITY,
+            "Exchange: INITIAL_DEPOSIT_MIN"
+        );
+        unchecked {
+            tokenQtys.liquidityTokenQty -= MINIMUM_LIQUIDITY;
+        }
+        _mint(address(this), MINIMUM_LIQUIDITY);
+    }
 
-    // ❌ addLiquidity: accepts arbitrary amounts including highly imbalanced ratios
-    function addLiquidity(
-        uint256 _baseTokenQtyDesired,
-        uint256 _quoteTokenQtyDesired,
-        uint256 _baseTokenQtyMin,
-        uint256 _quoteTokenQtyMin,
-        address _liquidityTokenRecipient,
-        uint256 _expirationTimestamp
-    ) external;
+    _mint(_liquidityTokenRecipient, tokenQtys.liquidityTokenQty);
 
-    // ❌ removeLiquidity: uses internalBalances (manipulable) not actual token.balanceOf()
-    function removeLiquidity(
-        uint256 _liquidityTokenQty,
-        uint256 _baseTokenQtyMin,
-        uint256 _quoteTokenQtyMin,
-        address _tokenRecipient,
-        uint256 _expirationTimestamp
-    ) external;
+    if (tokenQtys.baseTokenQty != 0) {
+        IERC20(baseToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenQtys.baseTokenQty
+        );
 
-    // ❌ swapQuoteTokenForBaseToken: swap output computed from distorted internalBalances
-    function swapQuoteTokenForBaseToken(
-        uint256 _quoteTokenQty,
-        uint256 _minBaseTokenQty,
-        uint256 _expirationTimestamp
-    ) external;
+        if (isExchangeEmpty) {
+            require(
+                IERC20(baseToken).balanceOf(address(this)) ==
+                    tokenQtys.baseTokenQty,
+                "Exchange: FEE_ON_TRANSFER_NOT_SUPPORTED"
+            );
+        }
+    }
+
+    if (tokenQtys.quoteTokenQty != 0) {
+        IERC20(quoteToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenQtys.quoteTokenQty
+        );
+    }
+
+    emit AddLiquidity(
+        msg.sender,
+        tokenQtys.baseTokenQty,
+        tokenQtys.quoteTokenQty
+    );
 }
+
+// ❌ removeLiquidity: uses actual balanceOf() for output calculation, but internalBalances
+//    for accounting updates — when the two diverge the output can exceed expected amounts
+function removeLiquidity(
+    uint256 _liquidityTokenQty,
+    uint256 _baseTokenQtyMin,
+    uint256 _quoteTokenQtyMin,
+    address _tokenRecipient,
+    uint256 _expirationTimestamp
+) external nonReentrant() isNotExpired(_expirationTimestamp) {
+    require(this.totalSupply() != 0, "Exchange: INSUFFICIENT_LIQUIDITY");
+    require(
+        _baseTokenQtyMin != 0 && _quoteTokenQtyMin != 0,
+        "Exchange: MINS_MUST_BE_GREATER_THAN_ZERO"
+    );
+
+    uint256 baseTokenReserveQty =
+        IERC20(baseToken).balanceOf(address(this));
+    uint256 quoteTokenReserveQty =
+        IERC20(quoteToken).balanceOf(address(this));
+
+    uint256 totalSupplyOfLiquidityTokens = this.totalSupply();
+    uint256 liquidityTokenFeeQty =
+        MathLib.calculateLiquidityTokenFees(
+            totalSupplyOfLiquidityTokens,
+            internalBalances
+        );
+
+    totalSupplyOfLiquidityTokens += liquidityTokenFeeQty;
+
+    uint256 baseTokenQtyToReturn =
+        (_liquidityTokenQty * baseTokenReserveQty) /
+            totalSupplyOfLiquidityTokens;
+    uint256 quoteTokenQtyToReturn =
+        (_liquidityTokenQty * quoteTokenReserveQty) /
+            totalSupplyOfLiquidityTokens;
+
+    require(
+        baseTokenQtyToReturn >= _baseTokenQtyMin,
+        "Exchange: INSUFFICIENT_BASE_QTY"
+    );
+
+    require(
+        quoteTokenQtyToReturn >= _quoteTokenQtyMin,
+        "Exchange: INSUFFICIENT_QUOTE_QTY"
+    );
+
+    {
+        uint256 internalBaseTokenReserveQty =
+            internalBalances.baseTokenReserveQty;
+        uint256 baseTokenQtyToRemoveFromInternalAccounting =
+            (_liquidityTokenQty * internalBaseTokenReserveQty) /
+                totalSupplyOfLiquidityTokens;
+
+        internalBalances.baseTokenReserveQty = internalBaseTokenReserveQty =
+            internalBaseTokenReserveQty -
+            baseTokenQtyToRemoveFromInternalAccounting;
+
+        uint256 internalQuoteTokenReserveQty =
+            internalBalances.quoteTokenReserveQty;
+        if (quoteTokenQtyToReturn > internalQuoteTokenReserveQty) {
+            internalBalances
+                .quoteTokenReserveQty = internalQuoteTokenReserveQty = 0;
+        } else {
+            internalBalances
+                .quoteTokenReserveQty = internalQuoteTokenReserveQty =
+                internalQuoteTokenReserveQty -
+                quoteTokenQtyToReturn;
+        }
+
+        internalBalances.kLast =
+            internalBaseTokenReserveQty *
+            internalQuoteTokenReserveQty;
+    }
+
+    if (liquidityTokenFeeQty != 0) {
+        _mint(
+            IExchangeFactory(exchangeFactoryAddress).feeAddress(),
+            liquidityTokenFeeQty
+        );
+    }
+
+    _burn(msg.sender, _liquidityTokenQty);
+    IERC20(baseToken).safeTransfer(_tokenRecipient, baseTokenQtyToReturn);
+    IERC20(quoteToken).safeTransfer(_tokenRecipient, quoteTokenQtyToReturn);
+    emit RemoveLiquidity(
+        msg.sender,
+        baseTokenQtyToReturn,
+        quoteTokenQtyToReturn
+    );
+}
+
+// ❌ swapQuoteTokenForBaseToken: output computed by MathLib.calculateBaseTokenQty which uses
+//    internalBalances — when internalBalances diverge from actual reserves due to donation,
+//    the swap accepts _quoteTokenQty far exceeding the tracked reserve, paying out excess base
+function swapQuoteTokenForBaseToken(
+    uint256 _quoteTokenQty,
+    uint256 _minBaseTokenQty,
+    uint256 _expirationTimestamp
+) external nonReentrant() isNotExpired(_expirationTimestamp) {
+    require(
+        _quoteTokenQty != 0 && _minBaseTokenQty != 0,
+        "Exchange: INSUFFICIENT_TOKEN_QTY"
+    );
+
+    uint256 baseTokenQty =
+        MathLib.calculateBaseTokenQty(
+            _quoteTokenQty,
+            _minBaseTokenQty,
+            IERC20(baseToken).balanceOf(address(this)),
+            TOTAL_LIQUIDITY_FEE,
+            internalBalances
+        );
+
+    IERC20(quoteToken).safeTransferFrom(
+        msg.sender,
+        address(this),
+        _quoteTokenQty
+    );
+
+    IERC20(baseToken).safeTransfer(msg.sender, baseTokenQty);
+    emit Swap(msg.sender, 0, _quoteTokenQty, baseTokenQty, 0);
+}
+```
 
 // Attacker exploit sequence (from PoC joeCall callback):
 // 1. ELP.addLiquidity(1e9, 0, 0, 0, ...)          ← tiny imbalanced add
 // 2. ELP.addLiquidity(TICAmount, USDC_EAmount, ...) ← large add matching pool
-// 3. USDC_E.transfer(address(ELP), balance)        ← ❌ direct token donation bypasses accounting
-// 4. ELP.removeLiquidity(allLP, 1, 1, ...)         ← withdraw at inflated ratio
+// 3. USDC_E.transfer(address(ELP), balance)        ← ❌ direct token donation bypasses internalBalances
+// 4. ELP.removeLiquidity(allLP, 1, 1, ...)         ← withdraw at inflated balanceOf() ratio
 // 5. ELP.swapQuoteTokenForBaseToken(reserve * 100) ← ❌ swap against 100x-distorted reserves
 // 6. Second add/remove cycle to unwind
-```
 
 **Why it is exploitable (identify the bug from the code):**
 - `addLiquidity()` updates `internalBalances` but the ratio check is bypassable with tiny initial amounts (`addLiquidity(1e9, 0, ...)`).

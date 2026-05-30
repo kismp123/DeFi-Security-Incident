@@ -40,9 +40,9 @@ function getYBPrice() internal view returns (uint256) {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-Source: **not verified on Sourcify** — `0x113F16A3341D32c4a38Ca207Ec6ab109cF63e434` (BSC)
+Source: **not verified on Sourcify or BSCScan** — `0x113F16A3341D32c4a38Ca207Ec6ab109cF63e434` (BSC). Etherscan V2 API (chainid 56) returned empty SourceCode.
 Sourcify URL: https://sourcify.dev/server/files/any/56/0x113F16A3341D32c4a38Ca207Ec6ab109cF63e434 (404 — not found)
 
 The YBToken contract at `0x113F` is unverified on-chain. The following is reconstructed from the PoC ([YBToken_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-04/YBToken_exp.sol)) and the on-chain transaction trace. The core vulnerability is a `_transfer` hook that buys/sells YB via the PancakeSwap V2 pair using the **instantaneous spot price**:

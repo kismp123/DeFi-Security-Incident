@@ -61,12 +61,12 @@ contract SafeProxy is Initializable {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-Source: **not verified on Sourcify** — `0xd4f1afd0331255e848c119ca39143d41144f7cb3` (BSC)
-Sourcify URL: https://sourcify.dev/server/files/any/56/0xd4f1afd0331255e848c119ca39143d41144f7cb3 (404 — not found)
+Source: **not verified on Sourcify or Etherscan** — `0xd4f1afd0331255e848c119ca39143d41144f7cb3` (BSC, chainid 56)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0xd4f1afd0331255e848c119ca39143d41144f7cb3 (404 — not found); Etherscan V2 API (chainid 56) also returns empty source.
 
-The contract at `0xd4f1` is unverified on-chain (no source published). The following is reconstructed pseudocode from the PoC ([unverified_d4f1_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-02/unverified_d4f1_exp.sol)) and the on-chain transaction trace:
+The contract at `0xd4f1` is unverified on-chain (no source published on either registry). The following is reconstructed pseudocode from the PoC ([unverified_d4f1_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-02/unverified_d4f1_exp.sol)) and the on-chain transaction trace:
 
 ```solidity
 // ⚠️ RECONSTRUCTED — not verified source. Derived from PoC + on-chain trace.

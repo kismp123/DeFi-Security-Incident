@@ -58,74 +58,237 @@ function join(uint256 amount) external nonReentrant {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
-
-The Mosca2 contract (0xd8791F0C10B831B605C5D48959EB763B266940B9, BSC) is not verified on Sourcify. The PoC (DeFiHackLabs) calls `join(amount, refCode, fiatType, enterpriseJoin)` 7 times and `withdrawFiat(amount, fiatType)` twice. The root cause is that `join()` credits the caller's balance without validating that the deposited funds are not flash-loaned, and `withdrawFiat()` allows withdrawing two different fiat-denominated balances whose totals exceed what was deposited.
-
-The following is reconstructed from the PoC and on-chain traces:
+Source: **Etherscan-verified** (V2 API, chainid 56) — Mosca `0xd8791f0c10b831b605c5d48959eb763b266940b9`
 
 ```solidity
-// ❌ RECONSTRUCTED — not verified source.
+function join(uint256 amount, uint256 _refCode, uint8 fiat, bool enterpriseJoin) external nonReentrant{
+       User storage user = users[msg.sender];
+       uint256 diff = user.balance > 127 * 10 ** 18 ? user.balance - 127 * 10 ** 18 : 0;
+        uint256 tax_remainder;
 
-struct UserInfo {
-    uint256 depositedBUSD;
-    uint256 depositedUSDT;
-    // ... tier, referral, etc.
-}
-mapping(address => UserInfo) public users;
+       uint256 baseAmount = ((amount + diff) * 1000) / 1015;
+      
 
-// join(uint256 amount, uint256 refCode, uint8 fiatType, bool enterpriseJoin)
-function join(uint256 amount, uint256 refCode, uint8 fiatType, bool enterpriseJoin) external {
-    // ❌ No check that caller is not a flash loan contract
-    // ❌ No minimum lock period before withdrawal
-    // ❌ Accepts any source of funds — including flash-loaned BUSD
-    address depositToken = (fiatType == 1) ? BUSD : USDT;
-    IERC20(depositToken).transferFrom(msg.sender, address(this), amount);
+  
+        if(enterpriseJoin) {
+            
+            if(refByAddr[msg.sender] == 0) {
+                require(amount >= (ENTERPRISE_JOIN_FEE * 3) + (JOIN_FEE * 3), "Insufficient amount sent to join enterprise");
+                if(fiat == 1){
+                require(usdt.transferFrom(msg.sender, address(this), amount - (ENTERPRISE_TAX * 3)), "Transfer failed");
+                require(usdt.transferFrom(msg.sender, feeReceiver, ENTERPRISE_TAX * 3), "Transfer tax failed");
+                
+                
+                } else {
+                    require(usdc.transferFrom(msg.sender, address(this), amount - (ENTERPRISE_TAX * 3)), "Transfer failed");
+                    require(usdc.transferFrom(msg.sender, feeReceiver, ENTERPRISE_TAX * 3), "Transfer tax failed");
+                }
 
-    users[msg.sender].depositedBUSD += (fiatType == 1) ? amount : 0;
-    users[msg.sender].depositedUSDT += (fiatType == 2) ? amount : 0;
-    // ❌ totalDeposits accounting tracked globally but reset/decremented incorrectly on withdrawal
-    totalDeposits += amount;
+                emit AdminFeesSent(owner, block.timestamp, ENTERPRISE_TAX * 3, fiat);
 
-    _distributeToTiers(amount, refCode, enterpriseJoin);
-}
+            } else {
+                
+                require(amount + diff >= (ENTERPRISE_JOIN_FEE * 3), "Insufficient amount to upgrade to enterprise");
+                if(diff < ENTERPRISE_TAX * 3){
+                    tax_remainder = (ENTERPRISE_TAX * 3) - diff;
+                    adminBalance+= (ENTERPRISE_TAX * 3) - diff;
+                    user.balance -= diff;
+                    diff = 0;
+                    
 
-// withdrawFiat(uint256 amount, uint8 fiatType)
-function withdrawFiat(uint256 amount, uint8 fiatType) external {
-    // ❌ Allows withdrawing BUSD and USDT balances independently
-    // ❌ totalDeposits decrement is incorrect — already reduced by tier distribution,
-    //    so the user can withdraw more than they deposited across two separate calls
-    if (fiatType == 1) {
-        require(users[msg.sender].depositedBUSD >= amount, "Insufficient BUSD");
-        users[msg.sender].depositedBUSD -= amount;
-        IERC20(BUSD).transfer(msg.sender, amount);
-    } else {
-        require(users[msg.sender].depositedUSDT >= amount, "Insufficient USDT");
-        users[msg.sender].depositedUSDT -= amount;
-        IERC20(USDT).transfer(msg.sender, amount);
+                     if(fiat == 1){
+                        require(usdt.transferFrom(msg.sender, feeReceiver, tax_remainder), "Transfer failed");
+                    } else {
+                        require(usdc.transferFrom(msg.sender, feeReceiver, tax_remainder), "Transfer failed");
+                    }
+
+                    emit AdminFeesSent(owner, block.timestamp, tax_remainder, fiat);
+
+                } else {
+                    adminBalance+= ENTERPRISE_TAX * 3;
+                    diff -= ENTERPRISE_TAX * 3;
+                     user.balance -= ENTERPRISE_TAX * 3; 
+                    if(diff > ENTERPRISE_JOIN_FEE * 3){
+                        user.balance -= (ENTERPRISE_JOIN_FEE * 3);
+                    } else {
+                        user.balance -= diff;
+                    }
+                   
+
+                }
+
+                  if(amount > 0) {
+
+                    if(fiat == 1){
+
+                        require(usdt.transferFrom(msg.sender, address(this), amount - tax_remainder), "Transfer failed");
+
+                    } else {
+
+                        require(usdc.transferFrom(msg.sender, address(this), amount - tax_remainder), "Transfer failed");
+
+                    }
+
+
+                    }
+                
+                
+
+              
+
+            }
+            user.enterprise = true;
+        } else {
+
+            require(amount >= JOIN_FEE, "Insufficient amount sent");
+
+
+            if(fiat == 1){
+
+                require(usdt.transferFrom(msg.sender, address(this), amount - (TAX * 3)), "Transfer failed");
+                require(usdt.transferFrom(msg.sender, feeReceiver, TAX * 3), "Transfer failed");
+            } else {
+
+                 require(usdc.transferFrom(msg.sender, address(this), amount - (TAX * 3)), "Transfer failed");
+                require(usdc.transferFrom(msg.sender, feeReceiver, TAX * 3), "Transfer failed");
+
+            }
+
+            emit AdminFeesSent(owner, block.timestamp, TAX * 3, fiat);
+
+            
+
+
+        }
+    
+    
+  
+   user.nextDeadline = block.timestamp + 28 days;
+   user.bonusDeadline = block.timestamp + 7 days;
+   user.walletAddress = msg.sender;
+    totalRevenue+= amount;
+    user.balance += enterpriseJoin ? baseAmount - ENTERPRISE_JOIN_FEE : baseAmount - JOIN_FEE; // ❌ balance credited without any lock period
+
+ 
+
+    if(referrers[_refCode] != address(0)){
+        user.collectiveCode = _refCode;
+        users[referrers[user.collectiveCode]].balance += enterpriseJoin && users[referrers[user.collectiveCode]].enterprise ? (((90 * 10 ** 18) * 25 / 100)) : ((25 * 10 ** 18) * 25/ 100);
+        users[referrers[user.collectiveCode]].inviteCount++;
+        emit RewardEarned(referrers[user.collectiveCode], block.timestamp, enterpriseJoin && users[referrers[user.collectiveCode]].enterprise ? (((90 * 10 ** 18) * 25 / 100)) : ((25 * 10 ** 18) * 25/ 100));
+        if(users[referrers[user.collectiveCode]].inviteCount % 3 == 0){
+            users[referrers[user.collectiveCode]].balance += enterpriseJoin && users[referrers[user.collectiveCode]].enterprise ? (((90 * 10 ** 18) * 25 / 100)) : ((25 * 10 ** 18) * 25/ 100);
+            emit RewardEarned(referrers[user.collectiveCode], block.timestamp, enterpriseJoin && users[referrers[user.collectiveCode]].enterprise ? (((90 * 10 ** 18) * 25 / 100)) : ((25 * 10 ** 18) * 25/ 100));
+        }
+
     }
-    totalDeposits -= amount; // ❌ double-decrement possible across two fiat types
+
+    rewardQueue.push(msg.sender);
+
+    if(refByAddr[msg.sender] == 0){
+    generateRefCode(msg.sender);
+    }
+
+    emit Joined(msg.sender, block.timestamp, amount, fiat);
+
+   cascade(msg.sender);
+
+    distributeFees(msg.sender, amount);
+    
+ }
+```
+
+```solidity
+function exitProgram() external nonReentrant {
+    require(!isBlacklisted[msg.sender], "Blacklisted user");
+    User storage user = users[msg.sender];
+
+    address referrer = referrers[user.collectiveCode];
+    if (referrer != address(0) && users[referrer].inviteCount > 0) {
+        users[referrer].inviteCount--;
+    }
+
+    for (uint256 i = 0; i < rewardQueue.length; i++) {
+        address userAddr = rewardQueue[i];
+        if (userAddr == msg.sender) {
+
+            // Remove user from reward queue and reset state
+            refByAddr[userAddr] = 0;
+            referrers[user.refCode] = 0x000000000000000000000000000000000000dEaD;
+            user.balance = 0;
+            user.enterprise = false;
+
+            rewardQueue[i] = rewardQueue[rewardQueue.length - 1];
+            rewardQueue.pop();
+
+            emit ExitProgram(msg.sender, block.timestamp);
+        }
+    }
+}
+```
+
+```solidity
+function withdrawFiat(uint256 amount, bool isFiat, uint8 fiatToWithdraw) external nonReentrant {
+    require(!isBlacklisted[msg.sender], "Blacklisted user");
+     User storage user = users[msg.sender];
+     uint limit = user.enterprise ? 127 * 10 ** 18 : 28 * 10 ** 18;
+     uint balance; 
+      uint256 baseAmount = (amount * 1000) / 1015;
+     if(!isFiat) {
+         balance = user.balance; 
+
+     } else {
+          balance = fiatToWithdraw == 1 ? user.balanceUSDT  : user.balanceUSDC ;
+     }
+
+      require(amount <= balance - limit, "Insufficient balance");  // ❌ limit check based on potentially inflated balance
+
+      if (!isFiat){
+        user.balance -= amount;
+      }
+      else {
+       fiatToWithdraw == 1 ? user.balanceUSDT -= amount  : user.balanceUSDC -= amount ;  // ❌ USDT and USDC balances tracked independently
+      }
+       
+   
+
+    fiatToWithdraw == 1 ? usdt.transfer(msg.sender, baseAmount) : usdc.transfer(msg.sender, baseAmount);
+
+    if(!isFiat) {
+        
+        distributeFees(msg.sender, amount);
+         
+     } else {
+          distributeFeesFiat(msg.sender, amount, fiatToWithdraw);
+     }
+    
+
+    emit WithdrawFiat(msg.sender, block.timestamp, amount, fiatToWithdraw);
+
+    
+
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
 
-- The attacker flash-borrows 7,000 BUSD and calls `join(1000 BUSD, ...)` 7 times, crediting 7,000 BUSD across both fiat-type accounting slots.
-- Due to a double-counting flaw in `totalDeposits` and the independent BUSD/USDT balance tracking, calling `withdrawFiat` twice (once for each fiat type) allows extracting ~45,300 BUSD + USDC — far exceeding the 7,000 deposited.
-- No reentrancy guard or flash-loan detection prevents this multi-call pattern in a single transaction.
-- The identical vulnerability was present and unpatched from the first Mosca attack 7 days earlier (2025-01-10).
+- The real `join()` function has `nonReentrant` but no deposit lock period — flash-loaned BUSD/USDC is accepted on equal footing with legitimate deposits.
+- `join()` immediately credits `user.balance` via `baseAmount - JOIN_FEE` (approximately `amount * 1000/1015 - JOIN_FEE`). Calling it 7 times with flash-loaned funds inflates the internal balance.
+- `withdrawFiat()` uses `user.balanceUSDT` and `user.balanceUSDC` as separate accounting slots (the `isFiat` flag branch). The attacker can drain each independently, potentially withdrawing more total value than was deposited — the USDT and USDC balances are never cross-checked against a single unified deposit total.
+- The `balance - limit` check in `withdrawFiat()` uses `user.balance` (the internal inflated balance), not the actual USDT/USDC tokens in the contract.
+- The identical vulnerability was unpatched from the first Mosca attack 7 days earlier (2025-01-10).
 
 ```solidity
 // ✅ Fix: single unified balance, flash-loan block via same-block deposit-withdraw guard
 mapping(address => uint256) public depositBlock;
 
-function join(uint256 amount, ...) external nonReentrant {
-    depositBlock[msg.sender] = block.number; // record deposit block
+function join(uint256 amount, uint256 _refCode, uint8 fiat, bool enterpriseJoin) external nonReentrant {
+    depositBlock[msg.sender] = block.number; // ✅ record deposit block
     // ... credit balance ...
 }
 
-function withdrawFiat(uint256 amount, ...) external nonReentrant {
-    require(block.number > depositBlock[msg.sender], "Cannot withdraw in same block as deposit");
+function withdrawFiat(uint256 amount, bool isFiat, uint8 fiatToWithdraw) external nonReentrant {
+    require(block.number > depositBlock[msg.sender], "Cannot withdraw in same block as deposit"); // ✅
     // ... debit unified balance, not split by fiat type ...
 }
 ```

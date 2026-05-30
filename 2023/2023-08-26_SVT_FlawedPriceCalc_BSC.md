@@ -33,9 +33,9 @@ The attacker sourced a BUSD flash loan from DODO DEX, split-bought SVT in two tr
 
 ### 2.1 Flawed Price Calculation Mechanism (Core Vulnerability)
 
-Source: **not verified on Sourcify** — SVTpool (`0x2120F8F305347b6aA5E5dBB347230a8234EB3379`, BSC) — https://sourcify.dev/server/files/any/56/0x2120F8F305347b6aA5E5dBB347230a8234EB3379
+Source: **not verified on Sourcify or Etherscan** — SVTpool (`0x2120F8F305347b6aA5E5dBB347230a8234EB3379`, BSC) — https://sourcify.dev/server/files/any/56/0x2120F8F305347b6aA5E5dBB347230a8234EB3379
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The SVTpool contract has no verified source on BscScan either. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC. The SVTpool contract has no verified source on either BscScan or Sourcify. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
 The `buy()` and `sell()` functions of the `SVTpool` contract are unverified, but the logic inferred from the PoC and on-chain behavior analysis is as follows:
 

@@ -49,11 +49,9 @@ function pancakeCall(address sender, uint256 amount0, uint256 amount1, bytes cal
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-Source: **not verified on Sourcify** — WXC Token `0x8087720EeeA59F9F04787065447D52150c09643E` (BSC, chainid 56)
-Sourcify URL: https://sourcify.dev/server/files/any/56/0x8087720EeeA59F9F04787065447D52150c09643E
-(BSCscan also shows no verified source for this address.)
+Source: **not verified on Sourcify or Etherscan** — WXC Token `0x8087720EeeA59F9F04787065447D52150c09643E` (BSC, chainid 56). The address is an ERC1967Proxy (Etherscan V2 API confirms proxy=1, implementation=0x4c100d30d9c511b8bb9d1c951bbc1be489a0172f); neither the proxy's Solidity ABI nor the implementation contract is verified, so no pancakeCall source is available.
 
 Based on the PoC (`WXC_Token_exp.sol`) the attack works as follows: the attacker calls `Cake_LP.swap(amt0, 1, attacker, payload)` where `payload` is a crafted hex blob. PancakeSwap's swap function calls `pancakeCall(sender, amount0, amount1, data)` on the recipient (`attacker`). The WXC token contract itself, however, is a non-standard token that also implements a `pancakeCall`-like hook — the crafted payload instructs the WXC contract (via the pair's internal routing) to execute a transfer of its own token balance to the attacker. This is consistent with the decoded hex payload containing `a9059cbb` (the `transfer` selector) targeting the attacker's address with the full WXC supply.
 

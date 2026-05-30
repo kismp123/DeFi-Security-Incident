@@ -30,9 +30,9 @@ function getPrice() public view returns (uint256) {
 ---
 ### On-chain Original Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
 
-Token8633 (0x11Cd2168fc420ae1375626655ab8f355F0075Bd6, BSC) and its helper contract (0x128112aF3aF5478008c84d77c63561885FBBC438) are not verified on BSCScan or Sourcify. The exploit calls `autoSwapAndAddToMarketing()` (900 times) and `autoAddLp()` (130 times), indicating these functions read spot reserves from an AMM pair without validation.
+Token8633 (0x11Cd2168fc420ae1375626655ab8f355F0075Bd6, BSC) and its helper contract (0x128112aF3aF5478008c84d77c63561885FBBC438) are not verified on BSCScan, Sourcify, or Etherscan. The exploit calls `autoSwapAndAddToMarketing()` (900 times) and `autoAddLp()` (130 times), indicating these functions read spot reserves from an AMM pair without validation.
 
 The following is reconstructed from the PoC and on-chain traces:
 

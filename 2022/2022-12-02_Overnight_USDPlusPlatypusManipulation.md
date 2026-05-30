@@ -83,72 +83,109 @@ contract SafePlatypusPool {
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+Source: **Etherscan-verified** (V2 API, chainid 43114) — Exchange `0x7dc48fec48cfd5448a54915ae0b1c30a3ce57502` (implementation of proxy `0x73cb180bf0521828d8849bc8CF2B920918e23032`)
 
-Source: **not verified on Sourcify** — USD+ `0x73cb180bf0521828d8849bc8CF2B920918e23032` and SwapFlashLoan `0xED2a7edd7413021d440b09D654f3b87712abAB66` (Avalanche)
-Sourcify URLs:
-- https://sourcify.dev/server/files/any/43114/0x73cb180bf0521828d8849bc8CF2B920918e23032 (404 — not found)
-- https://sourcify.dev/server/files/any/43114/0xED2a7edd7413021d440b09D654f3b87712abAB66 (404 — not found)
-
-The following is reconstructed from the PoC ([Overnight_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-12/Overnight_exp.sol)) and on-chain traces. The core exploitable behavior is in USD+ `buy()` and `redeem()`, which exchange USDC.e for USD+ at a rate derived from the Platypus pool spot price:
+Note: The USD+ token address `0x73cb180bf0521828d8849bc8CF2B920918e23032` is an ERC1967 proxy. The logic contract at `0x7dc48fec48cfd5448a54915ae0b1c30a3ce57502` (ContractName: Exchange) is verified. The real `buy()` and `redeem()` functions use a **1:1 decimal-adjusted rate** — NOT Platypus spot price. The actual attack vector was Platypus pool reserve manipulation enabling favorable direct swaps on that pool, with USD+ `buy()` used as an entry point to acquire USD+ cheaply via the imbalanced Platypus pool (not via a manipulated exchange rate in the Exchange contract itself).
 
 ```solidity
-// ⚠️ RECONSTRUCTED — not verified source. Derived from PoC + on-chain trace.
-// USD+ (UsdPlusToken): 0x73cb180bf0521828d8849bc8CF2B920918e23032 (Avalanche)
+function buy(address _asset, uint256 _amount) external whenNotPaused oncePerBlock returns (uint256) {
+    return _buy(_asset, _amount, "");
+}
 
-contract UsdPlusToken {
-    IPlatypus public platypus;    // 0x66357dCaCe80431aee0A7507e2E361B7e2402370
-    IERC20    public usdc_e;      // 0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664
+function _buy(address _asset, uint256 _amount, string memory _referral) internal returns (uint256) {
+    require(_asset == address(usdc), "Only asset available for buy");
 
-    // ❌ buy(): exchanges USDC.e for USD+ at the current Platypus pool rate
-    // The rate is derived from Platypus pool reserves — manipulable via large swaps
-    function buy(address _asset, uint256 _amount) external returns (uint256) {
-        require(_asset == address(usdc_e), "Asset not supported");
-        usdc_e.transferFrom(msg.sender, address(this), _amount);
+    uint256 currentBalance = IERC20(_asset).balanceOf(msg.sender);
+    require(currentBalance >= _amount, "Not enough tokens to buy");
 
-        // ❌ Exchange rate queried from Platypus spot price — not TWAP
-        // A prior large swap has skewed reserves: USDC.e is abundant, USD+ is scarce
-        // → attacker receives more USD+ per USDC.e than the fair 1:1 rate
-        uint256 usdPlusAmount = _getExchangeAmount(_amount); // ❌ spot-rate lookup
-        _mint(msg.sender, usdPlusAmount);
-        return usdPlusAmount;
+    require(_amount > 0, "Amount of asset is zero");
+
+    uint256 usdPlusAmount;
+    uint256 assetDecimals = IERC20Metadata(address(_asset)).decimals();
+    uint256 usdPlusDecimals = usdPlus.decimals();
+    if (assetDecimals > usdPlusDecimals) {
+        usdPlusAmount = _amount / (10 ** (assetDecimals - usdPlusDecimals));
+    } else {
+        usdPlusAmount = _amount * (10 ** (usdPlusDecimals - assetDecimals));
     }
 
-    // ❌ redeem(): burns USD+ and returns USDC.e at the (now-normalized) spot rate
-    function redeem(address _asset, uint256 _amount) external returns (uint256) {
-        require(_asset == address(usdc_e), "Asset not supported");
-        _burn(msg.sender, _amount);
+    require(usdPlusAmount > 0, "Amount of USD+ is zero");
 
-        // ❌ Rate re-read after partial normalization — still profitable for attacker
-        uint256 usdcAmount = _getExchangeAmount(_amount);
-        usdc_e.transfer(msg.sender, usdcAmount);
-        return usdcAmount;
+    IERC20(_asset).transferFrom(msg.sender, address(portfolioManager), _amount);
+    portfolioManager.deposit(IERC20(_asset), _amount);
+
+    uint256 buyFeeAmount;
+    uint256 buyAmount;
+    if (!hasRole(FREE_RIDER_ROLE, msg.sender)) {
+        buyFeeAmount = (usdPlusAmount * buyFee) / buyFeeDenominator;
+        buyAmount = usdPlusAmount - buyFeeAmount;
+        emit PaidBuyFee(buyAmount, buyFeeAmount);
+    } else {
+        buyAmount = usdPlusAmount;
     }
 
-    // ❌ Uses Platypus swap quote (spot reserves) as the exchange rate
-    function _getExchangeAmount(uint256 _amount) internal view returns (uint256) {
-        // Internally calls Platypus.quotePotentialSwap(usdc_e, usdPlus, _amount)
-        // which reads current pool reserves — manipulable in the same transaction
-        (uint256 potentialOutcome,) = platypus.quotePotentialSwap(
-            address(usdc_e), address(this), _amount  // ❌ spot price, not TWAP
-        );
-        return potentialOutcome;
+    usdPlus.mint(msg.sender, buyAmount);  // ❌ mints at 1:1 rate regardless of Platypus pool state
+
+    emit EventExchange("mint", buyAmount, buyFeeAmount, msg.sender, _referral);
+
+    return buyAmount;
+}
+
+function redeem(address _asset, uint256 _amount) external whenNotPaused oncePerBlock returns (uint256) {
+    require(_asset == address(usdc), "Only asset available for redeem");
+
+    require(_amount > 0, "Amount of USD+ is zero");
+
+    uint256 assetAmount;
+    uint256 assetDecimals = IERC20Metadata(address(_asset)).decimals();
+    uint256 usdPlusDecimals = usdPlus.decimals();
+    if (assetDecimals > usdPlusDecimals) {
+        assetAmount = _amount * (10 ** (assetDecimals - usdPlusDecimals));
+    } else {
+        assetAmount = _amount / (10 ** (usdPlusDecimals - assetDecimals));
     }
+
+    require(assetAmount > 0, "Amount of asset is zero");
+
+    uint256 redeemFeeAmount;
+    uint256 redeemAmount;
+    if (!hasRole(FREE_RIDER_ROLE, msg.sender)) {
+        redeemFeeAmount = (assetAmount * redeemFee) / redeemFeeDenominator;
+        redeemAmount = assetAmount - redeemFeeAmount;
+        emit PaidRedeemFee(redeemAmount, redeemFeeAmount);
+    } else {
+        redeemAmount = assetAmount;
+    }
+
+    uint256 unstakedAmount = portfolioManager.withdraw(IERC20(_asset), redeemAmount);
+
+    usdPlus.burn(msg.sender, _amount);
+
+    require(
+        IERC20(_asset).balanceOf(address(this)) >= unstakedAmount,
+        "Not enough for transfer unstakedAmount"
+    );
+    IERC20(_asset).transfer(msg.sender, unstakedAmount);  // ❌ withdraws from portfolioManager at 1:1
+
+    emit EventExchange("redeem", redeemAmount, redeemFeeAmount, msg.sender, "");
+
+    return unstakedAmount;
 }
 ```
 
 **Why it is exploitable (identify the bug from the code):**
-- `buy()` prices the USDC.e → USD+ exchange using `quotePotentialSwap`, which reads Platypus pool reserves at the moment of the call — the same transaction in which the attacker has already distorted those reserves via large Aave-funded swaps.
-- After skewing the Platypus pool (making USDC.e artificially cheap relative to USD+), the attacker calls `buy()` and receives more USD+ per USDC.e than the fair rate.
-- `redeem()` similarly reads spot reserves on the return leg; because the attacker controls the sequence within one transaction, both the buy and redeem legs can be executed at favorable (manipulated) rates.
-- There is no TWAP, circuit breaker, or rate deviation limit on either `buy()` or `redeem()`.
+- Contrary to earlier reconstruction, the verified Exchange contract does NOT read Platypus spot reserves. Both `buy()` and `redeem()` use a fixed 1:1 decimal-adjusted rate.
+- The actual exploit leveraged Platypus pool imbalance directly: by manipulating Platypus reserves via large Aave-funded swaps, the attacker executed favorable USDC.e → nUSD → DAI.e/USDT.e swaps at distorted ratios on the Platypus pool itself.
+- The USD+ Exchange's `buy()` function is exploitable in the sense that it always mints at 1:1 regardless of external market conditions — if the attacker can acquire USDC.e cheaply (via pool manipulation), they can mint USD+ at parity and redeem for more USDC.e than the market price, capturing the spread.
+- The `oncePerBlock` modifier provides minimal protection as flash loans execute within a single block, and the Exchange lacks any circuit breaker or slippage guard tied to Platypus pool health.
 
 ```solidity
-// ✅ Fix: use a time-weighted average price or external oracle for the exchange rate
-function _getExchangeAmount(uint256 _amount) internal view returns (uint256) {
-    // ✅ Consult a Chainlink USDC/USD feed or a 30-minute TWAP oracle
-    uint256 rate = ITWAPOracle(oracle).getRate(address(usdc_e), address(this));
-    return _amount * rate / 1e18;  // ✅ resistant to single-block manipulation
+// ✅ Fix: add a circuit breaker that checks Platypus pool health before allowing buy/redeem
+// ✅ Fix: consult a TWAP or Chainlink oracle to validate that USDC.e ≈ 1 USD before exchange
+function _buy(address _asset, uint256 _amount, string memory _referral) internal returns (uint256) {
+    // ✅ Reject if the Platypus pool is severely imbalanced (detected via TWAP deviation)
+    require(IOracle(oracle).getDeviation(usdc, usdPlus) < MAX_DEVIATION, "Pool imbalanced");
+    // ... rest of logic ...
 }
 ```
 

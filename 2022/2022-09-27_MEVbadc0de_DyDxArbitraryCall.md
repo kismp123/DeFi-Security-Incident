@@ -75,8 +75,8 @@ function callFunction(
 
 ### On-Chain Source Code
 
-> ⚠️ Contract not verified on Sourcify — source unavailable.
-> `0xbaDc0dEfAfCF6d4239BDF0b66da4D7Bd36fCF05A` returns HTTP 404 on Sourcify (Ethereum chain ID 1).
+> ⚠️ Contract not verified on Sourcify or Etherscan — source unavailable; reconstructed from PoC.
+> `0xbaDc0dEfAfCF6d4239BDF0b66da4D7Bd36fCF05A` returns HTTP 404 on Sourcify and empty SourceCode on Etherscan (Ethereum chain ID 1).
 > The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
 
 The dYdX SoloMargin contract (`0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e`) **is** a well-known open-source contract. Its `operate()` function executes `ActionType.Call` by forwarding arbitrary calldata to any target address:

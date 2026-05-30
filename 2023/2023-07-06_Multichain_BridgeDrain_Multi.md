@@ -26,9 +26,72 @@ The incident exposed that "decentralized bridge" claims were hollow — the enti
 ---
 ## 2. On-Chain Source Code / Architecture Flaw
 
-> ⚠️ Contract not verified on Sourcify — source unavailable. The Multichain incident is not a smart contract vulnerability: it is a centralized operational failure where all MPC signing key material was under the physical control of a single individual. There is no exploitable Solidity function — the bridge custodian simply executed direct ERC-20 transfers from the custody multisig addresses using the seized private keys. No PoC exploit code exists; the "attack" was an authorized-looking token transfer signed with the real MPC keys.
+> **The Multichain incident is NOT a smart contract vulnerability.** There is no exploitable on-chain function — the bridge custodian executed direct ERC-20 transfers from custody addresses using the real MPC private keys seized from the CEO's servers. No PoC exploit code exists; the "attack" was authorized-looking token transfers signed with the legitimate MPC keys.
 
-The architecture flaw is structural, not code-level:
+**Language:** Solidity (Ethereum/EVM chains for context only).
+**Source provenance:** REAL SOURCE — [`anyswap/multichain-smart-contracts`](https://github.com/anyswap/multichain-smart-contracts) on GitHub (`MultichainV7Router.sol`). Shown here only as context to illustrate the `onlyMPC` trust model — the MPC key was the sole control gate, and that key was compromised off-chain.
+
+### Router Context: `anySwapIn` and `anySwapOut` — real source
+
+```solidity
+// contracts/router/MultichainV7Router.sol — REAL SOURCE
+// anyswap/multichain-smart-contracts, main branch
+// NOTE: The exploit was NOT in this code. The MPC key used by onlyMPC was
+// physically seized. These functions are shown to illustrate the trust model.
+
+// Called by users on the source chain to initiate a cross-chain transfer.
+// Burns the wrapped token on the source chain.
+function anySwapOut(
+    address token,
+    string calldata to,
+    uint256 amount,
+    uint256 toChainID
+)
+    external
+    whenNotPaused(Swapout_Paused_ROLE)
+    nonReentrant
+{
+    bytes32 swapoutID = IRouterSecurity(routerSecurity).registerSwapout(
+        token, msg.sender, to, amount, toChainID, "", ""
+    );
+    assert(IRouterMintBurn(token).burn(msg.sender, amount));
+    emit LogAnySwapOut(swapoutID, token, msg.sender, to, amount, toChainID);
+}
+
+// Called ONLY by the MPC key holder on the destination chain to complete a transfer.
+// Mints the wrapped token to the recipient.
+//
+// ❌ onlyMPC is the entire security perimeter.
+//    If the MPC private key is obtained by an adversary — even via physical seizure
+//    of the signing server — the adversary can call this function with arbitrary
+//    `swapInfo.receiver` and `swapInfo.amount`, minting tokens out of thin air
+//    on the destination chain.
+function anySwapIn(
+    string calldata swapID,
+    SwapInfo calldata swapInfo
+)
+    external
+    whenNotPaused(Swapin_Paused_ROLE)
+    nonReentrant
+    onlyMPC   // ← THE ONLY GUARD — no multi-sig, no timelock, no second key
+{
+    IRouterSecurity(routerSecurity).registerSwapin(swapID, swapInfo);
+    assert(
+        IRouterMintBurn(swapInfo.token).mint(
+            swapInfo.receiver,
+            swapInfo.amount
+        )
+    );
+    emit LogAnySwapIn(
+        swapID, swapInfo.swapoutID, swapInfo.token,
+        swapInfo.receiver, swapInfo.amount, swapInfo.fromChainID
+    );
+}
+```
+
+### Why the code is not the vulnerability
+
+The Solidity above is correct given the MPC trust assumption. The `onlyMPC` modifier ensures only the authorized MPC committee can call `anySwapIn`. The design flaw is that this committee was not actually decentralized:
 
 ```
 Claimed Architecture:
@@ -52,6 +115,11 @@ Custody addresses (Ethereum):
   - Dogechain Bridge custody: ~$1.5M drained Jul 6
   Total: ~$126M across all chains
 ```
+
+**Why the architecture is exploitable (identify the flaw):**
+- `anySwapIn` has a single access gate: `onlyMPC`. If the MPC key is held by one party's servers, the security of the entire multi-billion-dollar bridge reduces to: *can that party's servers be seized?*
+- There is no code path an auditor could flag as "buggy" in `anySwapIn` or `anySwapOut` — the Solidity is straightforward. The vulnerability was in the off-chain operational assumption that the MPC nodes were independently controlled.
+- Once the Chinese authorities physically accessed Zhaojun's servers, they had the private key material. `anySwapIn` accepted their calls exactly as designed, minting tokens to attacker-controlled addresses.
 
 ---
 ## 3. Timeline
@@ -105,6 +173,15 @@ Custody addresses (Ethereum):
 
 - **"Decentralized bridge" security claims must be verifiable**: Multichain's MPC architecture was marketed as trust-minimized but was architecturally equivalent to a single-party custodian. Users and LPs had no way to verify the actual key distribution.
 - **Nation-state arrest as attack vector**: Bridge operators in jurisdictions with capital controls or crypto regulation face regulatory key compromise risk. This is a new threat model not covered by traditional smart contract audits.
-- **Largest single bridge event of 2023**: The $126M Multichain drain exceeded the Poloniex ($126M) and is one of the largest DeFi incidents of the year. Its mechanism (custodial key seizure) is entirely different from smart contract exploits.
+- **The `onlyMPC` modifier is correct code but wrong architecture**: The Solidity in `MultichainV7Router.sol` is not buggy. A traditional security audit would have found no exploitable vulnerability in the contracts. The failure was entirely off-chain operational.
+- **Largest single bridge event of 2023**: The $126M Multichain drain is one of the largest DeFi incidents of the year. Its mechanism (custodial key seizure) is entirely different from smart contract exploits.
 - **Fanout vulnerability**: Multichain served 30+ chains simultaneously. A single point of infrastructure failure propagated across all supported chains simultaneously — a systemic risk amplifier inherent to hub-and-spoke bridge designs.
 - **Six-week silence as risk signal**: The protocol's 6-week maintenance blackout before the drain was a clear red flag that sophisticated users recognized. On-chain insurance or monitoring for operational anomalies could have prompted earlier user action.
+
+## References
+
+- [anyswap/multichain-smart-contracts — MultichainV7Router.sol (real source)](https://github.com/anyswap/multichain-smart-contracts/blob/main/contracts/router/MultichainV7Router.sol)
+- [Multichain Official Statement (Jul 14 2023)](https://multichainorg.medium.com/multichain-statement-for-the-incident-on-jul-6th-2023-e6b55ab2d019)
+- [ZachXBT on-chain analysis (Twitter)](https://twitter.com/zachxbt)
+- [Fantom Foundation Statement](https://fantom.foundation/blog/update-on-multichain/)
+- [DeFiLlama TVL data — Multichain](https://defillama.com/protocol/multichain)

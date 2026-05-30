@@ -80,17 +80,106 @@ contract SafeBEGO20 {
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Source unverified
+Source: **Sourcify-verified (partial)** — BGeoToken / 0xc342774492b54ce5F8ac662113ED702Fc1b34972 (BSC)
+https://sourcify.dev/server/files/any/56/0xc342774492b54ce5F8ac662113ED702Fc1b34972
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
+> Note: The contract is `BGeoToken` (named "Binance GeoDB Coin" / "BGEO"), not a generic `BEGO20`. The signature verification lives in the `isSigned` **modifier**, not directly in `mint()`. Two helper functions — `checkSignParams` and `isSigners` — both vacuously succeed on empty arrays, allowing the modifier to pass with zero signatures.
 
-**Vulnerable function** — `mint()`:
 ```solidity
-// ❌ Root cause: The `mint()` function accepts an empty signature array, allowing arbitrary minting without signature verification
-// Source code unverified — bytecode analysis required
-// Vulnerability: The `mint()` function accepts an empty signature array, allowing arbitrary minting without signature verification
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.8.0;
+
+contract BGeoToken is BEP20, Signers {
+    using SafeMath for uint256;
+
+    uint8 constant bsc = 0;
+    mapping(string => bool) public txHashes;
+
+    // ❌ VULNERABLE MODIFIER: passes for empty r/s/v arrays
+    modifier isSigned(
+        string memory _txHash,
+        uint256 _amount,
+        bytes32[] memory _r,
+        bytes32[] memory _s,
+        uint8[] memory _v
+    ) {
+        require(checkSignParams(_r, _s, _v), "bad-sign-params"); // ❌ passes: [] == [] == []
+        bytes32 _hash = keccak256(abi.encodePacked(bsc, msg.sender, _txHash, _amount));
+        address[] memory _signers = new address[](_r.length); // ❌ length == 0 → empty array
+        for (uint8 i = 0; i < _r.length; i++) {               // ❌ loop never executes
+            _signers[i] = ecrecover(_hash, _v[i], _r[i], _s[i]);
+        }
+        require(isSigners(_signers), "bad-signers"); // ❌ passes: isSigners([]) returns true
+        _;
+    }
+
+    // ❌ Returns true for empty arrays — length checks pass, contents never verified
+    function checkSignParams(
+        bytes32[] memory _r,
+        bytes32[] memory _s,
+        uint8[] memory _v
+    ) private view returns (bool) {
+        return (_r.length == _s.length) && (_s.length == _v.length);
+        // ❌ 0 == 0 && 0 == 0 → true with empty arrays
+    }
+
+    // ❌ Returns true for an empty signers array — for-loop never runs
+    function isSigners(address[] memory _signers) public view returns (bool) {
+        for (uint8 i = 0; i < _signers.length; i++) { // ❌ _signers.length == 0 → skipped
+            if (!_containsSigner(_signers[i])) {
+                return false;
+            }
+        }
+        return true; // ❌ unconditionally returns true when _signers is empty
+    }
+
+    // mint() itself looks fine — the flaw is entirely in the isSigned modifier above
+    function mint(
+        uint256 _amount,
+        string memory _txHash,
+        address _receiver,
+        bytes32[] memory _r,
+        bytes32[] memory _s,
+        uint8[] memory _v
+    ) isSigned(_txHash, _amount, _r, _s, _v) external returns (bool) {
+        require(!txHashes[_txHash], "tx-hash-used");
+        txHashes[_txHash] = true;
+        _mint(_receiver, _amount); // ❌ reached freely with r=[], s=[], v=[]
+        return true;
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `checkSignParams([], [], [])` evaluates `0 == 0 && 0 == 0` → `true`. The length-equality check that was meant to ensure well-formed inputs passes trivially for empty arrays.
+- The `for` loop in `isSigned` runs `0` iterations (empty `_r`), so `_signers` remains a zero-length array of recovered addresses.
+- `isSigners([])` iterates 0 times and falls through to `return true` — meaning "all zero signers are authorized" vacuously.
+- `mint()` proceeds past the modifier, marks the nonce used, and calls `_mint()` to create arbitrary tokens.
+- The per-nonce deduplication (`txHashes[_txHash]`) is the only remaining guard, and it is trivially bypassed by using a fresh nonce string on each call.
+
+```solidity
+// ✅ Fix: require at least one (or N-of-M) valid signatures before entering the loop
+modifier isSigned(
+    string memory _txHash,
+    uint256 _amount,
+    bytes32[] memory _r,
+    bytes32[] memory _s,
+    uint8[] memory _v
+) {
+    require(_r.length > 0, "no signatures provided");           // ✅ reject empty arrays
+    require(checkSignParams(_r, _s, _v), "bad-sign-params");
+    require(_r.length >= _signersLength(), "insufficient signatures"); // ✅ require all signers
+    bytes32 _hash = keccak256(abi.encodePacked(bsc, msg.sender, _txHash, _amount));
+    address[] memory _signers = new address[](_r.length);
+    for (uint8 i = 0; i < _r.length; i++) {
+        _signers[i] = ecrecover(_hash, _v[i], _r[i], _s[i]);
+    }
+    require(isSigners(_signers), "bad-signers");
+    _;
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

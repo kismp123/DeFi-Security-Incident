@@ -53,14 +53,66 @@ function _transfer(address from, address to, uint256 amount) internal override {
 
 ### On-chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** (partial match) — SamPrisonman Token [0xdDF309b8161aca09eA6bBF30Dd7cbD6c474FF700](https://etherscan.io/address/0xdDF309b8161aca09eA6bBF30Dd7cbD6c474FF700) (Ethereum)
+Sourcify URL: https://sourcify.dev/server/files/any/1/0xdDF309b8161aca09eA6bBF30Dd7cbD6c474FF700
+
+Note: The vulnerable Uniswap V2 Pair (0x76ea342bc038d665e8a116392c82552d2605eda1) is not separately verified — it is a standard Uniswap V2 pair. The exploitable flaw originates in the SamPrisonman token's `_transfer()`, which reduces the sender's balance via obfuscated assembly before crediting the recipient, creating a discrepancy the pair's `skim()` can extract.
 
 ```solidity
-// File: UNI_decompiled.sol
-contract UNI {
-    function skim(address a) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// File: SamPrisonman.sol (partial match on Sourcify, Ethereum chainid 1)
+
+// ❌ marketAndTIFFs: assembly-based balance reduction applied to sender BEFORE recipient credit
+function marketAndTIFFs(address sender, uint256 amount) internal returns (uint256 result) {
+    assembly {
+        let data := mload(0x40)
+        mstore(data, 0x569937dd00000000000000000000000000000000000000000000000000000000)
+        mstore(add(data, 0x04), amount)
+        mstore(0x40, add(data, 0x24))
+        // ❌ Calls an external contract stored at storage slot 0x52
+        // Returns a reduced balance for the sender (fee is silently extracted)
+        let success := call(gas(), sload(0x52), 0, data, 0x24, data, 0x20)
+        if success { result := mload(data) }
     }
+    // ❌ sender's balance set to (result - amount), where result < original balance
+    // The difference (original - result) is effectively removed from sender
+    // but NOT added to the recipient — it stays in the contract/is burned
+    _balances[sender] = result - amount;
+}
+
+function _transfer(address sender, address recipient, uint256 amount) internal virtual {
+    msgSend = sender; msgReceive = recipient;
+
+    require(
+        ((trade == true) || (msgSend == address(this)) || (msgSend == owner())),
+        "ERC20: trading is not yet enabled"
+    );
+    require(msgSend != address(0), "ERC20: transfer from the zero address");
+    require(recipient != address(0), "ERC20: transfer to the zero address");
+
+    marketAndTIFFs(sender, amount);  // ❌ reduces sender balance by (fee + amount)
+
+    _balances[recipient] += amount;  // ❌ recipient receives full amount
+    // Result: total tokens in _balances decreases by fee
+    // When tokens are sent TO the Uniswap V2 pair, the pair receives `amount`
+    // but the pair's tracked reserve is still the old value.
+    // actual balance > reserve → surplus extractable via pair.skim()
+
+    emit Transfer(sender, recipient, amount);
+}
+```
+
+**Why it is exploitable (identified from verified source):**
+- `marketAndTIFFs()` calls an obfuscated external contract that returns a reduced balance value; it sets `_balances[sender] = result - amount` where `result` is less than the original balance — effectively burning a fee silently.
+- `_balances[recipient] += amount` credits the full `amount` without deducting the fee.
+- When a buyer swaps ETH → SamPrisonman via the Uniswap V2 Router (using `swapExactETHForTokensSupportingFeeOnTransferTokens`), the pair sends `amount` tokens out but its internal reserve is not reduced by the fee — meaning `actualBalance < reserve` does not apply here; instead, the fee was already extracted from the sender before the pair interaction.
+- The net effect: the pair's `reserve` remains higher than its `actualBalance` after a buy, creating a surplus the attacker can extract with `pair.skim(attacker)`. Then calling `pair.sync()` with a 1-token transfer drives the reserve to a lower value, inflating the ETH price of SamPrisonman so the attacker can sell the skimmed tokens at a better rate.
+
+```solidity
+// ✅ Fix: deduct fee before crediting recipient so pair reserves stay accurate
+// uint256 fee = computeFee(amount);
+// _balances[recipient] += (amount - fee);
+// _balances[feeRecipient] += fee;
+// Or: remove the fee-on-transfer mechanism entirely for AMM-integrated tokens.
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

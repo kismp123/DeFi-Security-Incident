@@ -44,16 +44,51 @@ function uniswapV3SwapCallback(
 }
 ```
 
-### On-chain Original Code
+### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **not verified on Sourcify** — `0x8d2Ef0d39A438C3601112AE21701819E13c41288` (Base) — https://sourcify.dev/server/files/any/8453/0x8d2Ef0d39A438C3601112AE21701819E13c41288
+
+> ⚠️ Contract not verified on Sourcify — source unavailable. The contract is also unverified on BaseScan. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+The PoC calls `uniswapV3SwapCallback(int256(balance), 0, abi.encode(USDC, attacker))` directly on the victim — no swap, no pool. This means the callback transfers all USDC unconditionally, confirming the shape:
 
 ```solidity
-// File: 0x8d2e_decompiled.sol
-contract 0x8d2e {
-    function uniswapV3SwapCallback(int256 a, int256 b, bytes calldata c) external {  // ❌ vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// Reconstructed from PoC — NOT verified source
+// ❌ 0x8d2Ef0d39A438C3601112AE21701819E13c41288 — uniswapV3SwapCallback with no caller check
+function uniswapV3SwapCallback(
+    int256 amount0Delta,
+    int256 amount1Delta,
+    bytes calldata data
+) external {
+    // ❌ No check that msg.sender is a legitimate UniswapV3 pool
+    // ❌ No check that a swap is in progress (no lock/flag)
+    // ❌ Arbitrary `data` decoded and used directly
+    (address token, address recipient) = abi.decode(data, (address, address));
+    // Transfers entire token balance to attacker-supplied `recipient`
+    IERC20(token).transfer(recipient, IERC20(token).balanceOf(address(this)));
+    // ^ attacker passes token=USDC, recipient=attacker → drains 40,000 USDC in one call
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `uniswapV3SwapCallback` is `external` with no `msg.sender` validation — any EOA or contract can call it, not just a UniswapV3 pool.
+- The function decodes `data` supplied entirely by the caller and uses those values to determine which token to transfer and where to send it.
+- There is no lock/flag verifying that the contract is mid-swap; the callback can be triggered cold, outside any swap context.
+- One direct call with `data = abi.encode(USDC_ADDR, attacker)` and `amount0Delta = USDC_balance` drains the entire USDC balance in a single transaction — no flash loan, no complexity needed.
+
+```solidity
+// ✅ Fix: validate the caller is a registered pool before executing any transfer
+address private immutable expectedPool; // set in constructor
+
+function uniswapV3SwapCallback(
+    int256 amount0Delta,
+    int256 amount1Delta,
+    bytes calldata data
+) external {
+    require(msg.sender == expectedPool, "unauthorized: not a registered pool"); // ✅ caller check
+    // optional: also verify a swap-in-progress flag set by the initiating function
+    ...
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

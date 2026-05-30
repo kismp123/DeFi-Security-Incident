@@ -65,14 +65,61 @@ function claimReferral(address referrer) external nonReentrant {
 
 ### On-chain Original Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+Source: **not verified on Sourcify** — StepHeroNFTs `0x9823E10A0bF6F64F59964bE1A7f83090bf5728aB` (BSC, chainid 56)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0x9823E10A0bF6F64F59964bE1A7f83090bf5728aB
+(BSCscan also shows no verified source for this address.)
+
+**Reconstructed vulnerable function** — `claimReferral()` (from PoC `StepHeroNFTs_exp.sol`, not verified source):
 
 ```solidity
-// File: StepHeroNFTs_decompiled.sol
-contract StepHeroNFTs {
-    function claimReferral(address a) external {  // ❌ vulnerability
-        // TODO: decompiled logic not implemented
+// Reconstructed from PoC (StepHeroNFTs_exp.sol) — NOT verified source
+
+mapping(address => uint256) public referralRewards;
+
+// ❌ claimReferral: BNB sent via call{value} before state is fully protected against reentry
+function claimReferral(address referrer) external {
+    uint256 reward = referralRewards[msg.sender];
+    if (reward > 0) {
+        referralRewards[msg.sender] = 0;           // state zeroed — appears safe
+        (bool success,) = msg.sender.call{value: reward}(""); // ❌ BNB transfer triggers receive() on attacker contract
+        require(success, "Transfer failed");
+        // ❌ Under the attack flow, the referral reward is replenished between
+        //    the zero-out and the completion of the external call (via the
+        //    initial setup call with selector 0xded4de3a), so the attacker's
+        //    receive() hook can keep re-calling claimReferral and draining 3 BNB each time.
     }
+}
+
+// Attacker contract receive() — executed each time 3 BNB arrives:
+// receive() external payable {
+//     if (msg.sender == stepHeroNFTs && msg.value == 3 ether) {
+//         IStepHeroNFTs(stepHeroNFTs).claimReferral(address(0));  // re-entrant call
+//     }
+// }
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- The attacker uses selector `0xded4de3a` (unknown internal function) with `1,000 BNB` to register a referral reward of `3 BNB` per call.
+- `claimReferral()` zeroes `referralRewards[msg.sender]` and then sends BNB via `call{value}` — triggering the attacker's `receive()`.
+- Inside `receive()`, the attacker immediately re-calls `claimReferral()`; because the reward replenishment mechanism (tied to the flash-loan-funded `buyAsset` operation) keeps re-populating `referralRewards[attacker]` during the recursion, each re-entrant call sees a non-zero reward and sends another 3 BNB.
+- No `nonReentrant` guard is present; the contract drains 137.9 BNB across ~46 recursive calls.
+
+```solidity
+// ✅ Fix: apply ReentrancyGuard (nonReentrant modifier) to claimReferral
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract StepHeroNFTs is ReentrancyGuard {
+    function claimReferral(address referrer) external nonReentrant {
+        uint256 reward = referralRewards[msg.sender];
+        referralRewards[msg.sender] = 0;
+        if (reward > 0) {
+            (bool success,) = msg.sender.call{value: reward}("");
+            require(success, "Transfer failed");
+        }
+    }
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

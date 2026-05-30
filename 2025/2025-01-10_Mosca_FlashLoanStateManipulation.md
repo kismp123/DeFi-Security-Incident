@@ -49,14 +49,139 @@ function join(uint256 amount) external nonReentrant {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified (partial)** — Mosca / 0x1962b3356122d6A56f978e112d14f5E23a25037D (BSC)
+https://sourcify.dev/server/files/any/56/0x1962b3356122d6a56f978e112d14f5e23a25037d
+
+> Note: The exploited path is `join()` → balance inflation via `cascade()` reward credits → `exitProgram()` → `withdrawAll()`. The `withdrawAll()` function pays out `balance + balanceUSDT + balanceUSDC` without validating those internal ledger entries against actual contract token holdings, and the referral cascade in `join()` credits arbitrary internal balances to attacker-controlled accounts.
 
 ```solidity
-// File: Mosca_decompiled.sol
-contract Mosca {
-    function withdrawFiat(uint256 a, bool b, uint8 c) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+pragma solidity ^0.8.20;
+
+contract Mosca is ReentrancyGuard {
+    IERC20 public usdt;
+    IERC20 public usdc;
+
+    struct User {
+        uint256 balance;      // internal Mosca-unit balance (not 1:1 with real tokens)
+        uint256 balanceUSDT;
+        uint256 balanceUSDC;
+        uint256 nextDeadline;
+        uint256 bonusDeadline;
+        uint256 runningCount;
+        uint256 inviteCount;
+        uint256 refCode;
+        uint256 collectiveCode;
+        address walletAddress;
+        bool enterprise;
     }
+
+    mapping(address => User) public users;
+    mapping(uint256 => address) public referrers;
+    mapping(address => uint256) public refByAddr;
+
+    uint256 public JOIN_FEE = 28 * 1e18;
+    uint256 public TAX      =  3 * 1e18;
+
+    // ❌ VULNERABLE: join() credits user.balance with baseAmount - JOIN_FEE
+    // and then calls cascade() which credits MORE balance to up to 10 referrers —
+    // all from internal ledger entries, not from real token inflows
+    function join(uint256 amount, uint256 _refCode, uint8 fiat, bool enterpriseJoin) external nonReentrant {
+        User storage user = users[msg.sender];
+        uint256 diff = user.balance > 127 * 10 ** 18 ? user.balance - 127 * 10 ** 18 : 0;
+
+        uint256 baseAmount = ((amount + diff) * 1000) / 1015;
+
+        // ... (fee/tax transfers to contract and owner) ...
+        require(usdc.transferFrom(msg.sender, address(this), amount - (TAX * 3)), "Transfer failed");
+        require(usdc.transferFrom(msg.sender, owner, TAX * 3), "Transfer failed");
+
+        user.nextDeadline  = block.timestamp + 28 days;
+        user.bonusDeadline = block.timestamp + 7 days;
+        user.walletAddress = msg.sender;
+        totalRevenue += amount;
+        user.balance += baseAmount - JOIN_FEE; // ❌ credited from formula, not from token balance
+
+        // ❌ cascade() additionally credits up to 10 referrer accounts in the MLM tree
+        cascade(msg.sender);          // ❌ further inflates referrer.balance entries
+        distributeFees(msg.sender, amount); // ❌ also credits referrer.balance via transfer fees
+    }
+
+    // ❌ cascade() mints virtual balance to referrers — no real token backing
+    function cascade(address tempAddress) private {
+        User storage user = users[tempAddress];
+        address referrer = referrers[user.collectiveCode];
+        uint256 depth = 0;
+        while (referrer != address(0) && depth < 10) {
+            if (users[referrer].inviteCount < 3 && depth >= 2) {
+                depth++;
+            } else {
+                users[referrer].balance += (tierRewards[depth] * 10 ** 18) / 100; // ❌ pure ledger credit
+                emit RewardEarned(referrer, block.timestamp, (tierRewards[depth] * 10 ** 18) / 100);
+                depth++;
+            }
+            referrer = referrers[users[referrer].collectiveCode];
+        }
+    }
+
+    // ❌ VULNERABLE: exitProgram() calls withdrawAll() which pays out the entire
+    // inflated internal balance in real tokens without solvency validation
+    function exitProgram() external nonReentrant {
+        require(!isBlacklisted[msg.sender], "Blacklisted user");
+        User storage user = users[msg.sender];
+        // ... referrer inviteCount decrement ...
+        for (uint256 i = 0; i < rewardQueue.length; i++) {
+            if (rewardQueue[i] == msg.sender) {
+                withdrawAll(msg.sender); // ❌ pays out balance + balanceUSDT + balanceUSDC
+                // ... cleanup ...
+                emit ExitProgram(msg.sender, block.timestamp);
+            }
+        }
+    }
+
+    // ❌ CORE VULNERABILITY: withdrawAll() pays out sum of all three balance fields
+    // as real USDC/USDT without checking whether the contract actually holds enough tokens
+    function withdrawAll(address addr) private {
+        User storage user = users[addr];
+        require(msg.sender == user.walletAddress, "Wallet addresses do not match");
+        uint balance = user.balance + user.balanceUSDT + user.balanceUSDC; // ❌ inflated internal sum
+        if (usdc.balanceOf(address(this)) >= balance) {
+            usdc.transfer(user.walletAddress, balance); // ❌ real USDC paid out for virtual balance
+            emit WithdrawAll(user.walletAddress, block.timestamp, balance, 2);
+        } else {
+            usdt.transfer(user.walletAddress, balance); // ❌ same for USDT
+            emit WithdrawAll(user.walletAddress, block.timestamp, balance, 1);
+        }
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `join()` calculates `baseAmount = (amount * 1000) / 1015` and credits `user.balance += baseAmount - JOIN_FEE`. This is an internal unit that does not correspond 1:1 to deposited tokens after the referral cascade inflates balances across the MLM tree.
+- `cascade()` credits `tierRewards` entries (2.5 MOSCA-units per tier level per referrer) as pure ledger additions. With a self-referral chain where the attacker controls all accounts, these credits accumulate without any corresponding token inflow.
+- `distributeFees()` further credits referrer balances with 50bps of each transaction as another pure ledger entry.
+- `withdrawAll()` converts the inflated `balance + balanceUSDT + balanceUSDC` directly into real USDC or USDT transfers, with no solvency check — if the internal sum exceeds what was deposited, the protocol overpays.
+- Repeated `join()` + `exitProgram()` cycles exploit the compounding: each cycle credits the cascade tree again before the ledger is zeroed, and `exitProgram` pays out the accumulated inflated total.
+
+```solidity
+// ✅ Fix: track actual deposited principal separately; cap withdrawals to it
+mapping(address => uint256) public depositedPrincipal;
+
+function join(uint256 amount, ...) external nonReentrant {
+    // ... fee deductions ...
+    uint256 netDeposit = amount - (TAX * 3);
+    depositedPrincipal[msg.sender] += netDeposit; // ✅ track real inflow
+    user.balance += baseAmount - JOIN_FEE;
+    // ...
+}
+
+function withdrawAll(address addr) private {
+    User storage user = users[addr];
+    require(msg.sender == user.walletAddress, "Wallet addresses do not match");
+    uint256 payable = depositedPrincipal[addr]; // ✅ only pay back what was actually deposited
+    depositedPrincipal[addr] = 0;
+    usdc.transfer(user.walletAddress, payable);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -24,56 +24,79 @@ The attacker created a chain of fake accounts pointing to each other and ultimat
 ---
 ## 2. Vulnerable Code Analysis
 
+> ⚠️ Contract not verified on Sourcify — Cashio is a Solana (non-EVM) program; Sourcify does not index Solana. The Rust code below is reconstructed from Neodyme and OtterSec post-mortems and public analysis, not a verified on-chain source dump.
+
+The real language is **Rust** (Anchor framework, Solana BPF). No Solidity exists.
+
 ```rust
-// ❌ Vulnerable Cashio mint — does not validate that arrow is protocol-registered
+// ⚠️ RECONSTRUCTED — not verified on Sourcify (Solana program, non-EVM).
+// Derived from Neodyme / OtterSec post-mortems and Anchor account validation patterns.
+// Cashio CASH mint program — print_cash instruction
+
 #[program]
 pub mod cashio {
+    use super::*;
+
     pub fn print_cash(ctx: Context<PrintCash>, amount: u64) -> Result<()> {
         let collateral = &ctx.accounts.collateral;
-        let arrow = &ctx.accounts.arrow;
-        
-        // ❌ Only checks the relationship between user-supplied accounts
-        // Does NOT verify that `arrow` is a Cashio-registered account
+        let arrow      = &ctx.accounts.arrow;        // ❌ user-supplied — not verified as Cashio PDA
+
+        // ❌ Only checks internal consistency between two user-supplied accounts.
+        //    Does NOT verify that `arrow` was derived from Cashio's program ID.
+        //    An attacker creates a fake `arrow` that satisfies this check.
         require!(
             arrow.collateral_mint == collateral.mint,
-            ErrorCode::InvalidCollateral
+            CashioError::InvalidCollateral   // ❌ passes with attacker's fake arrow
         );
-        
-        // ❌ Attacker passes fake arrow + fake collateral they created
-        // Both checks pass because attacker controls both accounts
-        let collateral_value = collateral.amount * arrow.price_per_token;
-        
-        // Mint CASH against fake collateral
-        token::mint_to(ctx.accounts.into_mint_cash_context(), amount)?;
+
+        // ❌ Both `arrow` and `collateral` are attacker-controlled accounts.
+        //    The attacker sets arrow.price_per_token to any value they like.
+        let collateral_value = (collateral.amount as u128)
+            .checked_mul(arrow.price_per_token as u128)
+            .unwrap();
+
+        // Mint CASH against the (fake) collateral_value
+        token::mint_to(
+            ctx.accounts.into_mint_cash_context(),
+            amount,  // ❌ amount not bounded by actual collateral value
+        )?;
         Ok(())
     }
 }
 
-// ✅ Correct pattern: verify arrow was created by Cashio's authority (PDA check)
+// ✅ Fix: verify arrow is a PDA derived from Cashio's own program (cannot be forged by attacker)
 pub fn print_cash_fixed(ctx: Context<PrintCash>, amount: u64) -> Result<()> {
     let arrow = &ctx.accounts.arrow;
-    
-    // ✅ Verify arrow is a PDA derived from Cashio's program ID and known seeds
-    let (expected_arrow_pda, _) = Pubkey::find_program_address(
+
+    // ✅ PDA check — only Cashio's program can have created an account at this address
+    let (expected_pda, _bump) = Pubkey::find_program_address(
         &[b"arrow", arrow.collateral_mint.as_ref()],
         ctx.program_id,
     );
     require!(
-        arrow.key() == expected_arrow_pda,
-        ErrorCode::InvalidArrow  // ✅ Reject any arrow not created by Cashio
+        arrow.key() == expected_pda,
+        CashioError::InvalidArrow  // ✅ rejects any arrow not created by Cashio
     );
-    
-    // Additional: validate collateral mint matches protocol whitelist
+
+    // ✅ Additional: whitelist check on collateral mint
     require!(
         APPROVED_COLLATERAL_MINTS.contains(&arrow.collateral_mint),
-        ErrorCode::UnauthorizedCollateral
+        CashioError::UnauthorizedCollateral
     );
-    
-    let collateral_value = collateral.amount * arrow.price_per_token;
+
+    let collateral_value = (collateral.amount as u128)
+        .checked_mul(arrow.price_per_token as u128)
+        .unwrap();
     token::mint_to(ctx.accounts.into_mint_cash_context(), amount)?;
     Ok(())
 }
 ```
+
+**Why it is exploitable (identify the bug from the code):**
+- Solana programs receive all accounts as instruction arguments. `print_cash` does **not** derive or verify the `arrow` account's address — it only checks that `arrow.collateral_mint == collateral.mint`, a consistency check between two attacker-controlled accounts.
+- The attacker creates a fake `arrow` account whose `collateral_mint` field matches a real LP mint, funding the fake `collateral` account with 1 lamport of real LP tokens.
+- Both accounts are attacker-owned, so all Anchor `constraint` checks pass. Cashio mints CASH proportional to whatever `amount` the attacker requests.
+- The fix is a PDA derivation check: `Pubkey::find_program_address(seeds, program_id)` produces an address that only the program itself can sign for — an attacker cannot forge it.
 
 ---
 ## 3. Attack Flow

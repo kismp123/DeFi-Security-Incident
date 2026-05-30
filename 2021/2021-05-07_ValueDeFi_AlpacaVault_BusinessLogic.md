@@ -68,18 +68,104 @@ function work(
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Source unconfirmed
+Source: **Sourcify-verified** (partial match) — VSafeVaultWBNB / 0xD4BBF439d3EAb5155Ca7c0537E583088fB4CFCe8 (BSC)
+https://sourcify.dev/server/files/any/56/0xD4BBF439d3EAb5155Ca7c0537E583088fB4CFCe8
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable Function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: Reentrancy via malicious token callback when vault.work() calls an external worker contract, enabling vault state manipulation
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: Reentrancy via malicious token callback when vault.work() calls an external worker contract, enabling vault state manipulation
+// VSafeVaultWBNB — the ValueDeFi vault that issues vSafeWBNB shares
+// File: VSafeVaultWBNB.sol
+
+function depositFor(
+    address _account,
+    address _to,
+    uint256 _amount,
+    uint256 _min_mint_amount
+) public override checkContract(_account) _non_reentrant_ returns (uint256 _mint_amount) {
+    if (controller != address(0)) {
+        IController(controller).beforeDeposit();
+    }
+
+    uint256 _pool = balance(); // ❌ snapshot taken BEFORE earn() is called
+    require(totalDepositCap == 0 || _pool <= totalDepositCap, ">totalDepositCap");
+    _mint_amount = _deposit(_account, _to, _pool, _amount);
+    require(_mint_amount >= _min_mint_amount, "slippage");
+}
+
+function _deposit(
+    address _account,
+    address _mintTo,
+    uint256 _pool,      // ❌ _pool already captured before earn() runs
+    uint256 _amount
+) internal returns (uint256 _shares) {
+    basedToken.safeTransferFrom(_account, address(this), _amount);
+    earn(); // ❌ earn() transfers tokens out to controller → Alpaca's work() runs;
+            //    while work() executes (borrowing WBNB), the controller's reported
+            //    balanceOf() is transiently lower than true backing
+    uint256 _after = balance(); // reads balanceOf(this) + controller.balanceOf()
+    _amount = _after.sub(_pool); // ❌ if _pool was observed when controller balance
+                                 //    was transiently depressed by an in-flight
+                                 //    work() call, _pool understates true backing →
+                                 //    shares = (amount * totalSupply) / understated_pool
+                                 //    → caller receives MORE shares than fair value
+    require(depositLimit == 0 || _amount <= depositLimit, ">depositLimit");
+    require(_amount > 0, "no token");
+
+    if (totalSupply() == 0) {
+        _shares = _amount;
+    } else {
+        _shares = (_amount.mul(totalSupply())).div(_pool); // ❌ division by understated _pool
+    }
+
+    _minterBlock = keccak256(abi.encodePacked(tx.origin, block.number));
+    _mint(_mintTo, _shares);
+}
+
+function balance() public view override returns (uint256 _balance) {
+    // ❌ Includes controller.balanceOf() which is transiently low
+    //    during Alpaca work() execution (WBNB sent to worker, debt not yet recorded)
+    _balance = basedToken.balanceOf(address(this))
+                 .add(IController(controller).balanceOf())
+                 .sub(pendingCompound());
+}
+
+function earn() public override {
+    if (controller != address(0)) {
+        IController _contrl = IController(controller);
+        if (!_contrl.investDisabled()) {
+            uint256 _bal = available();
+            if (_bal >= earnLowerlimit) {
+                basedToken.safeTransfer(controller, _bal);
+                _contrl.earn(address(basedToken), _bal); // ❌ triggers Alpaca work()
+                                                          //    transient balance drop
+            }
+        }
+    }
+}
 ```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `depositFor()` snapshots `_pool = balance()` and immediately passes it into `_deposit()`.
+- `_deposit()` calls `earn()` which sends WBNB to the controller, which calls Alpaca's `work()`. During `work()` execution, the WBNB has left the vault but Alpaca has not yet recorded the corresponding debt, so `controller.balanceOf()` is transiently understated.
+- If the attacker times their deposit to land while another `work()` call is mid-flight (the controller's balance is temporarily depressed), the attacker's `_pool` snapshot reflects the depressed balance.
+- The share calculation `_shares = (_amount * totalSupply) / _pool` divides by the understated `_pool`, issuing more shares than the deposited WBNB entitles the attacker to.
+- This is a **read-during-transient-state** bug (stale balance read), not classical reentrancy — no callback re-enters; the attacker simply times the deposit transaction against an in-flight `work()`.
+
+// ✅ Fix: snapshot _pool AFTER earn() completes, or use an internal accounting
+//         variable instead of querying live balances:
+//
+// function _deposit(...) internal returns (uint256 _shares) {
+//     basedToken.safeTransferFrom(_account, address(this), _amount);
+//     uint256 _poolBefore = balance(); // snapshot AFTER transfer, BEFORE earn
+//     earn();
+//     uint256 _after = balance();
+//     _amount = _after.sub(_poolBefore);
+//     // Now _poolBefore reflects post-earn state baseline
+//     _shares = (_amount.mul(totalSupply())).div(_poolBefore);
+//     _mint(_mintTo, _shares);
+// }
 
 ## 3. Attack Flow
 

@@ -9,7 +9,7 @@
 | **Attacker** | Address unidentified |
 | **Attack Tx** | Address unidentified |
 | **Vulnerable Contract** | WUSDMASTER (WUSD → BUSD redemption and WEX staking) |
-| **Root Cause** | WEX staking swaps inside `redeem()` were executed repeatedly without slippage protection, causing cumulative distortion of WEX/USDT AMM reserves |
+| **Root Cause** | `stake()` was called 68 times in a single transaction without slippage protection (`minOut = 0`) and without per-block rate limiting, each call executing a USDT→WEX AMM swap; repeated calls cumulatively distorted WEX/USDT reserves, allowing the attacker to profit from WEX price manipulation |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-08/WaultFinance_exp.sol) |
 
 ---
@@ -66,15 +66,75 @@ function redeem(uint256 wusdAmount) external nonReentrant {
 
 ### On-Chain Original Code
 
-Source: Source unverified
+Source: **Sourcify-verified** — WUSDMASTER / 0xa79Fe386B88FBee6e492EEb76Ec48517d1eC759a (BSC)
+BSCScan verified source: https://bscscan.com/address/0xa79Fe386B88FBee6e492EEb76Ec48517d1eC759a#code
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+> Note: The doc's root cause description incorrectly attributed the vulnerability to `redeem()`. The real vulnerable function is `stake()`. The attacker called `redeem()` once to obtain WEX and USDT, then called `stake()` 68 times in a loop to repeatedly execute USDT→WEX swaps without slippage protection, cumulatively distorting the WEX/USDT pair reserves.
 
-**Vulnerable Function** — `redeem()`:
 ```solidity
-// ❌ Root cause: WEX staking swaps inside `redeem()` executed repeatedly without slippage protection, causing cumulative distortion of WEX/USDT AMM reserves
-// Source code unverified — bytecode analysis required
-// Vulnerability: WEX staking swaps inside `redeem()` executed repeatedly without slippage protection, causing cumulative distortion of WEX/USDT AMM reserves
+// ❌ Vulnerable: WUSDMASTER.stake() — called 68 times by attacker
+// Source: BSCScan verified — 0xa79Fe386B88FBee6e492EEb76Ec48517d1eC759a (BSC)
+function stake(uint256 amount) external nonReentrant {
+    require(amount <= maxStakeAmount, 'amount too high');
+    usdt.safeTransferFrom(msg.sender, address(this), amount);
+    if (feePermille > 0) {
+        uint256 feeAmount = amount * feePermille / 1000;
+        usdt.safeTransfer(treasury, feeAmount);
+        amount = amount - feeAmount;
+    }
+    uint256 wexAmount = amount * wexPermille / 1000;
+    usdt.approve(address(wswapRouter), wexAmount);
+    wswapRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens( // ❌ AMM swap with 0 minOut
+        wexAmount,
+        0,              // ❌ minOut = 0: no slippage protection
+        swapPath,       // USDT → WEX
+        address(this),
+        block.timestamp
+    );
+    wusd.mint(msg.sender, amount);
+    emit Stake(msg.sender, amount);
+}
+
+// Also shown for completeness — redeem() is called once, then stake() 68x
+function redeem(uint256 amount) external nonReentrant {
+    uint256 usdtTransferAmount = amount * (1000 - wexPermille - treasuryPermille) / 1000;
+    uint256 usdtTreasuryAmount = amount * treasuryPermille / 1000;
+    uint256 wexTransferAmount = wex.balanceOf(address(this)) * amount / wusd.totalSupply(); // ❌ WEX distributed proportionally
+    wusd.burn(msg.sender, amount);
+    usdt.safeTransfer(treasury, usdtTreasuryAmount);
+    usdt.safeTransfer(msg.sender, usdtTransferAmount);
+    wex.safeTransfer(msg.sender, wexTransferAmount);
+    emit Redeem(msg.sender, amount);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `stake()` executes a USDT→WEX swap via `swapExactTokensForTokensSupportingFeeOnTransferTokens` with `minOut = 0` (no slippage protection) on line calling `wswapRouter`.
+- Each individual `stake(250_000e18)` call buys WEX from the pair, pushing the WEX price up. Calling this 68 times in one transaction cumulatively moves the WEX/USDT price by a large amount.
+- The attacker first calls `redeem()` to extract WEX from the contract, then calls `stake()` 68 times using flash-loaned USDT, driving the WEX price up. Finally, the WEX received from `redeem()` is sold at the inflated price for profit.
+- `maxStakeAmount` per call does not prevent repeated calls in a single transaction.
+
+```solidity
+// ✅ Fix: add per-block staking rate limit and slippage protection
+function stake(uint256 amount) external nonReentrant {
+    require(amount <= maxStakeAmount, 'amount too high');
+    // ✅ Rate limit: track USDT staked this block
+    require(block.number > lastStakeBlock, 'one stake per block');
+    lastStakeBlock = block.number;
+
+    usdt.safeTransferFrom(msg.sender, address(this), amount);
+    uint256 wexAmount = amount * wexPermille / 1000;
+    uint256 minWexOut = getMinWexOut(wexAmount); // ✅ slippage check from TWAP
+    usdt.approve(address(wswapRouter), wexAmount);
+    wswapRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        wexAmount,
+        minWexOut,  // ✅ enforce minimum output
+        swapPath,
+        address(this),
+        block.timestamp
+    );
+    wusd.mint(msg.sender, amount);
+}
 ```
 
 ## 3. Attack Flow

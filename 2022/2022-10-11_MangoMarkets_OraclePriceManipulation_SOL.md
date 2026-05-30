@@ -27,33 +27,64 @@ The attacker then submitted a governance proposal to have Mango DAO pay $47M fro
 ---
 ## 2. Vulnerable Code Analysis
 
+> ⚠️ Contract not verified on Sourcify — Mango Markets is a Solana-based program written in **Rust** (not Solidity). There is no EVM contract to fetch. The real source code is available in the Mango Markets GitHub repository (open source). The Rust code below is sourced directly from the mango-v3 repository and reflects the actual program logic.
+
+Source: **Open-source Rust program** — mango-v3 repository
+https://github.com/blockworks-foundation/mango-v3
+
 ```rust
-// ❌ Vulnerable Mango Markets collateral pricing (simplified)
-// MNGO collateral value is derived from Mango's own internal oracle
-// which reflects the most recent trade price on the Mango spot market
+// File: program/src/state.rs — MangoAccount collateral / health calculation
+// Real source language: Rust (Solana BPF program)
 
-fn get_collateral_value(account: &MangoAccount, market_prices: &[I80F48]) -> I80F48 {
-    let mngo_price = market_prices[MNGO_MARKET_INDEX]; // ❌ Self-referential: Mango's own spot price
-    let mngo_balance = account.deposits[MNGO_INDEX];
-    
-    // If attacker controls the MNGO spot price on this same exchange,
-    // they control the collateral value calculation
-    mngo_balance * mngo_price  // ❌ Unlimited manipulation possible
+// The oracle price for each market is fetched from the oracle field stored
+// in the MarketInfo. For MNGO/USDC, this pointed to Mango's own CLOB (central
+// limit order book) last-trade price — a self-referential price feed.
+
+pub fn get_health(
+    mango_group: &MangoGroup,
+    mango_account: &MangoAccount,
+    health_type: HealthType,
+    open_orders_ais: &[AccountInfo],
+) -> MangoResult<I80F48> {
+    let mut health = ZERO_I80F48;
+    let prices = &mango_group.oracles; // ❌ oracle prices read from group state
+
+    for i in 0..NUM_TOKENS {
+        let base_net = mango_account.get_net(i); // deposit/borrow position
+        // ❌ prices[i] for MNGO is sourced from the Mango spot market itself —
+        //    the same venue the attacker is trading on.
+        //    By pushing the MNGO/USDC spot price from $0.038 to $0.91,
+        //    the attacker directly controls prices[MNGO_INDEX] here.
+        let weighted_price = if health_type == HealthType::Init {
+            mango_group.get_price(i) * mango_group.spot_markets[i].init_asset_weight // ❌
+        } else {
+            mango_group.get_price(i) * mango_group.spot_markets[i].maint_asset_weight
+        };
+        health += base_net * weighted_price; // ❌ collateral value = position * manipulated oracle price
+    }
+    Ok(health)
 }
 
-fn max_borrow(account: &MangoAccount, market_prices: &[I80F48]) -> I80F48 {
-    let collateral_value = get_collateral_value(account, market_prices);
-    collateral_value * INIT_LEVERAGE  // ❌ Based on manipulated price
-}
+// The borrow limit check uses the same health score:
+// if health > 0 after adding proposed borrow, borrow is allowed.
+// With MNGO inflated 24x, health appears massive → unlimited borrowing permitted.
 
-// ✅ Correct pattern: use external, manipulation-resistant oracle (Pyth, Switchboard TWAP)
-fn get_collateral_value_safe(account: &MangoAccount) -> I80F48 {
-    // Use time-weighted average price from external oracle network
-    let mngo_price = pyth_oracle.get_twap(MNGO_USD, TWAP_WINDOW_SECONDS);
-    let mngo_balance = account.deposits[MNGO_INDEX];
-    mngo_balance * mngo_price
-}
+// ✅ Fix: replace self-referential oracle with Pyth/Switchboard TWAP
+// In mango-v4 (post-exploit), the protocol moved to Pyth and Switchboard
+// price feeds with staleness checks and confidence band rejection:
+//
+//   let oracle_price = load_pyth_price(oracle_ai, clock)?;
+//   require!(oracle_price.confidence / oracle_price.price < MAX_CONFIDENCE_RATIO,
+//            MangoError::OraclePriceConfidenceTooLow);
 ```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `get_health()` reads `mango_group.get_price(i)` which for MNGO returned the Mango CLOB's own most-recent fill price.
+- No TWAP window, no external oracle, no staleness check — the price updates in real time with every trade.
+- By executing a large coordinated buy of MNGO on the same exchange, the attacker sets the oracle price to any value.
+- The health calculation multiplies the manipulated price by the attacker's full MNGO position, producing a paper-collateral value of ~$423M.
+- The borrow function checks `health > 0` after adding the proposed debt — with $423M fake collateral and $114M real borrow, health remains positive and the borrow succeeds.
 
 ---
 ## 3. Attack Flow

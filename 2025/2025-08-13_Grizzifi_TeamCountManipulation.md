@@ -51,36 +51,88 @@ function _incrementUplineTeamCount(address referrer, uint256 amount) internal {
 
 ### On-Chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** (partial match) — Grizzifi / 0x21ab8943380B752306aBF4D49C203B011A89266B (BSC)
+https://sourcify.dev/server/files/any/56/0x21ab8943380b752306abf4d49c203b011a89266b
 
 ```solidity
-// File: Grizzifi_decompiled.sol
-contract Grizzifi {
-    function getDownlineCountAtLevel(address a, uint256 b) external view returns (uint256) {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// From: Grizzifi.sol
+
+uint256 public minInvestForMilestone = 10 * 1e18;  // 10 BSC-USD minimum to qualify
+uint256 public minDirect = 2;                       // minimum direct referrals to claim milestone reward
+
+uint256[] public teamMilestones = [20, 50, 100, 200, 500, 1000, 3000, 6000, 10000, 30000];
+uint256[] public rewardAmounts   = [
+    50 * 1e18, 120 * 1e18, 220 * 1e18, 440 * 1e18, 800 * 1e18,
+    1600 * 1e18, 2500 * 1e18, 4500 * 1e18, 7500 * 1e18, 15000 * 1e18
+];
+
+mapping(address => User) public users;
+// User.totalInvested: cumulative, never decremented on withdrawal
+// User.teamsCount: number of unique sub-tree members counted by _incrementUplineTeamCount
+// User.inTeam[addr]: tracks whether addr has already been counted for this upline
+
+function harvestHoney(uint256 _planId, uint256 _amount, address _referrer) external {
+    // ... registration logic ...
+    if (_amount >= minInvestForMilestone) {
+        _incrementUplineTeamCount(msg.sender); // ❌ called BEFORE updating totalInvested
     }
+    // ... USDT transfer and investment storage ...
+    users[msg.sender].totalInvested += _amount; // totalInvested grows but never shrinks
+    totalInvested += _amount;
+    emit NewInvestment(msg.sender, _planId, _amount, users[msg.sender].referrer);
+}
 
+function _incrementUplineTeamCount(address _user) internal {
+    address upline = users[_user].referrer;
+    for (uint8 i = 0; i < 30; i++) {
+        if (upline == address(0)) break;
 
-    // This function is part of the exploit path: `_incrementUplineTeamCount()` calculates team count using cumulative investment (including withdrawals) instead of active investment
-    function rewardAmounts(uint256 a) external returns (uint256) {
-        // TODO: decompiled logic not implemented
+        if (users[upline].totalInvested >= minInvestForMilestone) { // ❌ totalInvested never decreases — always qualifies after first deposit
+            if (!users[upline].inTeam[_user]) {
+                if (i == 0 && !users[_user].inDirect) {
+                    users[_user].inDirect = true;
+                    users[upline].directCount++;
+                }
+                users[upline].inTeam[_user] = true; // ❌ inTeam[_user] only prevents the SAME _user from being counted twice
+                users[upline].teamsCount++;          // ❌ but each new sub-contract is a fresh address → always inTeam=false
+
+                uint256 index = users[upline].milestoneIndex;
+                if (
+                    index < teamMilestones.length &&
+                    users[upline].teamsCount == teamMilestones[index]  // milestone triggered
+                ) {
+                    if (users[upline].directCount >= minDirect) {
+                        uint256 reward = rewardAmounts[index];
+                        users[upline].milestoneReward += reward;        // ❌ reward credited without active-balance check
+                        users[upline].totalMilestoneEarned += reward;
+                        emit MilestoneAchieved(upline, users[upline].milestoneIndex, reward);
+                    }
+                    users[upline].milestoneIndex++;
+                }
+            } else {
+                break;
+            }
+        }
+        upline = users[upline].referrer;
     }
+}
+```
 
-    // Selector: 0x8e1e2a06
-    function referralRates(uint256 a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
+**Why it is exploitable (identify the bug from the code):**
+- `users[upline].totalInvested` is cumulative and never decremented when funds are withdrawn. An upline qualifies for team-count milestones after any historical investment of ≥ 10 BSC-USD, regardless of current balance.
+- `inTeam[_user]` is keyed by the sub-member's address. The attacker deploys 30 fresh attack contracts; each one is a new address and therefore `inTeam[newContract] == false` for every upline — the deduplication guard is trivially bypassed.
+- Each of the 30 contracts deposits 10 BSC-USD (reaching `minInvestForMilestone`), triggering `_incrementUplineTeamCount` up the 30-deep referrer chain. This inflates every upline's `teamsCount` to milestone thresholds, crediting `milestoneReward` without those uplines holding any meaningful active investment.
+- After all 30 sub-contracts have deposited (and immediately withdrawn their own capital), `collectRefBonus()` drains the accumulated milestone rewards from the contract.
 
-    // Selector: 0x200f3061
-    function getCompleteNetworkStats(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xa6bd72b4
-    function collectRefBonus() external {
-        // TODO: decompiled logic not implemented
-    }
-
+```solidity
+// ✅ Fix: gate milestones on net active investment (totalInvested - totalWithdrawn)
+if (users[upline].totalInvested >= users[upline].totalWithdrawn + minInvestForMilestone) {
+    // upline currently has net active stake — milestone is legitimate
+    users[upline].teamsCount++;
+    // ... milestone reward logic ...
+}
+// Also: restrict contract addresses from registering as referrers:
+// require(tx.origin == msg.sender || isApprovedContract[msg.sender], "no contract referrers");
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

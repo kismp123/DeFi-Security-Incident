@@ -44,16 +44,91 @@ function extractReward(uint256 tokenId) external nonReentrant {
 }
 ```
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **not verified on Sourcify** — verified on BscScan — LPMine (`0x6BBeF6DF8db12667aE88519090984e4F871e5feb`, BSC) — https://bscscan.com/address/0x6BBeF6DF8db12667aE88519090984e4F871e5feb#code
 
 ```solidity
-// File: LPMine_decompiled.sol
-contract LPMine {
-    function extractReward(uint256 a) external {  // ❌ vulnerability
-        // TODO: decompiled logic not implemented
+// ✅ Source: BscScan-verified (Exact Match), Solidity v0.8.12, License: Apache-2.0
+// Contract: LPMine at 0x6BBeF6DF8db12667aE88519090984e4F871e5feb (BSC)
+
+function extractReward(uint256 _tokenId) external {
+    Token memory _token = tokens[_tokenId];
+    (uint256 _wtoAmount, uint256 _coarAmount) = getCanClaimed(_msgSender()); // ❌ reads current state BEFORE any guard
+    PledgeInfo storage _pledge = userPledge[_msgSender()];
+    uint256 _canReward;
+    if (_tokenId == wtoTokenId) {
+        _canReward = _wtoAmount;
+        _pledge.wtoRewardTime = block.timestamp; // ❌ timestamp updated AFTER reward is transferred (see below)
     }
+    if (_tokenId == coarTokenId) {
+        _canReward = _coarAmount;
+        _pledge.coarRewardTime = block.timestamp; // ❌ same: update happens after claimToken()
+    }
+    rewardPool.claimToken(_token.tokenAddress, _canReward, _msgSender()); // ❌ external call — reward paid here
+    rewardParent(_tokenId, _token.tokenAddress, _canReward, _msgSender());
+    emit ReceiveRewird(_msgSender(), _token.tokenAddress, _canReward, block.timestamp);
+}
+
+// getCanClaimed() — calculates reward based on live pair reserves and elapsed time
+function getCanClaimed(address _user) public view returns (uint256 _wtoAmount, uint256 _coarAmount) {
+    PledgeInfo memory _pledge = userPledge[_user];
+    Token memory _wtoToken = tokens[wtoTokenId];
+    Token memory _coarToken = tokens[coarTokenId];
+    if (_pledge.wtoLpAmount > 0) {
+        (uint256 _removeUsdt,) = getRemoveTokens(_wtoToken.pair, usdtAddress, _wtoToken.tokenAddress, _pledge.wtoLpAmount);
+        uint256 _valueU = _removeUsdt.mul(2);
+        uint256 _rewardTime = block.timestamp.sub(_pledge.wtoRewardTime); // ❌ uses live block.timestamp
+        (uint256 _secondWtoAmount, uint256 _secondCoarAmount) = getEachReward(_valueU, monthFee, _wtoToken.tokenAddress, _coarToken.tokenAddress, usdtAddress);
+        _wtoAmount += _rewardTime.mul(_secondWtoAmount); // ❌ reward = elapsed_seconds * per-second-rate
+        _coarAmount += _rewardTime.mul(_secondCoarAmount);
+    }
+    if (_pledge.coarLpAmount > 0) {
+        (uint256 _removeUsdt,) = getRemoveTokens(_coarToken.pair, usdtAddress, _coarToken.tokenAddress, _pledge.coarLpAmount);
+        uint256 _valueU = _removeUsdt.mul(2);
+        uint256 _rewardTime = block.timestamp.sub(_pledge.coarRewardTime); // ❌ uses live block.timestamp
+        (uint256 _secondWtoAmount, uint256 _secondCoarAmount) = getEachReward(_valueU, monthFee, _wtoToken.tokenAddress, _coarToken.tokenAddress, usdtAddress);
+        _wtoAmount += _rewardTime.mul(_secondWtoAmount);
+        _coarAmount += _rewardTime.mul(_secondCoarAmount);
+    }
+}
+
+// getRemoveTokens() — reads live pair balanceOf() (spot reserves), not a checkpoint
+function getRemoveTokens(address _pair, address _usdtAddress, address _tokenAddress, uint256 _liquidity)
+    private view returns (uint256 _removeUsdt, uint256 _removeToken)
+{
+    uint _usdtAmount  = IERC20(_usdtAddress).balanceOf(_pair);  // ❌ live balance — inflatable via flash loan
+    uint _tokenAmount = IERC20(_tokenAddress).balanceOf(_pair);
+    uint _totalSupply = IERC20(_pair).totalSupply();
+    _removeUsdt  = _liquidity.mul(_usdtAmount)  / _totalSupply;
+    _removeToken = _liquidity.mul(_tokenAmount) / _totalSupply;
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `extractReward()` has no `nonReentrant` guard and no per-call cooldown: it can be called 2,000 times in a single transaction.
+- `getCanClaimed()` computes reward as `elapsed_seconds * per_second_rate` where `elapsed_seconds = block.timestamp - pledge.wtoRewardTime`. Within a single transaction `block.timestamp` is constant, so every repeated call within the same block sees the same `_rewardTime` from the *previous* claim timestamp — yielding the same reward amount each time.
+- The critical flaw: `_pledge.wtoRewardTime = block.timestamp` is set *before* `rewardPool.claimToken()` in code order, but because `block.timestamp` is identical for all calls in the same block, resetting it to `block.timestamp` on call N does not change the result on call N+1 (same timestamp → same `_rewardTime` computed on the next call).
+- `getRemoveTokens()` reads live `balanceOf()` on the pair rather than stored reserves, so the attacker inflates it first with a PancakeSwap V3 flash loan, multiplying the per-second reward rate during all 2,000 calls.
+
+```solidity
+// ✅ Fix:
+function extractReward(uint256 _tokenId) external nonReentrant {
+    PledgeInfo storage _pledge = userPledge[_msgSender()];
+    // ✅ Update checkpoint FIRST (Checks-Effects-Interactions)
+    uint256 lastClaim;
+    if (_tokenId == wtoTokenId) {
+        lastClaim = _pledge.wtoRewardTime;
+        _pledge.wtoRewardTime = block.timestamp; // ✅ written before external call
+    } else if (_tokenId == coarTokenId) {
+        lastClaim = _pledge.coarRewardTime;
+        _pledge.coarRewardTime = block.timestamp;
+    }
+    // ✅ Compute reward using committed lastClaim (not live block.timestamp)
+    (uint256 _wtoAmount, uint256 _coarAmount) = _getCanClaimedSince(_msgSender(), lastClaim);
+    ...
+    rewardPool.claimToken(_token.tokenAddress, _canReward, _msgSender());
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

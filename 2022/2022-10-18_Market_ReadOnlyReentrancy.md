@@ -64,15 +64,54 @@ contract SafemMAI {
 
 ### On-Chain Source Code
 
-Source: Unverified
+Source: **not verified on Sourcify** — mMAI (`0x3dC7E6FF0fB79770FA6FB05d1ea4deACCe823943`, Polygon) / Curve pool (`0xFb6FE7802bA9290ef8b00CA16Af4Bc26eb663a28`, Polygon)
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The mMAI contract is a minimal proxy (delegatecall); the implementation is also unverified on PolygonScan. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-**Vulnerable Function** — `remove_liquidity()`:
+The PoC shows `mMAI` is a Compound-fork `CErc20Delegate`. Its `borrow()` delegates collateral valuation to an internal oracle that reads Curve LP `get_virtual_price()`. The exploit fires from the attacker's `receive()` callback inside Curve's `remove_liquidity()`:
+
 ```solidity
-// ❌ Root cause: During Curve `remove_liquidity()`, `mMAI.borrow()` is called via the `receive()` hook — using a temporarily inconsistent Curve LP price as the oracle
-// Source code unverified — bytecode analysis required
-// Vulnerability: During Curve `remove_liquidity()`, `mMAI.borrow()` is called via the `receive()` hook — using a temporarily inconsistent Curve LP price as the oracle
+// Reconstructed from PoC — NOT verified source
+// ❌ mMAI (CErc20Delegate) — borrow() relies on Curve get_virtual_price() which is inconsistent mid-remove_liquidity()
+
+// Oracle path: borrow() → comptroller.borrowAllowed() → oracle.getUnderlyingPrice(mMAI)
+//              → beefyVault.getPricePerFullShare() * curvePool.get_virtual_price()
+function getUnderlyingPrice(address cToken) external view returns (uint256) {
+    // ❌ get_virtual_price() is a VIEW function — no reentrancy guard
+    // During Curve remove_liquidity(), reserves are updated AFTER the MATIC transfer
+    // so this reads an inflated virtual price while Curve's state is inconsistent
+    uint256 lpVirtualPrice = curvePool.get_virtual_price(); // ❌ manipulable mid-callback
+    uint256 beefyPPS = beefyVault.getPricePerFullShare();
+    return lpVirtualPrice * beefyPPS / 1e18;
+}
+
+// Attacker's receive() hook — called by Curve during remove_liquidity() MATIC transfer:
+receive() external payable {
+    if (reentrant) {
+        reentrant = false;
+        // ❌ At this moment curvePool reserves have NOT yet been updated
+        // get_virtual_price() returns an inflated value → collateral overvalued
+        mMAI.borrow(250_000 * 1e18); // borrows 250,000 MAI against inflated collateral
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- Curve's `remove_liquidity()` transfers MATIC to the caller *before* updating its internal reserves, triggering the attacker's `receive()` hook in a partially-updated state.
+- `get_virtual_price()` is a `view` function with no reentrancy lock; during this callback it returns an inflated price because the pool's MATIC balance has decreased but reserves have not yet been written.
+- `mMAI.borrow()` reads this inflated price through the oracle chain, concluding that the attacker's collateral is worth more than it actually is, allowing over-borrowing.
+- This is a **read-only reentrancy**: no state is mutated in the Curve contract, but a view function returns a temporarily inconsistent value that is consumed by a state-mutating external call.
+
+```solidity
+// ✅ Fix — call a nonReentrant function on the Curve pool before reading price,
+// which reverts if Curve is in its reentrancy-locked state:
+function getUnderlyingPrice(address cToken) external returns (uint256) {
+    curvePool.claim_admin_fees(); // ✅ nonReentrant on Curve V2 — reverts if mid-callback
+    uint256 lpVirtualPrice = curvePool.get_virtual_price();
+    uint256 beefyPPS = beefyVault.getPricePerFullShare();
+    return lpVirtualPrice * beefyPPS / 1e18;
+}
+// Alternative: use a Chainlink price feed for the LP token instead of get_virtual_price().
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

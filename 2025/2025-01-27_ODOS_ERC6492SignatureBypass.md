@@ -61,14 +61,87 @@ function isValidSigImpl(
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **not verified on Sourcify** — OdosLimitOrderRouter / 0xb6333e994fd02a9255e794c177efbdeb1fe779c7 (Base)
+(Sourcify returned HTTP 404; BaseScan: Source Code Verified — contract `OdosLimitOrderRouter`, Solidity v0.8.19)
+
+> ⚠️ Contract not verified on Sourcify — source unavailable from Sourcify. The function below is the reference implementation from [ERC-6492](https://github.com/ethereum/ERCs/blob/master/ERCS/erc-6492.md) (the standard the ODOS contract implements), which matches the on-chain behavior confirmed by the PoC. ODOS deployed this implementation with `allowSideEffects` exposed as a public parameter — the key deviation from safe usage.
 
 ```solidity
-// File: ODOS_decompiled.sol
-contract ODOS {
-    function isValidSigImpl(address a, bytes32 b, bytes calldata c, bool d) external view returns (bool) {  // ❌ Vulnerability
-        // TODO: Decompiled logic not implemented
+// Reference: ERC-6492 official spec implementation (ethereum/ERCs)
+// OdosLimitOrderRouter — 0xb6333e994fd02a9255e794c177efbdeb1fe779c7 (Base)
+// ODOS exposed this as a public function with allowSideEffects controllable by the caller
+
+bytes32 private constant ERC6492_DETECTION_SUFFIX =
+    0x6492649264926492649264926492649264926492649264926492649264926492;
+
+function isValidSigImpl(
+    address _signer,
+    bytes32 _hash,
+    bytes calldata _signature,
+    bool allowSideEffects,   // ❌ caller-controlled — attacker passes true
+    bool tryPrepare
+) public returns (bool) {   // ❌ public + non-view: state changes are possible
+    uint contractCodeLen = address(_signer).code.length;
+    bytes memory sigToValidate;
+
+    bool isCounterfactual = bytes32(_signature[_signature.length-32:_signature.length])
+        == ERC6492_DETECTION_SUFFIX;
+
+    if (isCounterfactual) {
+        address create2Factory;
+        bytes memory factoryCalldata;
+        (create2Factory, factoryCalldata, sigToValidate) =
+            abi.decode(_signature[0:_signature.length-32], (address, bytes, bytes));
+
+        if (contractCodeLen == 0 || tryPrepare) {
+            (bool success, bytes memory err) = create2Factory.call(factoryCalldata); // ❌ arbitrary external call
+            if (!success) revert ERC6492DeployFailed(err);
+        }
+    } else {
+        sigToValidate = _signature;
     }
+
+    if (isCounterfactual || contractCodeLen > 0) {
+        try IERC1271Wallet(_signer).isValidSignature(_hash, sigToValidate)
+            returns (bytes4 magicValue)
+        {
+            bool isValid = magicValue == ERC1271_SUCCESS;
+
+            if (contractCodeLen == 0 && isCounterfactual && !allowSideEffects) {
+                // ✅ safe path: revert to undo side effects when allowSideEffects=false
+                assembly {
+                    mstore(0, isValid)
+                    revert(31, 1)
+                }
+            }
+            return isValid;  // ❌ when allowSideEffects=true, the call above persists
+        } catch (bytes memory err) {
+            revert ERC1271Revert(err);
+        }
+    }
+    // ... ecrecover fallback ...
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- The attacker encodes `_signature` in ERC-6492 format: `abi.encode(USDC_address, transfer_calldata, dummy_sig) ++ ERC6492_DETECTION_SUFFIX`.
+- `isCounterfactual` becomes `true` because the suffix matches.
+- `_signer` is set to an address with no code (`contractCodeLen == 0`), so the branch `if (contractCodeLen == 0 || tryPrepare)` is entered and `create2Factory.call(factoryCalldata)` executes — effectively calling `USDC.transfer(attacker, victimBalance)`.
+- Because the caller passes `allowSideEffects = true`, the `assembly { revert(...) }` guard that would undo state changes is skipped.
+- The USDC transfer permanently drains the contract's balance before any signature validity check completes.
+
+```solidity
+// ✅ Fix: never allow external callers to enable side effects; make the function view
+function isValidSigImpl(
+    address _signer,
+    bytes32 _hash,
+    bytes calldata _signature
+    // ✅ allowSideEffects removed — always treated as false
+) public view returns (bool) {  // ✅ view: state changes impossible at compiler level
+    // ERC-6492 counterfactual verification must revert to undo any factory call side effects
+    // The assembly revert path is always taken when contractCodeLen == 0
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -2,7 +2,7 @@
 
 Missing or improperly enforced permission checks that allow unauthorized actors to call privileged functions.
 
-**Total incidents: 98**
+**Total incidents: 95**
 
 ---
 
@@ -13,14 +13,14 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2021-06-23 | 88mph | UnprotectedInit | [2021-06-23_88mph_UnprotectedInit.md](../2021/2021-06-23_88mph_UnprotectedInit.md) |
 | 2021-08-10 | PolyNetwork | CrossChain AccessControl | [2021-08-10_PolyNetwork_CrossChain_AccessControl.md](../2021/2021-08-10_PolyNetwork_CrossChain_AccessControl.md) |
 | 2021-09-04 | DaoMaker | UnprotectedInit EmergencyExit | [2021-09-04_DaoMaker_UnprotectedInit_EmergencyExit.md](../2021/2021-09-04_DaoMaker_UnprotectedInit_EmergencyExit.md) |
-| 2022-01-28 | Qubit | DepositZeroAddressWhitelist | [2022-01-28_Qubit_DepositZeroAddressWhitelist.md](../2022/2022-01-28_Qubit_DepositZeroAddressWhitelist.md) |
+| 2022-01-27 | Qubit | DepositZeroAddressWhitelist | [2022-01-27_Qubit_DepositZeroAddressWhitelist.md](../2022/2022-01-27_Qubit_DepositZeroAddressWhitelist.md) |
 | 2022-02-14 | Sandbox | NFTBurnAccessControl | [2022-02-14_Sandbox_NFTBurnAccessControl.md](../2022/2022-02-14_Sandbox_NFTBurnAccessControl.md) |
 | 2022-03-14 | CompoundTUSD | SweepTokenUnauthorized | [2022-03-14_CompoundTUSD_SweepTokenUnauthorized.md](../2022/2022-03-14_CompoundTUSD_SweepTokenUnauthorized.md) |
 | 2022-04-19 | CFToken | PublicTransferDrain | [2022-04-19_CFToken_PublicTransferDrain.md](../2022/2022-04-19_CFToken_PublicTransferDrain.md) |
 | 2022-07-10 | FlippazOne | AccessControl | [2022-07-10_FlippazOne_AccessControl.md](../2022/2022-07-10_FlippazOne_AccessControl.md) |
 | 2022-08-26 | DDC | FeeHandlerAccessControl | [2022-08-26_DDC_FeeHandlerAccessControl.md](../2022/2022-08-26_DDC_FeeHandlerAccessControl.md) |
 | 2022-09 | ROI | OwnershipTakeover | [2022-09_ROI_OwnershipTakeover.md](../2022/2022-09_ROI_OwnershipTakeover.md) |
-| 2022-10 | Templedao | MigrateStakeAccessControl | [2022-10_Templedao_MigrateStakeAccessControl.md](../2022/2022-10_Templedao_MigrateStakeAccessControl.md) |
+| 2022-10-11 | Templedao | MigrateStakeAccessControl | [2022-10-11_Templedao_MigrateStakeAccessControl.md](../2022/2022-10-11_Templedao_MigrateStakeAccessControl.md) |
 | 2022-10 | Uerii | MintAccessControl | [2022-10_Uerii_MintAccessControl.md](../2022/2022-10_Uerii_MintAccessControl.md) |
 | 2022-11 | AUR | NodePoolAccessControl | [2022-11_AUR_NodePoolAccessControl.md](../2022/2022-11_AUR_NodePoolAccessControl.md) |
 | 2022-12 | FPR | SetAdminAccessControl | [2022-12_FPR_SetAdminAccessControl.md](../2022/2022-12_FPR_SetAdminAccessControl.md) |
@@ -33,7 +33,6 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2023-05-19 | LocalTrader2 | AccessControl | [2023-05-19_LocalTrader2_AccessControl.md](../2023/2023-05-19_LocalTrader2_AccessControl.md) |
 | 2023-06-07 | UnverifiedContr | AccessControl | [2023-06-07_UnverifiedContr_AccessControl.md](../2023/2023-06-07_UnverifiedContr_AccessControl.md) |
 | 2023-06-08 | MyAi | AccessControl | [2023-06-08_MyAi_AccessControl.md](../2023/2023-06-08_MyAi_AccessControl.md) |
-| 2023-07-01 | CIVNFT | AccessControl | [2023-07-01_CIVNFT_AccessControl.md](../2023/2023-07-01_CIVNFT_AccessControl.md) |
 | 2023-07-01 | Civfund | AccessControl | [2023-07-01_Civfund_AccessControl.md](../2023/2023-07-01_Civfund_AccessControl.md) |
 | 2023-07-08 | CIVNFT | AccessControl ETH | [2023-07-08_CIVNFT_AccessControl_ETH.md](../2023/2023-07-08_CIVNFT_AccessControl_ETH.md) |
 | 2023-07-10 | USDTStakingContract28 | AccessControl | [2023-07-10_USDTStakingContract28_AccessControl.md](../2023/2023-07-10_USDTStakingContract28_AccessControl.md) |
@@ -47,14 +46,12 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2023-11-06 | Burntbubba | EmergencyWithdraw | [2023-11-06_Burntbubba_EmergencyWithdraw.md](../2023/2023-11-06_Burntbubba_EmergencyWithdraw.md) |
 | 2023-11-07 | MEVBot | AccessControl ETH | [2023-11-07_MEVBot_AccessControl_ETH.md](../2023/2023-11-07_MEVBot_AccessControl_ETH.md) |
 | 2023-11-12 | MEVBot | 0x8c2d4e AccessControl BSC | [2023-11-12_MEVBot_0x8c2d4e_AccessControl_BSC.md](../2023/2023-11-12_MEVBot_0x8c2d4e_AccessControl_BSC.md) |
-| 2023-11-18 | MEV | 0x8c2d AccessControl | [2023-11-18_MEV_0x8c2d_AccessControl.md](../2023/2023-11-18_MEV_0x8c2d_AccessControl.md) |
 | 2023-11-27 | ShibaToken | AccessControl | [2023-11-27_ShibaToken_AccessControl.md](../2023/2023-11-27_ShibaToken_AccessControl.md) |
-| 2024-01-11 | DAOSoulMate | MissingAccessControl | [2024-01-11_DAOSoulMate_MissingAccessControl.md](../2024/2024-01-11_DAOSoulMate_MissingAccessControl.md) |
 | 2024-01-15 | LQDX | MissingAccessControl | [2024-01-15_LQDX_MissingAccessControl.md](../2024/2024-01-15_LQDX_MissingAccessControl.md) |
 | 2024-01-22 | DAOSoulMate | AccessControl ETH | [2024-01-22_DAOSoulMate_AccessControl_ETH.md](../2024/2024-01-22_DAOSoulMate_AccessControl_ETH.md) |
 | 2024-01-31 | CheckDotProtocol | AccessControl BSC | [2024-01-31_CheckDotProtocol_AccessControl_BSC.md](../2024/2024-01-31_CheckDotProtocol_AccessControl_BSC.md) |
 | 2024-02-XX | SwarmMarkets | UnauthorizedMintUnwrap | [2024-02-XX_SwarmMarkets_UnauthorizedMintUnwrap.md](../2024/2024-02-XX_SwarmMarkets_UnauthorizedMintUnwrap.md) |
-| 2024-03-19 | ParaSwap | AccessControl Multichain | [2024-03-19_ParaSwap_AccessControl_Multichain.md](../2024/2024-03-19_ParaSwap_AccessControl_Multichain.md) |
+| 2024-03-20 | ParaSwap | AccessControl Multichain | [2024-03-20_ParaSwap_AccessControl_Multichain.md](../2024/2024-03-20_ParaSwap_AccessControl_Multichain.md) |
 | 2024-03-23 | ARKToken | AccessControl BSC | [2024-03-23_ARKToken_AccessControl_BSC.md](../2024/2024-03-23_ARKToken_AccessControl_BSC.md) |
 | 2024-03-XX | Binemon | SweepTokenAccessControl | [2024-03-XX_Binemon_SweepTokenAccessControl.md](../2024/2024-03-XX_Binemon_SweepTokenAccessControl.md) |
 | 2024-04-24 | SaitaChain | AccessControl ETH | [2024-04-24_SaitaChain_AccessControl_ETH.md](../2024/2024-04-24_SaitaChain_AccessControl_ETH.md) |
@@ -90,8 +87,8 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2025-10-22 | TokenHolder | PrivilegedLoan-Exploit | [2025-10-22_TokenHolder_PrivilegedLoan-Exploit.md](../2025/2025-10-22_TokenHolder_PrivilegedLoan-Exploit.md) |
 | 2025-12-12 | RibbonFinance | AccessControl ETH | [2025-12-12_RibbonFinance_AccessControl_ETH.md](../2025/2025-12-12_RibbonFinance_AccessControl_ETH.md) |
 | 2022-08-13 | ReaperFarm | MissingOwnerCheck | [2022-08-13_ReaperFarm_MissingOwnerCheck.md](../2022/2022-08-13_ReaperFarm_MissingOwnerCheck.md) |
-| 2022-09 | BadGuysbyRPF | MissingAmountCheck | [2022-09_BadGuysbyRPF_MissingAmountCheck.md](../2022/2022-09_BadGuysbyRPF_MissingAmountCheck.md) |
-| 2022-10 | Carrot | TransRewardOwnerTakeover | [2022-10_Carrot_TransRewardOwnerTakeover.md](../2022/2022-10_Carrot_TransRewardOwnerTakeover.md) |
+| 2022-09-22 | BadGuysbyRPF | MissingAmountCheck | [2022-09-22_BadGuysbyRPF_MissingAmountCheck.md](../2022/2022-09-22_BadGuysbyRPF_MissingAmountCheck.md) |
+| 2022-10-10 | Carrot | TransRewardOwnerTakeover | [2022-10-10_Carrot_TransRewardOwnerTakeover.md](../2022/2022-10-10_Carrot_TransRewardOwnerTakeover.md) |
 | 2023-03-28 | SafeMoon | PublicBurnLP BSC | [2023-03-28_SafeMoon_PublicBurnLP_BSC.md](../2023/2023-03-28_SafeMoon_PublicBurnLP_BSC.md) |
 | 2023-05-16 | landNFT | UnrestrictedMint | [2023-05-16_landNFT_UnrestrictedMint.md](../2023/2023-05-16_landNFT_UnrestrictedMint.md) |
 | 2023-10-16 | OpenLeverage | AdminTakeover | [2023-10-16_OpenLeverage_AdminTakeover.md](../2023/2023-10-16_OpenLeverage_AdminTakeover.md) |
@@ -101,7 +98,7 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2024-05-XX | SATURN | SetEnableSwitchManipulation | [2024-05-XX_SATURN_SetEnableSwitchManipulation.md](../2024/2024-05-XX_SATURN_SetEnableSwitchManipulation.md) |
 | 2024-04-XX | XBridge | ListTokenWithdrawUnauthorized | [2024-04-XX_XBridge_ListTokenWithdrawUnauthorized.md](../2024/2024-04-XX_XBridge_ListTokenWithdrawUnauthorized.md) |
 | 2024-05-XX | MetaDragon | TransferToContractUnrestrictedMint | [2024-05-XX_MetaDragon_TransferToContractUnrestrictedMint.md](../2024/2024-05-XX_MetaDragon_TransferToContractUnrestrictedMint.md) |
-| 2024-11-10 | X319 | UnprotectedClaimEther | [2024-11-10_X319_UnprotectedClaimEther.md](../2024/2024-11-10_X319_UnprotectedClaimEther.md) |
+| 2024-11-09 | X319 | UnprotectedClaimEther | [2024-11-09_X319_UnprotectedClaimEther.md](../2024/2024-11-09_X319_UnprotectedClaimEther.md) |
 | 2025-01-07 | 98Token | UnprotectedSwap | [2025-01-07_98Token_UnprotectedSwap.md](../2025/2025-01-07_98Token_UnprotectedSwap.md) |
 | 2026-03-06 | MoltEVM | mEVM FakeSpawnerMint Base | [2026-03-06_MoltEVM_mEVM_FakeSpawnerMint_Base.md](../2026/2026-03-06_MoltEVM_mEVM_FakeSpawnerMint_Base.md) |
 | 2023-05-05 | DEI | BurnFromExploit ARB | [2023-05-05_DEI_BurnFromExploit_ARB.md](../2023/2023-05-05_DEI_BurnFromExploit_ARB.md) |

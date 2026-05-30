@@ -20,74 +20,73 @@ Nerve Bridge's MetaSwap is a Curve-style composite AMM that combines a base pool
 ---
 ## 2. Vulnerable Code Analysis
 
-### 2.1 MetaSwap — Price Manipulation via Repeated Liquidity Removal
+Source: **Sourcify-verified** (partial match) — Nerve 3Pool `Swap.sol` (`0x1B3771a66ee31180906972580adE9b81AFc5fCDc`, BSC)
+https://sourcify.dev/server/files/any/56/0x1B3771a66ee31180906972580adE9b81AFc5fCDc
+
+The Nerve 3Pool is a Saddle Finance fork. The `removeLiquidityOneToken()` entry point in `Swap.sol` delegates to `SwapUtils.removeLiquidityOneToken()`. The vulnerability is that the function accepts `minAmount = 0`, meaning a caller can withdraw with zero slippage protection. When called repeatedly in a loop within a single transaction (interleaved with `swapUnderlying()` on the MetaSwap), each iteration skews the pool's internal D-invariant and token reserves, allowing the attacker to extract more base tokens than they are entitled to.
+
+### 2.1 `removeLiquidityOneToken()` — Zero-Slippage Withdrawal Allowed
 
 ```solidity
-// ❌ Nerve MetaSwap / Nerve3Pool
-// Repeated liquidity removal within a single transaction accumulates pool imbalance
-// When removeLiquidityOneToken() is called repeatedly after swapUnderlying(),
-// internal prices become distorted without slippage protection
-
-interface IMetaSwap {
-    // Swap meta pool using base pool tokens
-    function swapUnderlying(
-        uint8 tokenIndexFrom,
-        uint8 tokenIndexTo,
-        uint256 dx,
-        uint256 minDy,
-        uint256 deadline
-    ) external returns (uint256);
-}
-
-interface INerve3Pool {
-    // Remove liquidity as a single token
-    function remove_liquidity_one_coin(
-        uint256 _token_amount,
-        int128 i,
-        uint256 _min_amount
-    ) external returns (uint256);
-    // ❌ minAmount=0 means no slippage protection
-    // Repeated calls accumulate pool imbalance → price manipulation
+function removeLiquidityOneToken(
+    uint256 tokenAmount,
+    uint8 tokenIndex,
+    uint256 minAmount,   // ❌ caller can pass 0 — no slippage protection enforced
+    uint256 deadline
+)
+    external
+    nonReentrant
+    whenNotPaused
+    deadlineCheck(deadline)
+    returns (uint256)
+{
+    return
+        swapStorage.removeLiquidityOneToken(
+            tokenAmount,
+            tokenIndex,
+            minAmount    // ❌ minAmount=0 accepted without revert — no floor check
+        );
 }
 ```
 
-**Fixed Code**:
+### 2.2 `swap()` — Used for Pool Manipulation Between Removal Calls
+
 ```solidity
-// ✅ Limit the number of same-pool interactions within a single transaction
-// ✅ Enforce minimum received amount validation on liquidity removal
-
-mapping(address => uint256) public lastInteractionBlock;
-uint256 public constant MAX_INTERACTIONS_PER_BLOCK = 1;
-
-function remove_liquidity_one_coin(
-    uint256 _token_amount,
-    int128 i,
-    uint256 _min_amount
-) external returns (uint256) {
-    require(
-        block.number > lastInteractionBlock[msg.sender],
-        "Nerve3Pool: one interaction per block"
-    );
-    require(_min_amount > 0, "Nerve3Pool: zero min_amount");
-    lastInteractionBlock[msg.sender] = block.number;
-    // ...
+function swap(
+    uint8 tokenIndexFrom,
+    uint8 tokenIndexTo,
+    uint256 dx,
+    uint256 minDy,      // ❌ also accepts 0 — each swap shifts reserves with no slippage floor
+    uint256 deadline
+)
+    external
+    nonReentrant
+    whenNotPaused
+    deadlineCheck(deadline)
+    returns (uint256)
+{
+    return swapStorage.swap(tokenIndexFrom, tokenIndexTo, dx, minDy);
 }
 ```
 
+**Why it is exploitable (identify the bug from the code):**
 
-### On-Chain Original Code
+- `minAmount = 0` in `removeLiquidityOneToken()` disables the slippage guard entirely. The Saddle/Nerve AMM uses the StableSwap invariant — each large one-sided withdrawal shifts the pool's reserves and the effective exchange rate of the remaining tokens.
+- The attacker exploits this in a 7-iteration loop: each iteration calls `MetaSwap.swapUnderlying(fUSD → Nerve3LP)` followed by `Nerve3Pool.removeLiquidityOneToken(3LP → BUSD, minAmount=0)`. Each cycle extracts BUSD while the pool's internal accounting of the BUSD/3Pool ratio grows more skewed.
+- Because `minAmount=0` means no loss is ever rejected, every iteration — no matter how unfavorable the price — is accepted. The aggregate skew across 7 iterations is large enough to generate a profit that exceeds the flash loan fee.
+- The lack of per-block or per-transaction interaction limits allows all 7 cycles to execute atomically in a single transaction.
 
-Source: Source unconfirmed
-
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable Function** — `remove_liquidity_one_coin()`:
 ```solidity
-// ❌ Root cause: `remove_liquidity_one_coin()` allowing `min_amount=0` and no restriction on repeated calls
-// within the same block, causing accumulated pool imbalance through sequential MetaSwap + 3Pool interactions
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: `remove_liquidity_one_coin()` allowing `min_amount=0` and no restriction on repeated calls
-// within the same block, causing accumulated pool imbalance through sequential MetaSwap + 3Pool interactions
+// ✅ Fix: enforce a nonzero minAmount floor
+function removeLiquidityOneToken(
+    uint256 tokenAmount,
+    uint8 tokenIndex,
+    uint256 minAmount,
+    uint256 deadline
+) external nonReentrant whenNotPaused deadlineCheck(deadline) returns (uint256) {
+    require(minAmount > 0, "Swap: minAmount must be > 0"); // ✅ prevent zero-slippage withdrawals
+    return swapStorage.removeLiquidityOneToken(tokenAmount, tokenIndex, minAmount);
+}
 ```
 
 ## 3. Attack Flow

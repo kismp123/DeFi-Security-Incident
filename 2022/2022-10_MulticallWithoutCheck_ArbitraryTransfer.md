@@ -64,15 +64,97 @@ contract SafeMulticall {
 
 ### On-Chain Source Code
 
-Source: Unverified
+Source: **Sourcify-verified** — Multicall / 0x940cE652A51EBadB5dF09d605dBEDA95fDcF697b (Polygon)
+Sourcify URL: https://sourcify.dev/server/files/any/137/0x940cE652A51EBadB5dF09d605dBEDA95fDcF697b
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable Function** — `multicallWithoutCheck()`:
 ```solidity
-// ❌ Root cause: `multicallWithoutCheck()` executes external calls with no validation on target or calldata
-// Source code unverified — bytecode analysis required
-// Vulnerability: `multicallWithoutCheck()` executes external calls with no validation on target or calldata
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
+
+import "./interfaces/IERC20.sol";
+
+struct Call {
+    address target;
+    bytes callData;
+    uint256 value;
+}
+
+contract Multicall {
+
+    address private owner;
+
+    event Received(address, uint);
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function multicall(Call[] memory calls) external payable {
+        uint256 balBefore = address(this).balance;
+
+        for(uint256 i = 0; i < calls.length; i++) {
+            (bool success, ) = calls[i].target.call{value: calls[i].value}(calls[i].callData);
+            require(success, "Contract call failed");
+        }
+
+        require(address(this).balance > balBefore, "No profits"); // ← safe version: requires profit
+    }
+
+    function multicallWithoutCheck(Call[] memory calls) external payable { // ❌ no onlyOwner, no target validation
+        for(uint256 i = 0; i < calls.length; i++) {
+            (bool success, ) = calls[i].target.call{value: calls[i].value}(calls[i].callData); // ❌ arbitrary external call under this contract's identity
+            require(success, "Contract call failed");
+        }
+        // ❌ No balance check — unlike multicall(), no profit requirement; and no restriction on target or callData
+    }
+
+    function approveToken(
+        address token,
+        address spender,
+        uint256 amount
+    ) external onlyOwner returns (bool) {
+        return IERC20(token).approve(spender, amount);
+    }
+
+    function withdrawToken(
+        address token
+    ) external onlyOwner returns (bool) {
+        return IERC20(token).transfer(owner, IERC20(token).balanceOf(address(this)));
+    }
+
+    function withdraw() external onlyOwner {
+        (bool sent,) = owner.call{value: address(this).balance}("");
+        require(sent, "Failed to send Ether");
+    }
+
+    modifier onlyOwner() {
+        require(owner == msg.sender, "Ownable: caller is not the owner");
+        _;
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `multicallWithoutCheck()` has no `onlyOwner` modifier — any external caller can invoke it.
+- `calls[i].target.call{value: ...}(calls[i].callData)` executes arbitrary calldata against an arbitrary address, with the **contract itself as `msg.sender`**.
+- The attacker passed `target = USDT` and `callData = transfer(attacker, allBalance)`. Because the contract is `msg.sender`, no prior `approve()` is needed — the contract's own USDT balance is transferred.
+- Compare with `multicall()` (the safe version): it requires `address(this).balance > balBefore` (profit check) but still lacks a target whitelist. `multicallWithoutCheck()` removes even that weak check.
+
+```solidity
+// ✅ Fix: add onlyOwner + restrict target to a whitelist
+function multicallWithoutCheck(Call[] memory calls) external payable onlyOwner {
+    for(uint256 i = 0; i < calls.length; i++) {
+        require(allowedTargets[calls[i].target], "Target not allowed");
+        bytes4 selector = bytes4(calls[i].callData);
+        require(!blockedSelectors[selector], "Selector blocked");
+        (bool success, ) = calls[i].target.call{value: calls[i].value}(calls[i].callData);
+        require(success, "Contract call failed");
+    }
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

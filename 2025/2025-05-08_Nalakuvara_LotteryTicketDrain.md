@@ -50,14 +50,75 @@ function getTicketPrice() internal view returns (uint256) {
 
 ### On-Chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** (partial match) — LotteryTicketSwap50 `0x172119155a48DE766B126de95c2cb331D3A5c7C2` (Base, chainid 8453)
+Sourcify URL: https://sourcify.dev/server/files/any/8453/0x172119155a48DE766B126de95c2cb331D3A5c7C2
+
+Note: The doc's `Vulnerable Contract` field lists `0xb39392F4b6D92a6BD560Ed260C2c488081aAB8E9` (Nalakuvara token); the exploited logic resides in **LotteryTicketSwap50** at `0x172119155a48DE766B126de95c2cb331D3A5c7C2`.
 
 ```solidity
-// File: Nalakuvara_decompiled.sol
-contract Nalakuvara {
-    function transfer(address a, uint256 b) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// ❌ DestructionOfLotteryTickets — uses live getReserves() for LP liquidity calculation
+function DestructionOfLotteryTickets(uint  _amountTickets) public returns(bool){
+    IUniswapV2Router02  swapRouter = IUniswapV2Router02(ROUTER_ADDRESS);
+    
+    uint256   MIN_TICKET = 1 * 10 ** 6;
+    require(_amountTickets > 0, "Amount must more than 0 TICKET");
+    require(_amountTickets % MIN_TICKET == 0, "Amount must be a multiple of 1 Ticket");
+    uint allowmount=   coinTicket.allowance(msg.sender,address(this));
+    require(allowmount>=_amountTickets, "Insufficient authorization limit");
+    address   deadAddress=0x000000000000000000000000000000000000dEaD;
+    require(coinTicket.transferFrom(msg.sender,deadAddress,_amountTickets), "Ticket transfer failed");
+
+    uint ticket_count=_amountTickets/MIN_TICKET;
+    uint amountUSDTALL=ticket_count*MIN_DEPOSIT;
+    uint amountUSDT=amountUSDTALL/2*997/1000;
+
+    // ❌ Reads live reserves from UniswapV2Pair — manipulable by flash loan in the same tx
+    address token0 = IUniswapV2Pair(pairAddress).token0();
+    if(token0==tokenUSDT){
+        ( reserveUSDT,  reserveNATA,) = IUniswapV2Pair(pairAddress).getReserves(); // ❌ spot reserve
+    }else {
+         (reserveNATA, reserveUSDT,) = IUniswapV2Pair(pairAddress).getReserves(); // ❌ spot reserve
     }
+   
+    uint256 totalSupplyLP=IERC20(pairAddress).totalSupply();
+    uint liquidity = (amountUSDT * totalSupplyLP) / reserveUSDT; // ❌ inflated reserveUSDT → smaller liquidity share needed
+    
+    IERC20(pairAddress).approve(ROUTER_ADDRESS, liquidity);
+    if(isWhiteListed[msg.sender]){
+        uint liquidityALL = (amountUSDT * totalSupplyLP) / reserveUSDT;
+        IERC20(pairAddress).transfer(msg.sender,liquidityALL);
+    }else{
+        (, uint amountNATAout) = swapRouter.removeLiquidity(
+            tokenUSDT, 
+            tokenNATA, 
+            liquidity, 
+            1,
+            1,
+            address(this),
+            block.timestamp+600
+        );
+        // ... swap NATA back to USDT and transfer to caller
+        coinUsdt.transfer(msg.sender,amountUSDTALL*994/1000); // ❌ pays out based on ticket_count*MIN_DEPOSIT regardless
+    }
+   
+return true;
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `DestructionOfLotteryTickets()` reads `getReserves()` from the Uniswap V2 pair at the instant of execution. There is no TWAP, no price-change guard, and no minimum reserve requirement.
+- The attacker injects a large amount of USDC directly into the V2 pair (funded by a V3 flash loan), inflating `reserveUSDT`.
+- Because `liquidity = (amountUSDT * totalSupplyLP) / reserveUSDT`, the inflated `reserveUSDT` denominator makes `liquidity` much smaller — the contract removes very little LP but still pays out `amountUSDTALL * 994/1000` USDC to the caller.
+- Alternatively, for whitelisted callers the contract simply transfers `liquidityALL` LP tokens directly; either path overpays relative to the genuine (pre-manipulation) price.
+- 105,470 USDC was drained this way.
+
+```solidity
+// ✅ Fix: use a TWAP oracle instead of live getReserves(), and add a price-deviation circuit breaker
+function getReserveTWAP() internal view returns (uint256 reserveUSDT_) {
+    // Read cumulative price from a TWAP oracle with at least 30-minute window
+    reserveUSDT_ = ITWAPOracle(oracle).consult(tokenUSDT, 1e6); // price per 1 USDT unit
+}
+// Also add: require(abs(spotPrice - twapPrice) / twapPrice < MAX_DEVIATION, "Price deviation too high");
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

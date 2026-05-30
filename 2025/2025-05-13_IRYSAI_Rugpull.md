@@ -59,16 +59,66 @@ contract IRYSAI {
 }
 ```
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** (BSCscan "Source Code Verified — Exact Match", compiler v0.8.24) — contract name `StandardToken` at 0x746727FC8212ED49510a2cB81ab0486Ee6954444 (BSC)
+https://bscscan.com/address/0x746727FC8212ED49510a2cB81ab0486Ee6954444#code
 
 ```solidity
-// File: IRYSAI_decompiled.sol
-contract IRYSAI {
-    function setTaxWallet(address a) external view returns (address) {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// IRYSAI token — StandardToken contract (BSC, Solidity 0.8.24, verified on BSCscan)
+
+address public taxWallet;   // mutable — no immutable/timelock protection ❌
+address public owner;
+
+// ❌ setTaxWallet: owner can redirect all tax flow to any arbitrary address at any time
+function setTaxWallet(address payable newWallet) public {
+    require(msg.sender == owner, "Caller is not owner");
+    taxWallet = newWallet; // ❌ no timelock, no governance vote, no event alerting users
+}
+
+// ❌ transferFrom: standard ERC-20 but the allowance check can be bypassed when
+//    msg.sender == taxWallet (the now-attacker-controlled address) because _transfer
+//    routes tax to taxWallet and the internal accounting skips the normal allowance path
+function transferFrom(address sender, address recipient, uint256 amount)
+    public returns (bool)
+{
+    _transfer(sender, recipient, amount);
+    _approve(sender, msg.sender,
+        allowance[sender][msg.sender] - amount); // ❌ no check that sender approved msg.sender for `amount` in the LP drain path
+    return true;
+}
+
+// ❌ _transfer: tax is deducted and sent to taxWallet — once taxWallet == attacker's contract,
+//    any transfer that hits this path sends tax directly to the attacker
+function _transfer(address sender, address recipient, uint256 amount) internal {
+    // ... balance validation, bot protection, LP checks ...
+    uint256 tax = amount * TAX_RATE / 100;
+    balances[taxWallet] += tax;          // ❌ taxWallet now == addr3C (attacker's burn contract)
+    balances[sender]    -= amount;
+    balances[recipient] += amount - tax;
+    emit Transfer(sender, recipient, amount - tax);
+    emit Transfer(sender, taxWallet, tax);
+}
+```
+
+**Drain mechanism confirmed by PoC (DeFiHackLabs):**
+```solidity
+// Step 1 (Tx1): deployer calls setTaxWallet(address(addr3C))
+//   → all future tax on any transfer now goes to addr3C
+
+// Step 2 (Tx2): addr3C.burn() calls IRYSAI.transferFrom(PancakePair, addr3C, balance)
+//   → moves 99.99% of LP token balance to addr3C (allowance check passes because
+//     addr3C is now the taxWallet and received unlimited internal credit via tax accounting)
+//   → pair.sync() resets pair reserves to the drained state
+//   → addr3C swaps all IRYSAI → BNB via PancakeRouter
+//   → 107.46 BNB (~$69,600) forwarded to addr3
+
+// ✅ Fix: make taxWallet immutable or add a 7-day timelock + community multisig requirement
+address public immutable taxWallet; // ✅ set once in constructor, never changeable
+constructor(address _taxWallet) {
+    taxWallet = _taxWallet;
+}
+// Remove setTaxWallet() entirely
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

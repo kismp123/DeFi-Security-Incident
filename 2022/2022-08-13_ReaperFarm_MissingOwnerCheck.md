@@ -71,15 +71,69 @@ function redeem(
 
 ### On-Chain Original Code
 
-Source: Source unconfirmed
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+>
+> Victim contract: `0xcdA5deA176F2dF95082f4daDb96255Bdb2bc7C7D` (rfUSDC Vault, Fantom)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The PoC (`ReaperFarm_exp.sol`) directly calls `redeem(victimShares, attacker, victim)` with no prior `approve()` step, confirming the allowance check is absent. The reconstructed interface matches ERC4626 minus the mandatory allowance gate:
 
-**Vulnerable Function** — `redeem()`:
 ```solidity
-// ❌ Root cause: `redeem(shares, receiver, owner)` function allows withdrawal of another user's shares without validating the `owner` parameter
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: `redeem(shares, receiver, owner)` function allows withdrawal of another user's shares without validating the `owner` parameter
+// ⚠️ RECONSTRUCTED from PoC — NOT verified source; presented as pseudocode only
+// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-08/ReaperFarm_exp.sol
+
+// ERC4626-shaped vault — ReaperVaultV2 (rfUSDC)
+function redeem(
+    uint256 shares,
+    address receiver,
+    address owner    // ❌ any address can be passed as owner
+) public override returns (uint256 assets) {
+
+    // ❌ MISSING: ERC4626 §4.9 mandates that if msg.sender != owner,
+    //            the caller must have been granted an allowance by owner.
+    //
+    // The correct guard (absent here) is:
+    //   if (msg.sender != owner) {
+    //       uint256 allowed = allowance(owner, msg.sender);
+    //       if (allowed != type(uint256).max)
+    //           _approve(owner, msg.sender, allowed - shares);
+    //   }
+
+    assets = convertToAssets(shares);
+
+    _burn(owner, shares);                          // ❌ burns victim's shares without consent
+    IERC20(asset()).safeTransfer(receiver, assets); // ❌ assets go to attacker
+
+    emit Withdraw(msg.sender, receiver, owner, assets, shares);
+    return assets;
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- The ERC4626 standard (EIP-4626 §4.9) requires that when `msg.sender != owner`, the vault MUST check and decrement `allowance[owner][msg.sender]` before burning shares. ReaperVaultV2 omitted this guard entirely.
+- Because `_burn(owner, shares)` executes without checking whether `msg.sender` was authorized, any caller can burn any user's shares by simply passing the victim's address as `owner`.
+- The attacker set `receiver = attacker` and `owner = victim`, so the burned shares produced USDC that flowed directly to the attacker. No approval from the victim was required or checked.
+
+```solidity
+// ✅ Fix: enforce ERC4626 allowance check before burning
+function redeem(
+    uint256 shares,
+    address receiver,
+    address owner
+) public override returns (uint256 assets) {
+    if (msg.sender != owner) {                        // ✅ only if third-party caller
+        uint256 allowed = allowance(owner, msg.sender);
+        if (allowed != type(uint256).max) {
+            require(allowed >= shares, "ERC4626: exceeds allowance");
+            _approve(owner, msg.sender, allowed - shares); // ✅ decrement allowance
+        }
+    }
+    assets = convertToAssets(shares);
+    _burn(owner, shares);
+    IERC20(asset()).safeTransfer(receiver, assets);
+    emit Withdraw(msg.sender, receiver, owner, assets, shares);
+    return assets;
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

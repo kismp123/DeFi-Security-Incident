@@ -86,15 +86,58 @@ contract SafePolynomialZap {
 
 ### On-Chain Original Code
 
-Source: Source unverified
+Source: **Sourcify partial-match** — PolynomialZap.sol (0xDEEB242E045e5827Edf526399bd13E7fFEba4281, Optimism)
+https://sourcify.dev/server/files/any/10/0xDEEB242E045e5827Edf526399bd13E7fFEba4281
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
-
-**Vulnerable Function** — `swapAndDeposit()`:
 ```solidity
-// ❌ Root Cause: `swapAndDeposit()` executes the `user` parameter and `swapData` calldata without validation, enabling victim allowance hijacking
-// Source code unverified — bytecode analysis required
-// Vulnerability: `swapAndDeposit()` executes the `user` parameter and `swapData` calldata without validation, enabling victim allowance hijacking
+function swapAndDeposit(
+    address user,          // ❌ Arbitrary address — caller can specify any victim
+    address token,
+    address depositToken,
+    address swapTarget,    // ❌ Arbitrary contract — no whitelist
+    address vault,
+    uint256 amount,
+    bytes memory swapData  // ❌ Arbitrary calldata — no selector check
+) external payable nonReentrant {
+    uint256 msgValue;
+
+    if (token == ETH) {
+        msgValue = address(this).balance;
+        require(msgValue == amount, "INVALID_BALANCE");
+    } else {
+        ERC20(token).safeTransfer(msg.sender, amount); // ❌ pulls from msg.sender, not `user`
+        ERC20(token).safeApprove(swapTarget, amount);  // ❌ approves the arbitrary swapTarget
+    }
+
+    (bool success, ) = swapTarget.call{value: msgValue}(swapData); // ❌ arbitrary external call
+    require(success, "SWAP_FAILED");
+
+    uint256 depositAmount = ERC20(depositToken).balanceOf(address(this));
+    ERC20(depositToken).approve(vault, depositAmount);
+    IPolynomialVault(vault).initiateDeposit(user, depositAmount); // user param passed to vault
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `swapTarget` and `swapData` are fully attacker-controlled with no whitelist or selector validation. The attacker sets `swapTarget = USDC` and `swapData = abi.encodeWithSelector(transferFrom.selector, victim, attacker, amount)`.
+- The `safeApprove(swapTarget, amount)` line first approves the USDC contract (the `swapTarget`) to spend the Zap's USDC allowance, but the critical issue is the call `swapTarget.call(swapData)` — which executes `USDC.transferFrom(victim, attacker, amount)` using the victim's prior approval to the Zap contract.
+- The Zap contract has been approved by victims for normal use. Since the Zap calls `transferFrom` on behalf of a victim, USDC sees the Zap (an approved spender) executing `transferFrom(victim, attacker, ...)` — and it succeeds.
+- The `user` parameter in the final `initiateDeposit(user, depositAmount)` is irrelevant; the exploit works via the arbitrary call step before deposit.
+
+```solidity
+// ✅ Fix: whitelist swap targets and block dangerous selectors
+mapping(address => bool) public allowedSwapTargets;
+
+function swapAndDeposit(..., address swapTarget, ..., bytes memory swapData) external payable nonReentrant {
+    require(allowedSwapTargets[swapTarget], "Target not allowed");
+    bytes4 selector = bytes4(swapData);
+    require(selector != IERC20.transferFrom.selector, "Forbidden selector");
+    require(selector != IERC20.transfer.selector, "Forbidden selector");
+    // Use msg.sender for all token pulls, never the `user` param
+    ERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    ...
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

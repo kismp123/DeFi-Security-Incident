@@ -88,17 +88,120 @@ contract SafeUEarnPool {
 
 ### On-Chain Source Code
 
-Source: Source unverified
+Source: **Sourcify partial-match** — UEarnPool.sol / `0x02D841B976298DCd37ed6cC59f75D9Dd39A3690c` (BSC)
+https://sourcify.dev/server/files/any/56/0x02D841B976298DCd37ed6cC59f75D9Dd39A3690c
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
-
-**Vulnerable function** — `claimTeamReward()`:
 ```solidity
-// ❌ Root cause: `claimTeamReward()` reward calculation logic fails to properly validate team staking amounts,
-//               enabling excess reward extraction via a CREATE2 hierarchy
-// Source code unverified — bytecode analysis required
-// Vulnerability: `claimTeamReward()` reward calculation logic fails to properly validate team staking amounts,
-//                enabling excess reward extraction via a CREATE2 hierarchy
+// ── bindInvitor ──────────────────────────────────────────────────────────────
+function bindInvitor(address invitor) external {
+    address account = msg.sender;
+    require(invitor != account, "self");
+    require(address(0) != invitor, "invitor 0");
+    require(address(0) == _invitor[account], "Bind");
+    require(!_userInfos[account].active, "active");
+    require(_binder[account].length == 0, "had binders");
+    _invitor[account] = invitor;
+    _binder[invitor].push(account);
+    uint256 len = _inviteLength;
+    for (uint256 i; i < len;) {
+        if (address(0) == invitor) { break; }
+        _userInfos[invitor].teamAccount += 1;
+        invitor = _invitor[invitor];
+        unchecked { ++i; }
+    }
+}
+
+// ── stake ────────────────────────────────────────────────────────────────────
+function stake(uint256 pid, uint256 amount) external {
+    require(!_pause, "Pause");
+    uint256 unit = _amountUnit;
+    amount = amount / unit * unit;
+    require(amount >= _minAmount, "<min");
+    address account = msg.sender;
+    Pool storage pool = _pools[pid];
+    pool.totalAmount += amount;
+    uint256 reward    = amount * pool.rewardRate / _feeDivFactor;
+    uint256 feeAmount = amount * _feeRate      / _feeDivFactor;
+    _userRecords[account].push(
+        Record(pid, amount, feeAmount, reward, block.timestamp, block.timestamp + pool.duration, 0)
+    );
+    UserInfo storage userInfo = _userInfos[account];
+    userInfo.amount += amount;
+    if (!userInfo.active) { userInfo.active = true; }
+    IERC20(_tokenAddress).transferFrom(account, address(this), amount);
+    _addInviteReward(account, amount);
+    _addTeamAmount(account, amount);  // ← propagates stake upward through referrer chain
+}
+
+// ── _addTeamAmount ───────────────────────────────────────────────────────────
+// Called on every stake() to accumulate teamAmount for all upstream referrers.
+function _addTeamAmount(address account, uint256 amount) private {
+    uint256 teamLength = _teamLength;
+    for (uint256 i; i < teamLength;) {
+        address invitor = _invitor[account];
+        if (address(0) == invitor) { break; }
+        account = invitor;
+        unchecked {
+            _userInfos[invitor].teamAmount += amount;  // ← grows every time a downstream node stakes
+            ++i;
+        }
+    }
+}
+
+// ── claimTeamReward ──────────────────────────────────────────────────────────
+// ❌ Pays out a fixed USDT reward for each tier threshold that teamAmount crosses.
+//    The reward for tier i is determined once: if levelClaimed[i] == 0 it is paid
+//    and set. It is NOT recalculated relative to how much the caller personally staked.
+function claimTeamReward(address account) external {
+    uint256 level = getUserLevel(account);      // ❌ derived from current teamAmount
+    uint256 pendingReward;
+    uint256 levelReward;
+    if (level != MAX) {
+        for (uint256 i; i <= level;) {
+            LevelConfig storage levelConfig = _levelConfigs[i];
+            if (_userInfos[account].levelClaimed[i] == 0) {  // ❌ only checks "never claimed"
+                if (i == 0) {
+                    levelReward = levelConfig.teamAmount * levelConfig.rewardRate / _feeDivFactor;
+                } else {
+                    // ❌ reward = (thisLevelThreshold − prevLevelThreshold) × rate
+                    // This is a fixed payout per level, not proportional to actual stake contributed.
+                    levelReward = (levelConfig.teamAmount - _levelConfigs[i - 1].teamAmount)
+                                  * levelConfig.rewardRate / _feeDivFactor;
+                }
+                pendingReward += levelReward;
+                _userInfos[account].levelClaimed[i] = levelReward;
+            }
+            unchecked { ++i; }
+        }
+    }
+    if (pendingReward > 0) {
+        IERC20(_tokenAddress).transfer(account, pendingReward);
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `_addTeamAmount` propagates every stake upward through `_teamLength` levels unconditionally. A 22-level CREATE2 hierarchy means C[0]'s `teamAmount` grows by the entire bottom-node stake — making C[0] (and every intermediate node) appear to meet the highest tier threshold.
+- `claimTeamReward` pays a **fixed USDT reward per level tier** (based on the tier threshold amounts, not on the caller's own stake). The only guard is `levelClaimed[i] == 0` — claimed once → never again. This is per address, so 22 separate contracts each claim once.
+- The attacker flash-loans USDT, stakes it all at C[21] to inflate `teamAmount` for all 22 nodes, then iterates: `stake(small) → claimTeamReward()` for each node. Because each node is a separate contract, each gets its own `levelClaimed[i] == 0` check, each pays the full fixed tier reward.
+- The reward paid per node far exceeds the small stake deposited, so 22 × fixed-tier-reward >> 22 × small-stake + flash-loan-fee.
+
+```solidity
+// ✅ Fix: tie reward to the caller's own staked amount, not a fixed tier payout
+function claimTeamReward(address account) external {
+    UserInfo storage userInfo = _userInfos[account];
+    uint256 level = getUserLevel(account);
+    require(level != MAX, "No level");
+    // ✅ Reward proportional to caller's actual stake, capped at their tier multiplier
+    uint256 eligibleReward = userInfo.amount
+        * _levelConfigs[level].rewardRate / _feeDivFactor;
+    // ✅ Subtract already-claimed amount; track per-account cumulative
+    uint256 alreadyClaimed = userInfo.totalTeamRewardClaimed;
+    require(eligibleReward > alreadyClaimed, "Nothing to claim");
+    uint256 toPay = eligibleReward - alreadyClaimed;
+    userInfo.totalTeamRewardClaimed = eligibleReward;
+    IERC20(_tokenAddress).transfer(account, toPay);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

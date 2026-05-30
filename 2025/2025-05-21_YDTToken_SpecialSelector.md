@@ -44,161 +44,45 @@ function specialTransfer(
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+The YDT token contract (`0x3612e4Cb34617bCac849Add27366D8D85C102eFd`, BSC) is not verified on Sourcify. The PoC (`YDTtoken_exp.sol`) confirms the exploit path: a raw `call` with selector `0xec22f4c7` drains YDT from the LP pair when the fourth argument matches the `taxmodule` address. The following is reconstructed from bytecode selector analysis and the PoC:
 
 ```solidity
-// File: YDTToken_decompiled.sol
-contract YDTToken {
-contract YDTToken {
+// ⚠️ RECONSTRUCTED — not verified source
+// Victim: YDT Token / 0x3612e4Cb34617bCac849Add27366D8D85C102eFd (BSC)
+// Hidden function selector: 0xec22f4c7
+// Confirmed by PoC: address(YDT).call(abi.encodeWithSelector(bytes4(0xec22f4c7), ...))
 
-    // Selector: 0xa4ef9cf4
-    function setAddressB(address a) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// This function is NOT present in the public ABI / verified source
+// Selector 0xec22f4c7 corresponds to a hidden backdoor callable only by taxmodule
 
-    // Selector: 0xfd4e4d75
-    function addressA() external {
-        // TODO: decompiled logic not implemented
-    }
+function /* hidden — selector 0xec22f4c7 */ (
+    address from,    // LP pair address
+    address to,      // recipient (attacker)
+    uint256 amount,  // token amount to move
+    address caller   // must equal stored taxmodule address
+) external {
+    require(caller == taxmodule, "Not authorized"); // ❌ only taxmodule can call — deployer controls taxmodule
+    _transfer(from, to, amount);                    // ❌ directly moves tokens from LP pair without triggering reserves update
+    // No pair.sync() called here — reserve mismatch exploitable via subsequent skim/sync
+}
+```
 
-    // Selector: 0x581592f1
-    function getUSDT() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
+**Why it is exploitable (identify the bug from the code):**
+- The function has no ABI entry — it cannot be found by standard tools that only check verified source or public ABI. It exists solely in bytecode as selector `0xec22f4c7`.
+- The `caller == taxmodule` check uses an argument supplied by the caller (`address caller`), not `msg.sender`. The deployer controls the `taxmodule` address and passes it as the fourth argument, bypassing the guard.
+- After draining nearly all YDT from the LP pair, the deployer calls `pair.sync()` (selector `0xfff6cae9`) to update the pair's reserves to the now-depleted token balance, collapsing the YDT price. The stolen YDT is then sold on PancakeSwap for USDT.
+- This is a classic deployer-rug-pull pattern using a hidden function to avoid detection in source audits.
 
-    // Selector: 0xa9059cbb
-    function transfer(address a, uint256 b) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x102558a9
-    function referralModule() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xc0d78655
-    function setRouter(address a) external view returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: hidden function that directly moves tokens from the LP pool via special function selector (0xec22f4c7)
-    function pancakeRouter() external returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xbc93233f
-    function addToWhitelist(address a, bool b) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x400b6cdc
-    function liquidityModule() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x3af32abf
-    function isWhitelisted(address a) external view returns (bool) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x313ce567
-    function decimals() external view returns (uint8) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x95d89b41
-    function symbol() external view returns (string memory) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xc4e41b22
-    function getTotalSupply() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x4526196e
-    function addressB() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x18160ddd
-    function totalSupply() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x5dab5d5d
-    function setAddressC(address a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xf0141d84
-    function getDecimals() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xd4dd50cc
-    function setAddressD(address a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x70a08231
-    function balanceOf(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xa457c2d7
-    function decreaseAllowance(address a, uint256 b) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xc54e44eb
-    function USDT() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xdd62ed3e
-    function allowance(address a, address b) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xd8574e16
-    function addressD() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x1416d347
-    function getAddressA() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: hidden function that directly moves tokens from the LP pool via special function selector (0xec22f4c7)
-    function pancakePair() external returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x6c3364ea
-    function getAddressB() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x23b872dd
-    function transferFrom(address a, address b, uint256 c) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xf2fde38b
-    function transferOwnership(address a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x8da5cb5b
-    function owner() external view returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x0d1118ce
+```solidity
+// ✅ Fix: remove all hidden selectors; register every function in the ABI and verified source.
+// If privileged token movement is needed, use msg.sender-based access control:
+function authorizedTransferFromLP(address to, uint256 amount) external {
+    require(msg.sender == owner, "Not owner"); // ✅ check msg.sender, not a caller argument
+    _transfer(liquidityPair, to, amount);
+    IUniswapV2Pair(liquidityPair).sync();
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

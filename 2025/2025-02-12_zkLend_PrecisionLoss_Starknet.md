@@ -30,6 +30,8 @@ This is a classic first-depositor share inflation attack (also known as "ERC4626
 
 ## 2. Vulnerable Code Analysis
 
+> ⚠️ Contract not verified on Sourcify — Starknet is a non-EVM chain (Cairo language); Sourcify does not index Starknet contracts. The code below is Cairo pseudocode reconstructed from zkLend's official post-mortem, the attack transaction trace, and the known ERC4626 inflation attack pattern. It is not retrieved verified source.
+
 ### Share Minting Logic (Cairo pseudocode)
 
 ```cairo

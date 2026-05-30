@@ -63,19 +63,119 @@ function swapExactTokensForTokens(...) external nonReentrant returns (uint[] mem
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Unverified
+Source: **Sourcify partial match** — DemaxPlatform (BurgerSwap Router) / 0xBf6527834dBB89cdC97A79FCD62E6c08B19F8ec0 (BSC)
+https://sourcify.dev/server/files/any/56/0xBf6527834dBB89cdC97A79FCD62E6c08B19F8ec0
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+> Note: The DemaxPair contract (LP pair, 0x7ac55ac530f2c29659573bde0700c6758d69e677) is not verified on Sourcify. The router (DemaxPlatform) is partial-matched. The code below is verbatim from the verified router source.
 
-**Vulnerable Function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: amount calculated using stale reserve values before internal swap completes
-//               when reentered via a fake token with a custom transferFrom() hook
-// Source code unverified — bytecode analysis required
-// Vulnerability: amount calculated using stale reserve values before internal swap completes
-//                when reentered via a fake token with a custom transferFrom() hook
+// File: DemaxPlatform.sol — BurgerSwap Router (partial match, BSC)
+
+function swapExactTokensForTokens(
+    uint256 amountIn,
+    uint256 amountOutMin,
+    address[] calldata path,
+    address to,
+    uint256 deadline
+) external ensure(deadline) returns (uint256[] memory amounts) {
+    uint256 percent = _getSwapFeePercent();
+    amounts = _getAmountsOut(amountIn, path, percent); // ❌ amounts computed here from current reserves
+    require(amounts[amounts.length - 1] >= amountOutMin, 'DEMAX PLATFORM : INSUFFICIENT_OUTPUT_AMOUNT');
+    address pair = DemaxSwapLibrary.pairFor(FACTORY, path[0], path[1]);
+    _innerTransferFrom(                                // ❌ external call to path[0].transferFrom()
+        path[0],                                       //    if path[0] is the FAKE token, the attacker's
+        msg.sender,                                    //    transferFrom() hook fires here, allowing a
+        pair,                                          //    nested call back into swapExactTokensForTokens()
+        SafeMath.mul(amountIn, SafeMath.sub(PERCENT_DENOMINATOR, percent)) / PERCENT_DENOMINATOR
+    );
+    _swap(amounts, path, to);                          // ❌ uses stale amounts[] from before the re-entry
+    _innerTransferFrom(path[0], msg.sender, pair, SafeMath.mul(amounts[0], percent) / PERCENT_DENOMINATOR);
+    _swapFee(amounts, path, percent);
+}
+
+// No nonReentrant modifier on swapExactTokensForTokens — reentrancy is possible
+
+function _swap(
+    uint256[] memory amounts,
+    address[] memory path,
+    address _to
+) internal {
+    require(!isPause, "DEMAX PAUSED");
+    require(swapPrecondition(path[path.length - 1]), 'DEMAX PLATFORM : CHECK DGAS/TOKEN TO VALUE FAIL');
+    for (uint256 i; i < path.length - 1; i++) {
+        (address input, address output) = (path[i], path[i + 1]);
+        require(swapPrecondition(input), 'DEMAX PLATFORM : CHECK DGAS/TOKEN VALUE FROM FAIL');
+        require(IDemaxConfig(CONFIG).checkPair(input, output), 'DEMAX PLATFORM : SWAP PAIR CONFIG CHECK FAIL');
+        (address token0, address token1) = DemaxSwapLibrary.sortTokens(input, output);
+        uint256 amountOut = amounts[i + 1];
+        (uint256 amount0Out, uint256 amount1Out) = input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
+        address to = i < path.length - 2 ? DemaxSwapLibrary.pairFor(FACTORY, output, path[i + 2]) : _to;
+        IDemaxPair(DemaxSwapLibrary.pairFor(FACTORY, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+        // ❌ _transferNotify is called after swap — reserves in the pair are updated only here,
+        //    but re-entrant call already used pre-swap amounts[] from the outer call's _getAmountsOut
+        if (amount0Out > 0) _transferNotify(DemaxSwapLibrary.pairFor(FACTORY, input, output), to, token0, amount0Out);
+        if (amount1Out > 0) _transferNotify(DemaxSwapLibrary.pairFor(FACTORY, input, output), to, token1, amount1Out);
+    }
+    emit SwapToken(_to, path[0], path[path.length - 1], amounts[0], amounts[path.length - 1]);
+}
+
+function _getAmountsOut(
+    uint256 amount,
+    address[] memory path,
+    uint256 percent
+) internal view returns (uint256[] memory amountOuts) {
+    amountOuts = new uint256[](path.length);
+    amountOuts[0] = amount;
+    for (uint256 i = 0; i < path.length - 1; i++) {
+        address inPath = path[i];
+        address outPath = path[i + 1];
+        (uint256 reserveA, uint256 reserveB) = DemaxSwapLibrary.getReserves(FACTORY, inPath, outPath); // ❌ snapshot reserves
+        uint256 outAmount = SafeMath.mul(amountOuts[i], SafeMath.sub(PERCENT_DENOMINATOR, percent));
+        amountOuts[i + 1] = DemaxSwapLibrary.getAmountOut(outAmount / PERCENT_DENOMINATOR, reserveA, reserveB);
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `swapExactTokensForTokens()` has **no `nonReentrant` modifier**. Any external call within the function body can re-enter it.
+- `_getAmountsOut()` snapshots reserves at the time of the outer call. The resulting `amounts[]` array is then passed into `_swap()`.
+- `_innerTransferFrom()` makes an **external ERC-20 `transferFrom()` call** to `path[0]` before `_swap()` executes. If `path[0]` is the attacker's FAKE token, the `transferFrom()` hook triggers a re-entrant call to `swapExactTokensForTokens()` on a different (BURGER/WBNB) pair.
+- The re-entrant call completes first, draining BURGER from the pair and updating reserves. When control returns to the outer call, `_swap(amounts, ...)` executes using the **stale pre-reentry `amounts[]`**, resulting in a second excessive BURGER payout.
+- The DemaxDelegate factory allows permissionless pair creation (`_createPair()`), so the attacker can freely create a FAKE/BURGER pair to serve as the reentrancy vector.
+
+```solidity
+// ✅ Fix: add nonReentrant to swapExactTokensForTokens and recalculate amounts inside _swap
+//         using live balanceOf() rather than cached reserve snapshots
+
+uint256 private _locked = 1;
+modifier nonReentrant() {
+    require(_locked == 1, "DEMAX: REENTRANT");
+    _locked = 2;
+    _;
+    _locked = 1;
+}
+
+function swapExactTokensForTokens(
+    uint256 amountIn,
+    uint256 amountOutMin,
+    address[] calldata path,
+    address to,
+    uint256 deadline
+) external nonReentrant ensure(deadline) returns (uint256[] memory amounts) {
+    // amounts computed and used consistently; external transferFrom cannot re-enter
+    uint256 percent = _getSwapFeePercent();
+    amounts = _getAmountsOut(amountIn, path, percent);
+    require(amounts[amounts.length - 1] >= amountOutMin, 'DEMAX PLATFORM : INSUFFICIENT_OUTPUT_AMOUNT');
+    address pair = DemaxSwapLibrary.pairFor(FACTORY, path[0], path[1]);
+    _innerTransferFrom(path[0], msg.sender, pair,
+        SafeMath.mul(amountIn, SafeMath.sub(PERCENT_DENOMINATOR, percent)) / PERCENT_DENOMINATOR);
+    _swap(amounts, path, to);
+    _innerTransferFrom(path[0], msg.sender, pair, SafeMath.mul(amounts[0], percent) / PERCENT_DENOMINATOR);
+    _swapFee(amounts, path, percent);
+}
 ```
 
 ## 3. Attack Flow

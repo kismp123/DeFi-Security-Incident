@@ -46,14 +46,46 @@ function swapProfitFees() external onlyOwner {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+The PoC (`JPulsepot_exp.sol`) confirms the victim is `0x384b9fb6E42dab87F3023D87ea1575499A69998E` and directly calls `IFortuneWheel(victim).swapProfitFees()` with no arguments. The function is accessible to any external caller (confirmed by the PoC being able to call it without privilege). The following is reconstructed from the PoC and the post-mortem (CertiK alert, 2025-01-13):
 
 ```solidity
-// File: JPulsepot_decompiled.sol
-contract JPulsepot {
-    function swapProfitFees() external returns (uint256) {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// ⚠️ RECONSTRUCTED — not verified source
+// Victim: FortuneWheel / 0x384b9fb6E42dab87F3023D87ea1575499A69998E (BSC)
+// Confirmed callable via: IFortuneWheel(victim).swapProfitFees() in DeFiHackLabs PoC
+
+function swapProfitFees() external { // ❌ No access control — callable by anyone
+    uint256 bnbBalance = address(this).balance;
+    address[] memory path = new address[](2);
+    path[0] = WBNB;
+    path[1] = LINK;
+    IUniswapV2Router(router).swapExactETHForTokens{value: bnbBalance}(
+        0,                  // ❌ amountOutMin = 0 — no slippage protection whatsoever
+        path,
+        address(this),
+        block.timestamp
+    );
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `swapProfitFees()` has no `onlyOwner` or access-control modifier — any EOA or contract can call it at any time.
+- `amountOutMin = 0` means the protocol accepts any output amount, no matter how unfavorable the price.
+- An attacker can call this inside a flash-loan callback after first purchasing a large amount of LINK (suppressing the BNB/LINK rate), forcing the protocol to swap BNB for LINK at a deeply unfavorable price. The attacker then reverses the trade for profit.
+
+```solidity
+// ✅ Fix:
+function swapProfitFees() external onlyOwner { // ✅ restrict to owner
+    uint256 bnbBalance = address(this).balance;
+    uint256 minOut = getTWAPBasedMinOut(bnbBalance); // ✅ TWAP-based minimum
+    address[] memory path = new address[](2);
+    path[0] = WBNB;
+    path[1] = LINK;
+    IUniswapV2Router(router).swapExactETHForTokens{value: bnbBalance}(
+        minOut, path, address(this), block.timestamp
+    );
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -24,6 +24,8 @@ Borrowing against the inflated collateral, the attacker extracted liquid assets 
 
 ## 2. Vulnerable Code Analysis
 
+> ⚠️ Contract not verified on Sourcify — Sourcify covers EVM chains only; YieldBlox is deployed on Stellar (Soroban WebAssembly runtime). No Solidity source applies. The vulnerable logic is written in Rust and compiled to Wasm. The code below is reconstructed from the attack description and Stellar Soroban SDK patterns — YieldBlox's public repository was not available for direct retrieval at time of writing. Labeled accordingly.
+
 ```rust
 // YieldBlox collateral oracle — VULNERABLE
 fn get_collateral_price(

@@ -44,33 +44,47 @@ function executeWithRouter(address router, bytes calldata data) external onlyOwn
 
 ### On-chain Original Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+Source: **not verified on Sourcify** — HORS `0x6f3390c6C200e9bE81b32110CE191a293dc0eaba` (BSC, chainid 56)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0x6f3390c6C200e9bE81b32110CE191a293dc0eaba
+(BSCscan also shows no verified source for this address.)
+
+The contract exposes three functions: two read-only getters (selectors `0x7494d122`, `0xc1459c03`) and one execution function (`0xf78283c7`). Based on the PoC (`HORS_exp.sol`) and on-chain trace, the exploit calls selector `0xf78283c7` with a fake router address — the contract then executes an `approve` + external call targeting the LP token without validating the supplied address.
+
+**Reconstructed vulnerable function** — `0xf78283c7` (from PoC and bytecode, not verified source):
 
 ```solidity
-// File: HORS_decompiled.sol
-contract HORS {
-contract HORS {
+// Reconstructed from HORS_exp.sol PoC — NOT verified source
 
-    // Selector: 0xa9059cbb
-    function transfer(address a, uint256 b) external {  // ❌ Vulnerability
-        // TODO: Decompiled logic not implemented
-    }
+// ❌ Function 0xf78283c7: accepts an external router address and executes token operations against it without validation
+function executeWithRouter(address router, bytes calldata data) external {
+    // ❌ No check that `router` is a legitimate whitelisted address
+    // ❌ No check on the function selector within `data`
+    IERC20(lpToken).approve(router, type(uint256).max); // ❌ approves LP tokens to an arbitrary address
+    (bool success,) = router.call(data);                // ❌ executes arbitrary calldata against the caller-supplied router
+    require(success, "Call failed");
+    // Result: attacker's fake router calls transferFrom(HORS_contract, attacker, lpBalance),
+    //         draining all LP tokens held by this contract.
+}
+```
 
-    // Selector: 0x70a08231
-    function balanceOf(address a) external view returns (uint256) {
-        // TODO: Decompiled logic not implemented
-    }
+**Why it is exploitable (identify the bug from the code):**
+- `executeWithRouter` (selector `0xf78283c7`) accepts an arbitrary `router` address and `data` payload from any caller without access control or whitelisting.
+- The contract first approves `type(uint256).max` of the LP token to the caller-supplied `router`, then forwards the raw `data` calldata to it.
+- The attacker passes their own contract as `router` and encodes `IERC20(lpToken).transferFrom(HORS_contract, attacker, balance)` as `data`.
+- This drains all LP tokens held by the HORS contract; the attacker then calls `removeLiquidity` on PancakeSwap to extract 14.8 WBNB.
 
-    // Selector: 0x095ea7b3
-    function approve(address a, uint256 b) external {
-        // TODO: Decompiled logic not implemented
-    }
+```solidity
+// ✅ Fix: restrict callers and validate the router address
+mapping(address => bool) public allowedRouters;
 
-    // Selector: 0xe8e33700
-    function addLiquidity(address a, address b, uint256 c, uint256 d, uint256 e, uint256 f, address g, uint256 h) external {
-        // TODO: Decompiled logic not implemented
-    }
-
+function executeWithRouter(address router, bytes calldata data) external onlyOwner {
+    require(allowedRouters[router], "Router not whitelisted");
+    bytes4 sel = bytes4(data[:4]);
+    require(sel == IRouter.addLiquidity.selector || sel == IRouter.removeLiquidity.selector, "Selector not allowed");
+    (bool success,) = router.call(data);
+    require(success, "Call failed");
 }
 ```
 

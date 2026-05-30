@@ -28,13 +28,46 @@ interface IKR is IERC20 {
 ```
 
 ---
-### On-chain Original Code
+### On-Chain Original Code
 
-Source: Bytecode decompilation
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+The KR token contract (0x15b1Ed79cA9D7955AF3E169d7B323c4F1eeb5D12, BSC) is not verified on Sourcify (chainid 56) and is not publicly verified on BSCscan. The following is reconstructed from the DeFiHackLabs PoC (`KR_exp.sol`):
 
 ```solidity
-// Root cause: price calculation error in sellKr() forcing a sell under unfavorable conditions
-// Source code unverified — based on bytecode analysis
+// RECONSTRUCTED — not verified source
+// KR token: sellKr() — sell at a price that does not correctly account for pool state
+
+interface IKR is IERC20 {
+    function sellKr(uint256 tokenToSell) external; // ❌ price formula favors seller under specific pool conditions
+}
+
+// PoC core: attacker calls sellKr with 94% of the balance held by address 0xAD1e7BF0...
+// The function computes the BUSD proceeds using an incorrect formula that yields more
+// BUSD than the market price justifies when a large amount is sold in one call.
+// Result: ~5 ETH equivalent drained from the contract's BUSD balance.
+
+// Example of the flawed calculation pattern (reconstructed):
+function sellKr(uint256 tokenToSell) external {
+    // ❌ price derived from reserves without accounting for slippage or after-sale state
+    uint256 busdOut = tokenToSell * busdReserve / totalSupply; // ❌ should use AMM formula: dx*y/(x+dx)
+    _burn(msg.sender, tokenToSell);
+    BUSD.transfer(msg.sender, busdOut); // ❌ pays out inflated amount
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- The sell price formula uses a simple proportional ratio (`tokenToSell * reserve / supply`) rather than the correct constant-product AMM formula `(dx * y) / (x + dx)`.
+- A large single sell (94% of the held balance) yields proportionally more BUSD than the AMM formula would allow, extracting value from the contract's BUSD reserves.
+- No flash loan is strictly necessary — the attacker exploits the pricing error directly.
+
+```solidity
+// ✅ Fix: use the constant-product AMM formula for sell price
+function sellKr(uint256 tokenToSell) external {
+    uint256 busdOut = (tokenToSell * busdReserve) / (totalKRSupply + tokenToSell); // ✅ correct AMM pricing
+    _burn(msg.sender, tokenToSell);
+    BUSD.transfer(msg.sender, busdOut);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

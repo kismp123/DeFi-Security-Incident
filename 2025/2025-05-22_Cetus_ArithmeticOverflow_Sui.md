@@ -28,6 +28,8 @@ Multiple Cetus pools (USDC, SUI, USDT, and other token pairs) were drained withi
 
 ## 2. Vulnerable Code Analysis
 
+> This contract is written in **Move** (Sui blockchain), not Solidity. It is not verified on Sourcify — Sourcify covers EVM chains only. The Move source below is reconstructed from the BlockSec incident analysis and public post-mortem reports, not retrieved from an on-chain verifier. The function names and logic are consistent with the published exploit analysis.
+
 ### The Flawed Shift Function
 
 ```move

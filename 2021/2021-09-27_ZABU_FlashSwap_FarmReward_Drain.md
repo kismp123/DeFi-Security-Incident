@@ -66,15 +66,74 @@ function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
 
 ### On-Chain Original Code
 
-Source: Source unconfirmed
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
+Source: **not verified on Sourcify** — ZABUFarm `0xf61b4f980A1F34B55BBF3b2Ef28213Efcc6248C4` (Avalanche, chainid 43114)
+Sourcify URL: https://sourcify.dev/server/files/any/43114/0xf61b4f980A1F34B55BBF3b2Ef28213Efcc6248C4
 
-**Vulnerable Function** — `vulnerableFunction()`:
+**Reconstructed vulnerable functions** — `updatePool()` / `deposit()` (from PoC traces, not verified source):
+
 ```solidity
-// ❌ Root cause: Farm's accZABUPerShare calculation references current LP balanceOf() (spot), causing reward-per-unit distortion when reserves are manipulated
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: Farm's accZABUPerShare calculation references current LP balanceOf() (spot), causing reward-per-unit distortion when reserves are manipulated
+// Reconstructed from PoC (ZABU_exp.sol) and on-chain trace — NOT verified source
+
+// ❌ updatePool: lpSupply is fetched live from balanceOf(), not snapshotted
+function updatePool(uint256 _pid) public {
+    PoolInfo storage pool = poolInfo[_pid];
+    if (block.number <= pool.lastRewardBlock) {
+        return;
+    }
+    uint256 lpSupply = pool.lpToken.balanceOf(address(this)); // ❌ spot balance — manipulable via flash swap
+    if (lpSupply == 0) {
+        pool.lastRewardBlock = block.number;
+        return;
+    }
+    uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+    uint256 zabuReward = multiplier.mul(zabuPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+    zabu.mint(devaddr, zabuReward.div(10));
+    zabu.mint(address(zabuBar), zabuReward);
+    pool.accZABUPerShare = pool.accZABUPerShare.add(
+        zabuReward.mul(1e12).div(lpSupply) // ❌ if lpSupply is deflated by flash-draining reserves, accZABUPerShare spikes
+    );
+    pool.lastRewardBlock = block.number;
+}
+
+// ❌ deposit: harvests inflated rewards based on spiked accZABUPerShare
+function deposit(uint256 _pid, uint256 _amount) public {
+    PoolInfo storage pool = poolInfo[_pid];
+    UserInfo storage user = userInfo[_pid][msg.sender];
+    updatePool(_pid); // ❌ triggers reward distortion if reserves are already manipulated
+    if (user.amount > 0) {
+        uint256 pending = user.amount.mul(pool.accZABUPerShare).div(1e12).sub(user.rewardDebt);
+        safeZABUTransfer(msg.sender, pending); // ❌ sends inflated ZABU rewards
+    }
+    pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+    user.amount = user.amount.add(_amount);
+    user.rewardDebt = user.amount.mul(pool.accZABUPerShare).div(1e12);
+    emit Deposit(msg.sender, _pid, _amount);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `updatePool()` calls `pool.lpToken.balanceOf(address(this))` at the moment of execution to determine `lpSupply`.
+- The attacker uses nested Pangolin flash swaps to drain SPORE from the pool reserves before calling `deposit()`, temporarily making the spot `balanceOf()` report a deflated LP supply.
+- With a small `lpSupply`, `zabuReward.mul(1e12).div(lpSupply)` produces a massive `accZABUPerShare`.
+- The attacker had previously deposited SPORE, so on `deposit()` the `pending` harvest is calculated against the inflated `accZABUPerShare`, yielding enormous ZABU rewards.
+- No time lock, no TWAP check, and no block-delay guard exist to prevent same-block manipulation.
+
+```solidity
+// ✅ Fix: snapshot lpSupply at block boundary, or require a minimum block delay between deposit and withdrawal:
+mapping(uint256 => mapping(address => uint256)) public lastDepositBlock;
+
+function deposit(uint256 _pid, uint256 _amount) public nonReentrant {
+    lastDepositBlock[_pid][msg.sender] = block.number;
+    // ...
+}
+
+function withdraw(uint256 _pid, uint256 _amount) public nonReentrant {
+    require(block.number > lastDepositBlock[_pid][msg.sender], "same-block withdraw");
+    // ...
+}
+// Alternatively: use cumulative TWAP reserves instead of spot balanceOf() for lpSupply
 ```
 
 ## 3. Attack Flow

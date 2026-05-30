@@ -67,15 +67,61 @@ function transferOwnership(address newOwner) public override onlyOwner {
 
 ### On-Chain Original Code
 
-Source: Source unverified
+Source: **Sourcify-verified** (partial match) — ROIToken `0xE48b75dc1b131fd3A8364b0580f76eFD04cF6e9c` (BSC)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0xE48b75dc1b131fd3A8364b0580f76eFD04cF6e9c
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
-
-**Vulnerable Function** — `transferOwnership()`:
 ```solidity
-// ❌ Root cause: No access control on `transferOwnership()` — anyone can seize ownership and manipulate token parameters
-// Source code unverified — bytecode analysis required
-// Vulnerability: No access control on `transferOwnership()` — anyone can seize ownership and manipulate token parameters
+// ❌ transferOwnership — no onlyOwner modifier: any caller can seize ownership
+function transferOwnership(address newOwner) public virtual {
+    require(newOwner != address(0), "Ownable: new owner is the zero address");
+    emit OwnershipTransferred(_owner, newOwner);
+    _owner = newOwner; // ❌ state written without checking msg.sender == _owner
+}
+
+// Admin functions gated only by onlyOwner — freely usable once ownership is stolen:
+
+function setTaxFeePercent(uint256 taxFee) external onlyOwner() {
+    _taxFee = taxFee; // ❌ attacker sets to 0 then 99 to manipulate reflections
+}
+
+function excludeFromReward(address account) public onlyOwner() {
+    require(!_isExcluded[account], "Account is already excluded");
+    if(_rOwned[account] > 0) {
+        _tOwned[account] = tokenFromReflection(_rOwned[account]);
+    }
+    _isExcluded[account] = true;
+    _excluded.push(account); // ❌ attacker excludes large holders, concentrating reward shares
+}
+
+function includeInReward(address account) external onlyOwner() {
+    require(_isExcluded[account], "Account is not excluded");
+    for (uint256 i = 0; i < _excluded.length; i++) {
+        if (_excluded[i] == account) {
+            _excluded[i] = _excluded[_excluded.length - 1];
+            _tOwned[account] = 0; // ❌ zeroing _tOwned on re-inclusion distorts the reflection ratio
+            _isExcluded[account] = false;
+            _excluded.pop();
+            break;
+        }
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `transferOwnership()` overrides OpenZeppelin's `Ownable` but omits the `onlyOwner` modifier, making it callable by anyone.
+- Once the attacker calls `transferOwnership(attacker)`, they hold `_owner` and can call all `onlyOwner` functions.
+- `setTaxFeePercent(0)` removes fees so the attacker's dump does not lose value.
+- `excludeFromReward(largeHolder)` removes large token holders from the reflection pool, increasing the attacker's proportional share of reflections.
+- `setTaxFeePercent(99)` + flash-borrowing from the pair causes 99% of borrowed tokens to be reflected back to remaining holders (attacker controls).
+- `includeInReward(pair)` with `_tOwned[pair] = 0` forces a mismatch between `_rOwned` and `_tOwned` at re-inclusion, producing an inflated effective balance for the attacker.
+
+```solidity
+// ✅ Fix: preserve onlyOwner when overriding
+function transferOwnership(address newOwner) public override onlyOwner {
+    require(newOwner != address(0), "Ownable: new owner is the zero address");
+    _transferOwnership(newOwner);
+}
+// Better: use OpenZeppelin Ownable2Step (transferOwnership + acceptOwnership) to prevent accidental/hostile transfers
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

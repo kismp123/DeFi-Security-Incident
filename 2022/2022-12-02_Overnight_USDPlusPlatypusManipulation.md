@@ -83,17 +83,73 @@ contract SafePlatypusPool {
 
 ### On-Chain Source Code
 
-Source: Source unconfirmed
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+Source: **not verified on Sourcify** — USD+ `0x73cb180bf0521828d8849bc8CF2B920918e23032` and SwapFlashLoan `0xED2a7edd7413021d440b09D654f3b87712abAB66` (Avalanche)
+Sourcify URLs:
+- https://sourcify.dev/server/files/any/43114/0x73cb180bf0521828d8849bc8CF2B920918e23032 (404 — not found)
+- https://sourcify.dev/server/files/any/43114/0xED2a7edd7413021d440b09D654f3b87712abAB66 (404 — not found)
 
-**Vulnerable function** — `buy()`:
+The following is reconstructed from the PoC ([Overnight_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-12/Overnight_exp.sol)) and on-chain traces. The core exploitable behavior is in USD+ `buy()` and `redeem()`, which exchange USDC.e for USD+ at a rate derived from the Platypus pool spot price:
+
 ```solidity
-// ❌ Root cause: Reserve imbalance created via repeated add/remove liquidity cycles on the Platypus stableswap pool,
-//    combined with the USD+ `buy()`/`redeem()` mechanism and Benqi oracle manipulation to realize arbitrage profits
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: Reserve imbalance created via repeated add/remove liquidity cycles on the Platypus stableswap pool,
-//                combined with the USD+ `buy()`/`redeem()` mechanism and Benqi oracle manipulation to realize arbitrage profits
+// ⚠️ RECONSTRUCTED — not verified source. Derived from PoC + on-chain trace.
+// USD+ (UsdPlusToken): 0x73cb180bf0521828d8849bc8CF2B920918e23032 (Avalanche)
+
+contract UsdPlusToken {
+    IPlatypus public platypus;    // 0x66357dCaCe80431aee0A7507e2E361B7e2402370
+    IERC20    public usdc_e;      // 0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664
+
+    // ❌ buy(): exchanges USDC.e for USD+ at the current Platypus pool rate
+    // The rate is derived from Platypus pool reserves — manipulable via large swaps
+    function buy(address _asset, uint256 _amount) external returns (uint256) {
+        require(_asset == address(usdc_e), "Asset not supported");
+        usdc_e.transferFrom(msg.sender, address(this), _amount);
+
+        // ❌ Exchange rate queried from Platypus spot price — not TWAP
+        // A prior large swap has skewed reserves: USDC.e is abundant, USD+ is scarce
+        // → attacker receives more USD+ per USDC.e than the fair 1:1 rate
+        uint256 usdPlusAmount = _getExchangeAmount(_amount); // ❌ spot-rate lookup
+        _mint(msg.sender, usdPlusAmount);
+        return usdPlusAmount;
+    }
+
+    // ❌ redeem(): burns USD+ and returns USDC.e at the (now-normalized) spot rate
+    function redeem(address _asset, uint256 _amount) external returns (uint256) {
+        require(_asset == address(usdc_e), "Asset not supported");
+        _burn(msg.sender, _amount);
+
+        // ❌ Rate re-read after partial normalization — still profitable for attacker
+        uint256 usdcAmount = _getExchangeAmount(_amount);
+        usdc_e.transfer(msg.sender, usdcAmount);
+        return usdcAmount;
+    }
+
+    // ❌ Uses Platypus swap quote (spot reserves) as the exchange rate
+    function _getExchangeAmount(uint256 _amount) internal view returns (uint256) {
+        // Internally calls Platypus.quotePotentialSwap(usdc_e, usdPlus, _amount)
+        // which reads current pool reserves — manipulable in the same transaction
+        (uint256 potentialOutcome,) = platypus.quotePotentialSwap(
+            address(usdc_e), address(this), _amount  // ❌ spot price, not TWAP
+        );
+        return potentialOutcome;
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `buy()` prices the USDC.e → USD+ exchange using `quotePotentialSwap`, which reads Platypus pool reserves at the moment of the call — the same transaction in which the attacker has already distorted those reserves via large Aave-funded swaps.
+- After skewing the Platypus pool (making USDC.e artificially cheap relative to USD+), the attacker calls `buy()` and receives more USD+ per USDC.e than the fair rate.
+- `redeem()` similarly reads spot reserves on the return leg; because the attacker controls the sequence within one transaction, both the buy and redeem legs can be executed at favorable (manipulated) rates.
+- There is no TWAP, circuit breaker, or rate deviation limit on either `buy()` or `redeem()`.
+
+```solidity
+// ✅ Fix: use a time-weighted average price or external oracle for the exchange rate
+function _getExchangeAmount(uint256 _amount) internal view returns (uint256) {
+    // ✅ Consult a Chainlink USDC/USD feed or a 30-minute TWAP oracle
+    uint256 rate = ITWAPOracle(oracle).getRate(address(usdc_e), address(this));
+    return _amount * rate / 1e18;  // ✅ resistant to single-block manipulation
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

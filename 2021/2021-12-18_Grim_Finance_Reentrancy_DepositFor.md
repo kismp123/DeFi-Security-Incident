@@ -78,17 +78,64 @@ function depositFor(address token, uint256 _amount, address user)
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Source unconfirmed
+Source: **not verified on Sourcify** — GrimBoostVault (`0x660184CE8AF80e0B1e5A1172A16168b15f4136bF`, Fantom)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. GrimFinance has no public repositories. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-**Vulnerable Function** — `vulnerableFunction()`:
+The PoC (DeFiHackLabs) directly targets `GrimBoostVault.depositFor()`. From the PoC interface and the attacker's malicious token `transferFrom()` hook, the vulnerable function shape is:
+
 ```solidity
-// ❌ Root cause: depositFor() is reenterable when calling transferFrom() on an external token — 7 nested reentrant calls via a malicious token contract
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: depositFor() is reenterable when calling transferFrom() on an external token — 7 nested reentrant calls via a malicious token contract
+// Reconstructed from PoC — NOT verified source
+// ❌ GrimBoostVault.depositFor() — accepts arbitrary token address, no reentrancy guard
+function depositFor(address token, uint256 _amount, address user) public {
+    // ❌ No nonReentrant modifier — reentrant calls stack freely
+    // ❌ No validation that `token` == want (the legitimate LP token)
+
+    uint256 _pool = balance(); // reads vault's underlying token balance
+
+    IERC20(token).transferFrom(msg.sender, address(this), _amount); // ❌ external call BEFORE state update
+    // ^ attacker supplies a malicious `token` whose transferFrom() re-enters depositFor()
+    // Each reentrant call reads the same stale `_pool` and inflates shares
+
+    uint256 _after = balance();
+    _amount = _after.sub(_pool);
+
+    uint256 shares;
+    if (totalSupply() == 0) {
+        shares = _amount;
+    } else {
+        shares = (_amount.mul(totalSupply())).div(_pool); // ❌ _pool is stale on reentry
+    }
+    _mint(user, shares); // mints inflated share count to attacker
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `depositFor()` accepts any arbitrary `token` address — the attacker passes a malicious contract whose `transferFrom()` calls back into `depositFor()` recursively (7 levels deep).
+- There is no `nonReentrant` modifier, so re-entrant calls are not blocked.
+- On each re-entrant call `_pool = balance()` reads the vault's balance *before* any real LP token has been deposited, making the denominator artificially small.
+- The share calculation `shares = (_amount * totalSupply) / _pool` uses a stale `_pool`, minting far more shares than the deposited value warrants.
+- On the innermost (8th) call the attacker finally provides the real LP token, triggering actual balance changes; all 7 outer calls then mint shares against that inflated state.
+
+```solidity
+// ✅ Fix:
+function depositFor(address token, uint256 _amount, address user)
+    public nonReentrant                               // ✅ reentrancy guard
+{
+    require(token == want, "GrimBoostVault: only want token"); // ✅ whitelist token
+
+    uint256 _pool = balance();
+    IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+    uint256 _after = balance();
+    _amount = _after.sub(_pool);
+
+    uint256 shares = totalSupply() == 0
+        ? _amount
+        : (_amount.mul(totalSupply())).div(_pool);
+    _mint(user, shares);
+}
 ```
 
 ## 3. Attack Flow

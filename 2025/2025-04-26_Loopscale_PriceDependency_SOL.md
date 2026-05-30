@@ -31,6 +31,8 @@ The protocol lacked a TWAP buffer, a price deviation guard, and any flash-loan-m
 
 ## 2. Vulnerable Code Analysis
 
+> ⚠️ Contract not verified on Sourcify — Solana is a non-EVM chain (Rust/Anchor programs); Sourcify does not index Solana programs. The code below is Rust/Anchor pseudocode reconstructed from Loopscale's official post-mortem, community analysis, and the Raydium CLMM oracle manipulation pattern. It is not retrieved verified source.
+
 ### 2.1 Spot-Price Oracle — No TWAP or Deviation Guard
 
 ```rust

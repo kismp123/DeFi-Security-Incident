@@ -51,122 +51,152 @@ function swapProfitFees() external onlyOwner {
 
 ### On-Chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** — RouletteV2 [0xf573748637e0576387289f1914627d716927f90f](https://bscscan.com/address/0xf573748637e0576387289f1914627d716927f90f) (BSC)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0xf573748637e0576387289f1914627d716927f90f
 
 ```solidity
 // File: contracts/Roulette/RouletteV2.sol
-function initializeTokenBet(uint256 tokenId, Bet[] calldata bets) external nonReentrant {
-        require(!isVRFPending, 'VRF Pending');
 
-        Casino storage casinoInfo = tokenIdToCasino[tokenId];
-        require(casinoInfo.tokenAddress != address(0), "This casino doesn't support tokens");
+/**
+ * @dev retrieve nonce and spin the wheel, return reward if user wins
+ */
+function finishRound() external nonReentrant {  // ❌ no caller restriction — anyone can call
+    require(isVRFPending == true, 'VRF not requested');
 
-        IPRC20 token = IPRC20(casinoInfo.tokenAddress);
-        uint256 approvedAmount = token.allowance(msg.sender, address(this));
-        uint256 totalBetAmount = _getTotalBetAmount(bets);
-        uint256 maxReward = getMaximumReward(bets);
-        uint256 tokenPrice = isStable[casinoInfo.tokenAddress] ? 10 ** 18 : _getTokenUsdPrice(casinoInfo.tokenAddress);
-        uint256 totalUSDValue = (totalBetAmount * tokenPrice) / 10 ** token.decimals();
+    (bool fulfilled, uint256[] memory nonces) = IVRFv2Consumer(consumerAddress).getRequestStatus(requestId);
+    require(fulfilled == true, 'not yet fulfilled');
 
-        require(token.balanceOf(msg.sender) >= totalBetAmount, 'Not enough balance');
-        require(totalBetAmount <= approvedAmount, 'Not enough allowance');
-        require(maxReward <= casinoInfo.liquidity + totalBetAmount, 'Not enough liquidity');
-        require(totalUSDValue <= casinoInfo.maxBet * 10 ** 18, "Can't exceed max bet limit");
-        require(totalUSDValue >= casinoInfo.minBet * 10 ** 18, "Can't be lower than min bet limit");
+    uint256 length = currentBetCount;
+    uint256 linkPerRound = linkPerBet;
+    uint256 i;
 
-        token.transferFrom(msg.sender, address(this), totalBetAmount);
-        casinoInfo.liquidity -= (maxReward - totalBetAmount);
-        casinoInfo.locked += maxReward;
-
-        // linkSpent[tokenId] += linkPerBet;
-        _saveUserBetInfo(tokenId, bets, tokenPrice);
-        _updateRoundStatus();
-
-        emit InitializedBet(roundIds, tokenId, msg.sender, totalBetAmount);
-        emit LiquidityChanged(tokenId, msg.sender, casinoInfo.liquidity, casinoInfo.locked, false);
+    for (i = 0; i < length; ++i) {
+        BetInfo memory info = currentBets[i];
+        linkSpent[info.tokenId] += (linkPerRound / length);
+        _finishUserBet(info, nonces[0]);  // distributes rewards based on nonce from VRF
     }
 
-// ... (lines 450-493 omitted) ...
+    isVRFPending = false;
+    delete roundLiveTime;
+    delete currentBetCount;
+    emit RoundFinished(roundIds, nonces[0] % 38);
+}
 
-    function requestNonce() external {
-        require(!isVRFPending && roundLiveTime != 0 && block.timestamp > roundLiveTime + 120, 'Round not ended');
-        _requestVRF();
-    }
-    function isVRFFulfilled() public view returns (bool) {
-        (bool fulfilled, uint256[] memory nonces) = IVRFv2Consumer(consumerAddress).getRequestStatus(requestId);
-        return fulfilled;
-    }
+/**
+ * @dev swaps profit fees of casinos into BNBP
+ */
+function swapProfitFees() external {  // ❌ no caller restriction — anyone can trigger fee swap
+    IPancakeRouter02 router = IPancakeRouter02(pancakeRouterAddr);
+    address[] memory path = new address[](2);
+    uint256 totalBNBForGame;
+    uint256 totalBNBForLink;
+    uint256 length = casinoCount;
+    uint256 BNBPPool = 0;
 
-// ... (lines 503-507 omitted) ...
+    // Swap each casino's token profits to BNB
+    for (uint256 i = 1; i <= length; ++i) {
+        Casino memory casinoInfo = tokenIdToCasino[i];
+        IERC20 token = IERC20(casinoInfo.tokenAddress);
 
-    function finishRound() external nonReentrant {
-        require(isVRFPending == true, 'VRF not requested');
+        if (casinoInfo.liquidity == 0) continue;
 
-        (bool fulfilled, uint256[] memory nonces) = IVRFv2Consumer(consumerAddress).getRequestStatus(requestId);
-        require(fulfilled == true, 'not yet fulfilled');
-
-        uint256 length = currentBetCount;
-        uint256 linkPerRound = linkPerBet;
-        uint256 i;
-
-        for (i = 0; i < length; ++i) {
-            BetInfo memory info = currentBets[i];
-            linkSpent[info.tokenId] += (linkPerRound / length);
-            _finishUserBet(info, nonces[0]);
+        uint256 availableProfit = casinoInfo.profit < 0 ? 0 : uint256(casinoInfo.profit);
+        if (casinoInfo.liquidity < availableProfit) {
+            availableProfit = casinoInfo.liquidity;
         }
 
-        isVRFPending = false;
-        delete roundLiveTime;
-        delete currentBetCount;
-        emit RoundFinished(roundIds, nonces[0] % 38);
-    }
+        uint256 gameFee = (availableProfit * casinoInfo.fee) / 100;
+        uint256 amountForLinkFee = getTokenAmountForLink(casinoInfo.tokenAddress, linkSpent[i]);
+        _updateProfitInfo(i, uint256(gameFee), availableProfit);
+        casinoInfo.liquidity = tokenIdToCasino[i].liquidity;
 
-// ... (lines 529-532 omitted) ...
-
-    function _finishUserBet(BetInfo memory info, uint256 nonce) internal {
-        Casino storage casinoInfo = tokenIdToCasino[info.tokenId];
-        uint256 decimal = casinoInfo.tokenAddress == address(0) ? 18 : IPRC20(casinoInfo.tokenAddress).decimals();
-        uint256 totalReward = _spinWheel(info.bets, nonce % 38);
-        uint256 totalBetAmount = _getTotalBetAmount(info.bets);
-        uint256 maxReward = getMaximumReward(info.bets);
-        uint256 totalUSDValue = (totalBetAmount * info.tokenPrice) / 10 ** decimal;
-        uint256 totalRewardUSD = (totalReward * info.tokenPrice) / 10 ** decimal;
-
-        betIds++;
-        if (totalReward > 0) {
-            if (casinoInfo.tokenAddress != address(0)) {
-                IPRC20(casinoInfo.tokenAddress).transfer(info.player, totalReward);
+        if (gameFee < amountForLinkFee) {
+            if (casinoInfo.liquidity < (amountForLinkFee - gameFee)) {
+                amountForLinkFee = gameFee + casinoInfo.liquidity;
+                tokenIdToCasino[i].liquidity = 0;
             } else {
-                bool sent = payable(info.player).send(totalReward);
-                require(sent, 'send fail');
+                tokenIdToCasino[i].liquidity -= (amountForLinkFee - gameFee);
             }
+            gameFee = 0;
+        } else {
+            gameFee -= amountForLinkFee;
         }
-        casinoInfo.liquidity = casinoInfo.liquidity + maxReward - totalReward;
-        casinoInfo.locked -= maxReward;
-        casinoInfo.profit = casinoInfo.profit + int256(totalBetAmount) - int256(totalReward);
 
-        emit FinishedBet(
-            info.tokenId,
-            betIds,
-            roundIds,
-            info.player,
-            nonce % 38,
-            totalBetAmount,
-            totalReward,
-            totalUSDValue,
-            totalRewardUSD,
-            maxReward
+        _updateLinkConsumptionInfo(i, amountForLinkFee);
+
+        if (casinoInfo.tokenAddress == address(0)) {
+            totalBNBForGame += gameFee;
+            totalBNBForLink += amountForLinkFee;
+            continue;
+        }
+        if (casinoInfo.tokenAddress == BNBPAddress) {
+            BNBPPool += gameFee;
+            gameFee = 0;
+        }
+
+        path[0] = casinoInfo.tokenAddress;
+        path[1] = wbnbAddr;
+
+        if (gameFee + amountForLinkFee == 0) {
+            continue;
+        }
+        token.approve(address(router), gameFee + amountForLinkFee);
+        uint256[] memory swappedAmounts = router.swapExactTokensForETH(
+            gameFee + amountForLinkFee,
+            0,         // ❌ minOut = 0 — no slippage protection; attacker can manipulate price
+            path,
+            address(this),
+            block.timestamp
         );
-        emit LiquidityChanged(info.tokenId, info.player, casinoInfo.liquidity, casinoInfo.locked, true);
+        totalBNBForGame += (swappedAmounts[1] * gameFee) / (gameFee + amountForLinkFee);
+        totalBNBForLink += (swappedAmounts[1] * amountForLinkFee) / (gameFee + amountForLinkFee);
     }
 
-// ... (lines 569-641 omitted) ...
+    path[0] = wbnbAddr;
+    if (totalBNBForLink > 0) {
+        path[1] = linkTokenAddr;
+        // ❌ Swap BNB→LINK with minOut=0 at a price the attacker already manipulated
+        uint256 linkAmount = router.swapExactETHForTokens{ value: totalBNBForLink }(
+            0,   // ❌ no minimum output
+            path,
+            address(this),
+            block.timestamp
+        )[1];
 
-    function _updateLinkConsumptionInfo(uint256 tokenId, uint256 tokenAmount) internal {
-        uint256 linkOut = getLinkAmountForToken(tokenIdToCasino[tokenId].tokenAddress, tokenAmount);
-        if (linkOut > linkSpent[tokenId]) linkSpent[tokenId] = 0;
-        else linkSpent[tokenId] -= linkOut;
+        IERC20(linkTokenAddr).approve(pegSwapAddr, linkAmount);
+        PegSwap(pegSwapAddr).swap(linkAmount, linkTokenAddr, link677TokenAddr);
+        LinkTokenInterface(link677TokenAddr).transferAndCall(
+            coordinatorAddr,
+            linkAmount,
+            abi.encode(subscriptionId)
+        );
+        emit SuppliedLink(linkAmount);
     }
+
+    if (totalBNBForGame > 0) {
+        path[1] = BNBPAddress;
+        BNBPPool += router.swapExactETHForTokens{ value: totalBNBForGame }(0, path, address(this), block.timestamp)[1];
+    }
+
+    if (BNBPPool > 0) {
+        IERC20(BNBPAddress).approve(potAddress, BNBPPool);
+        IPotLottery(potAddress).addAdminTokenValue(BNBPPool);
+        emit SuppliedBNBP(BNBPPool);
+    }
+}
+```
+
+**Why it is exploitable (identified from verified source):**
+- `finishRound()` has `nonReentrant` but **no access control** — any EOA can trigger it once VRF is fulfilled, allowing an attacker to time the call after manipulating prices used inside `_finishUserBet()`.
+- `swapProfitFees()` has **no access control at all** and uses `minOut = 0` in every `swapExactTokensForETH` / `swapExactETHForTokens` call — the attacker flash-loans LINK to spike its price on PancakeSwap V2, then calls `swapProfitFees()` to force the contract to buy LINK at the manipulated price, causing the protocol to overpay and receive far less LINK than fair value.
+- The PoC flash-loans ~4.2 × 10²¹ LINK (wei), swaps a large portion for WBNB to inflate the LINK price, calls `finishRound()` + `swapProfitFees()`, then unwinds.
+
+```solidity
+// ✅ Fix:
+// 1. Add onlyOwner / onlyKeeper to both finishRound() and swapProfitFees()
+// 2. Replace minOut=0 with a TWAP-derived minimum:
+//    uint256 minOut = getTWAPMinOut(token, amount, slippageBps);
+//    router.swapExactTokensForETH(amount, minOut, path, address(this), block.timestamp);
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

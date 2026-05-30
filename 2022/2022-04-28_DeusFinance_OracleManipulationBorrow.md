@@ -66,15 +66,40 @@ contract TWAPOracle {
 
 ### On-Chain Original Code
 
-Source: Source unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The PoC (DeFiHackLabs) confirms the following interface for `DeiLenderSolidex` at `0x8D643d954798392403eeA19dB8108f595bB8B730` and `IOracle` at `0x8129026c585bCfA530445a6267f9389057761A00` on Fantom:
 
-**Vulnerable Function** — `getOnChainPrice()`:
 ```solidity
-// ❌ Root Cause: The collateral price oracle `getOnChainPrice()` directly consumed the Solidly AMM spot price, allowing an attacker to temporarily manipulate the price via a large swap and then borrow an excessive amount of DEI
-// Source code unverified — bytecode analysis required
-// Vulnerability: The collateral price oracle `getOnChainPrice()` directly consumed the Solidly AMM spot price, allowing an attacker to temporarily manipulate the price via a large swap and then borrow an excessive amount of DEI
+// Reconstructed from PoC interfaces — NOT verified source
+// Source: DeFiHackLabs PoC (https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-04/deus_exp.sol)
+
+interface IDeiLenderSolidex {
+    // ❌ addCollateral + borrow: collateral value computed from manipulable spot oracle
+    function addCollateral(address account, uint256 amount) external;
+    function borrow(address account, uint256 amount, uint256 deadline,
+                    uint256 sighash, bytes memory signature, SchnorrSign[] memory sigs) external returns (uint256);
+    function getOnChainPrice() external view returns (uint256); // ❌ returns Solidly AMM spot price
+}
+
+// ❌ Oracle returns instantaneous AMM spot price — manipulable via large swap in the same tx
+// Reconstructed behavior (not verified):
+// function getOnChainPrice() external view returns (uint256) {
+//     (uint reserveDEI, uint reserveUSDC,) = solidlyPair.getReserves(); // ❌ spot reserves
+//     return reserveUSDC * 1e18 / reserveDEI;  // ❌ no TWAP, no deviation guard
+// }
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `getOnChainPrice()` reads the Solidly AMM's instantaneous reserve ratio. An attacker who executes a large swap into the pool immediately before calling `borrow()` can set an arbitrary collateral price for the duration of that transaction.
+- The PoC shows the attacker swapped `12_000_000_000_000_000_000_000_000` USDC into the DEI/USDC pair (step 4), then called `addCollateral()` + `borrow()` while the pool price was at the manipulated level.
+- The borrow limit is computed from `getOnChainPrice()` output without any TWAP window, block-delay, or sanity check against a secondary oracle.
+
+```solidity
+// ✅ Fix: replace spot price with TWAP or Chainlink/Band oracle
+// function getOnChainPrice() external view returns (uint256) {
+//     return pair.observe(1800); // ✅ 30-minute TWAP
+// }
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

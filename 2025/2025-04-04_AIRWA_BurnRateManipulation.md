@@ -50,14 +50,57 @@ contract AIRWAToken {
 
 ### On-Chain Original Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+The AIRWA token (0x3Af7DA38C9F68dF9549Ce1980eEf4AC6B635223A, BSC) is not verified on Sourcify (chainid 56). BSCscan also shows no verified source. The following is reconstructed from the DeFiHackLabs PoC (`AIRWA_exp.sol`), which shows the exact attack sequence:
 
 ```solidity
-// File: AIRWA_decompiled.sol
-contract AIRWA {
-    function setBurnRate(uint256 a) external view returns (uint256) {  // ❌ Vulnerability
-        // TODO: Decompiled logic not implemented
+// RECONSTRUCTED — not verified source
+// AIRWA token contract — setBurnRate() with no access control
+
+interface IAIRWA is IERC20 {
+    function setBurnRate(uint256 _burnRate) external; // ❌ no access control — callable by anyone
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+
+// Attack sequence from AIRWA_exp.sol (verbatim interface calls):
+// 1. Swap 0.1 BNB → AIRWA via PancakeSwap (wBNB → BSC-USD → AIRWA path)
+// 2. IAIRWA(AIRWA).setBurnRate(980); // ❌ set burn rate to 980 (effectively 100%+)
+// 3. IAIRWA(AIRWA).transfer(CAKE_LP, 0); // triggers _transfer with 980% burn against LP reserves
+// 4. IAIRWA(AIRWA).setBurnRate(0); // reset burn rate
+// 5. Swap AIRWA → BNB to realize profit
+
+// Reconstructed _transfer logic (based on PoC behavior):
+contract AIRWAToken {
+    uint256 public burnRate; // ❌ no cap, no validation
+
+    function setBurnRate(uint256 _burnRate) external { // ❌ missing onlyOwner modifier
+        burnRate = _burnRate;
     }
+
+    function _transfer(address from, address to, uint256 amount) internal override {
+        uint256 burnAmount = amount * burnRate / 100;
+        if (burnAmount > 0 && to == CAKE_LP) {
+            _burn(from, burnAmount); // ❌ burns from sender on LP transfers
+        }
+        super._transfer(from, to, amount - burnAmount); // ❌ reduced amount arrives at LP
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `setBurnRate()` has no `onlyOwner` or any other access control — any address can call it and set any value.
+- By setting `burnRate = 980`, the attacker causes 980% (effectively all) of any transfer to the Cake LP to be burned from the sender's balance and/or the LP pool's reserves.
+- A `transfer(CAKE_LP, 0)` call with a 980% burn rate drains the LP pool's AIRWA reserve, spiking the AIRWA spot price.
+- The attacker then swaps their pre-purchased AIRWA back to BNB at the artificially elevated price, profiting ~56.73 BNB.
+
+```solidity
+// ✅ Fix: add onlyOwner and a maximum cap to setBurnRate()
+function setBurnRate(uint256 _burnRate) external onlyOwner { // ✅ only owner can change
+    require(_burnRate <= 10, "Burn rate too high"); // ✅ cap at 10% maximum
+    burnRate = _burnRate;
+    emit BurnRateChanged(_burnRate);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

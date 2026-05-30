@@ -49,33 +49,57 @@ function pancakeCall(address sender, uint256 amount0, uint256 amount1, bytes cal
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+Source: **not verified on Sourcify** — WXC Token `0x8087720EeeA59F9F04787065447D52150c09643E` (BSC, chainid 56)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0x8087720EeeA59F9F04787065447D52150c09643E
+(BSCscan also shows no verified source for this address.)
+
+Based on the PoC (`WXC_Token_exp.sol`) the attack works as follows: the attacker calls `Cake_LP.swap(amt0, 1, attacker, payload)` where `payload` is a crafted hex blob. PancakeSwap's swap function calls `pancakeCall(sender, amount0, amount1, data)` on the recipient (`attacker`). The WXC token contract itself, however, is a non-standard token that also implements a `pancakeCall`-like hook — the crafted payload instructs the WXC contract (via the pair's internal routing) to execute a transfer of its own token balance to the attacker. This is consistent with the decoded hex payload containing `a9059cbb` (the `transfer` selector) targeting the attacker's address with the full WXC supply.
+
+**Reconstructed vulnerable function** — WXC `pancakeCall` / token-transfer hook (from PoC, not verified source):
 
 ```solidity
-// File: WXC_decompiled.sol
-contract WXC {
-contract WXC {
+// Reconstructed from WXC_Token_exp.sol PoC — NOT verified source
 
-    // Selector: 0x616c6c20
-    function unknownFn_616c6c20() external  {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// ❌ pancakeCall (or equivalent callback): parses attacker-controlled `data` and executes token transfers
+function pancakeCall(
+    address sender,
+    uint256 amount0,
+    uint256 amount1,
+    bytes calldata data
+) external {
+    // ❌ No validation that msg.sender is the legitimate Cake_LP pair
+    // ❌ No validation that `sender` is this contract itself (self-initiated swap only)
+    // ❌ Decodes and executes arbitrary encoded commands from `data`
+    // The crafted payload encodes:
+    //   WBNB address + routing flags + transfer(attacker, 74963130190599057252979324 WXC)
+    _executePayload(data); // ❌ moves WXC tokens according to caller-supplied payload
+}
 
-    // Selector: 0x43000809
-    function unknownFn_43000809() external  {
-        // TODO: decompiled logic not implemented
-    }
+// Crafted hex payload decoded (from PoC):
+// hex"000000000014
+//     bb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c  <- WBNB address
+//     03 00000006 000000000000cf38 00000044
+//     a9059cbb                                  <- transfer(address,uint256) selector
+//     000000000000000000000000da5c7ea4458ee9c5484fa00f2b8c933393bac965  <- attacker address
+//     000000000000000000000002aa17e09796730000  <- large WXC amount
+//     000000000000000000000000006f0ae91d"       <- deadline / trailing param
+```
 
-    // Selector: 0x74000000
-    function unknownFn_74000000() external  {
-        // TODO: decompiled logic not implemented
-    }
+**Why it is exploitable (identify the bug from the code):**
+- The WXC token contract implements a `pancakeCall` (swap callback) function that processes the `data` parameter as executable commands.
+- Because there is no check that `msg.sender == trustedPair` and no check that `sender == address(this)`, any party can trigger this callback with an arbitrary payload by calling `Cake_LP.swap(..., attacker, crafted_data)`.
+- The crafted `data` embeds a `transfer` call that moves the WXC contract's own token balance (74.96 trillion WXC) to the attacker.
+- The attacker then swaps those WXC tokens for 37.5 WBNB via PancakeRouter.
 
-    // Selector: 0x6f6e7472
-    function unknownFn_6f6e7472() external  {
-        // TODO: decompiled logic not implemented
-    }
-
+```solidity
+// ✅ Fix: validate caller and initiator inside the callback
+function pancakeCall(address sender, uint256 amount0, uint256 amount1, bytes calldata data) external {
+    require(msg.sender == address(Cake_LP), "pancakeCall: unauthorized pair");
+    require(sender == address(this), "pancakeCall: not self-initiated");
+    // Only execute hard-coded repayment logic — never forward arbitrary data
+    _repayFlashSwap(amount0, amount1);
 }
 ```
 

@@ -81,16 +81,49 @@ contract SafeZoomSwap {
 
 ### On-Chain Source Code
 
-Source: Source unconfirmed
+> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The following is reconstructed from the DeFiHackLabs PoC interface stubs and on-chain transaction analysis. The Swap contract at `0x5a9846062524631C01ec11684539623DAb1Fae58` and the BatchToken contract at `0x47391071824569F29381DFEaf2f1b47A4004933B` are not verified on Sourcify.
 
-**Vulnerable Function** — `buy()`:
+**Reconstructed: `batchToken()` — No Access Control on Reserve Injection**
 ```solidity
-// ❌ Root cause: The protocol trusted a fake USDT/ZOOM pair as a price oracle, using it as the pricing reference for `buy()`/`sell()`
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: The protocol trusted a fake USDT/ZOOM pair as a price oracle, using it as the pricing reference for `buy()`/`sell()`
+// RECONSTRUCTED — not verified source; derived from PoC call trace
+// ❌ BatchToken contract: 0x47391071824569F29381DFEaf2f1b47A4004933B
+function batchToken(
+    address[] calldata _addr,
+    uint256[] calldata _num,
+    address token
+) external {
+    // ❌ No onlyOwner or access control — any caller can invoke
+    // ❌ Mints or transfers FakeUSDT directly into a Uniswap-style pair address
+    // After this call, the pair's real reserve is not updated — sync() must be called
+    for (uint i = 0; i < _addr.length; i++) {
+        IERC20(token).transfer(_addr[i], _num[i]); // ❌ transfers fake token to pair
+    }
+}
 ```
+
+**Reconstructed: `buy()` — Reads Spot Price from Manipulable Fake Pair**
+```solidity
+// RECONSTRUCTED — not verified source; derived from PoC interface and transaction trace
+// ❌ Swap contract: 0x5a9846062524631C01ec11684539623DAb1Fae58
+function buy(uint256 usdtAmount) external {
+    // ❌ Reads reserve ratio from FakeUSDT/ZOOM pair (0x1c7ecBfc...)
+    // This pair's reserves can be inflated by anyone via batchToken() + sync()
+    (uint112 r0, uint112 r1,) = IUniPair(fakeOracle).getReserves();
+    // r0 = FakeUSDT (inflated by attacker), r1 = ZOOM
+    uint256 zoomOut = uint256(usdtAmount) * uint256(r1) / uint256(r0);
+    // ❌ When r0 is inflated, zoomOut is deflated → attacker pays tiny USDT for large ZOOM
+    ZOOM.transfer(msg.sender, zoomOut);
+    USDT.transferFrom(msg.sender, address(this), usdtAmount);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `batchToken()` has no access control, allowing any caller to inject large quantities of FakeUSDT directly into the pair contract's token balance without going through `addLiquidity()`.
+- After injecting FakeUSDT and calling `sync()`, the pair records an inflated `r0` (FakeUSDT reserve). The `buy()` function reads `r0` and `r1` to compute `zoomOut = usdtAmount * r1 / r0` — so a larger `r0` means fewer ZOOM per USDT paid, but the attacker buys after the injection suppresses the computed cost.
+- Concretely: attacker inflates `r0` (makes ZOOM appear cheap in USDT terms), then calls `buy()` with real USDT and receives far more ZOOM than the fair ratio would allow, then calls `sell()` at the un-manipulated ratio for profit.
 
 ## 3. Attack Flow (ASCII Diagram)
 

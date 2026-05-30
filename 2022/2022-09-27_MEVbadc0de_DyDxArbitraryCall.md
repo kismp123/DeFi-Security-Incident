@@ -73,17 +73,78 @@ function callFunction(
 ```
 
 
-### On-chain Original Code
+### On-Chain Source Code
 
-Source: Unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable.
+> `0xbaDc0dEfAfCF6d4239BDF0b66da4D7Bd36fCF05A` returns HTTP 404 on Sourcify (Ethereum chain ID 1).
+> The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
+The dYdX SoloMargin contract (`0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e`) **is** a well-known open-source contract. Its `operate()` function executes `ActionType.Call` by forwarding arbitrary calldata to any target address:
 
-**Vulnerable Function** — `operate()`:
 ```solidity
-// ❌ Root cause: arbitrary calldata can be passed to the MEV Bot via the Call action in dYdX `operate()`
-// Source code unverified — bytecode analysis required
-// Vulnerability: arbitrary calldata can be passed to the MEV Bot via the Call action in dYdX `operate()`
+// dYdX SoloMargin — operate() (open-source, deployed 2019, not Sourcify-verified)
+// Source: https://github.com/dydxprotocol/solo
+function operate(
+    Account.Info[] memory accounts,
+    Actions.ActionArgs[] memory actions
+) public nonReentrant {
+    // ... account validation omitted ...
+    for (uint256 i = 0; i < actions.length; i++) {
+        Actions.ActionArgs memory action = actions[i];
+        if (action.actionType == Actions.ActionType.Call) {
+            // ❌ Calls callFunction() on ANY address with ANY bytes payload
+            //    The attacker sets otherAddress = MEVBot,
+            //    data = abi.encode(WETH.approve.selector, attacker, type(uint256).max)
+            ICallee(action.otherAddress).callFunction(
+                msg.sender,
+                accounts[action.accountId],
+                action.data          // ❌ fully attacker-controlled bytes
+            );
+        }
+        // ... other action types omitted ...
+    }
+}
+```
+
+The MEV Bot's `callFunction` implementation (reconstructed from on-chain traces and PoC behavior):
+
+```solidity
+// MEV Bot 0xbaDc0dE — callFunction (RECONSTRUCTED from PoC + traces, NOT verified source)
+function callFunction(
+    address sender,
+    Account.Info memory account,
+    bytes memory data
+) external {
+    // ❌ No check that msg.sender == dYdX SoloMargin
+    // ❌ No check that sender == address(this) (self-initiated)
+    // ❌ No selector whitelist on `data`
+    // Executes arbitrary calldata against WETH:
+    //   data = abi.encodeWithSelector(IERC20.approve.selector, attacker, type(uint256).max)
+    (bool success,) = address(WETH).call(data); // ❌ approves attacker for all WETH
+    require(success);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `SoloMargin.operate()` accepts `ActionType.Call` with a fully attacker-controlled `otherAddress` and `data` — the protocol was designed this way to support flash-loan callbacks, but it makes every `ICallee` implementor a potential target.
+- The MEV Bot's `callFunction` does not validate `msg.sender` (should be SoloMargin only), `sender` (should be `address(this)` to prevent third-party-initiated calls), or the contents of `data` (should whitelist safe selectors).
+- Result: attacker calls `SoloMargin.operate([account], [Call{otherAddress=MEVBot, data=approve(attacker,MAX)}])`, which triggers `MEVBot.callFunction(...)`, which executes `WETH.approve(attacker, MAX)`. One block later the attacker drains 1,101.65 WETH via `transferFrom`.
+
+```solidity
+// ✅ Fix: validate caller, initiator, and data selector
+address constant SOLO_MARGIN = 0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e;
+
+function callFunction(
+    address sender,
+    Account.Info memory account,
+    bytes memory data
+) external {
+    require(msg.sender == SOLO_MARGIN, "Only dYdX");       // ✅ trusted caller
+    require(sender == address(this), "Only self-initiated"); // ✅ self-triggered only
+    bytes4 selector = bytes4(data);
+    require(allowedSelectors[selector], "Disallowed fn");  // ✅ whitelist
+    // safe arbitrage logic follows
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

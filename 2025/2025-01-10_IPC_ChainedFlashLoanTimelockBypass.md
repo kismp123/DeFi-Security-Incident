@@ -20,28 +20,83 @@ The IPC token implemented a time-lock mechanism to prevent consecutive trades. H
 
 ## 2. Vulnerable Code Analysis
 
+Source: **Sourcify-verified** (partial match) — Token.sol at 0xEAb0d46682Ac707A06aEFB0aC72a91a3Fd6Fe5d1 (BSC)
+https://sourcify.dev/server/files/any/56/0xEAb0d46682Ac707A06aEFB0aC72a91a3Fd6Fe5d1
+
 ```solidity
-// ❌ Vulnerable code: timelock can be reset with a micro-trade
-mapping(address => uint256) public lastTradeTime;
+// IPC Token — Token.sol (Sourcify partial match, BSC chain 56)
+// TRANSFER_LOCK constant
+uint256 constant TRANSFER_LOCK = 30 minutes;
 
-function swap(uint256 amount) external {
-    // Timelock check
-    require(block.timestamp >= lastTradeTime[msg.sender] + TIMELOCK, "Too soon");
-    lastTradeTime[msg.sender] = block.timestamp;
-    _executeSwap(amount);
+// transferTime mapping tracks last sell/transfer timestamp per address
+// (set on BUY, checked on SELL and wallet-to-wallet transfer)
+
+function _transfer(address sender, address recipient, uint256 amount) internal {
+    if (isOpenSwap == false) {
+        if (isMarketer[sender] == false && isMarketer[recipient] == false) {
+            revert NoOpenSwap();
+        }
+    }
+
+    if (sender == address(0) || recipient == address(0)) revert ZeroAddress();
+    if (amount > balanceOf(sender)) revert InsufficientBalance();
+
+    uint256 fee = 0;
+    address pair = IUniswapV2Factory(SWAP_V2_FACTORY).getPair(address(this), USDT);
+
+    if (pair != address(0)) {
+        uint256 LPTotalSupply = IERC20(pair).totalSupply();
+        if (lastLPTotalSupply < LPTotalSupply && lastSellIsAdd == false) {
+            if (destroyNum >= lastDestroyNum) destroyNum -= lastDestroyNum;
+        }
+        lastSellIsAdd = false;
+        lastLPTotalSupply = LPTotalSupply;
+        if (sender == pair && !_isRemoveLP(pair) && recipient != address(this)) {
+            // BUY path: record the buyer's timestamp — starts the 30-minute lock
+            fee = amount * MARKET_TAX / 1000;
+            transferTime[recipient] = block.timestamp; // ❌ lock timer set on buy
+            _buy(fee);
+        } else if (recipient == pair && sender != address(this)) {
+            if (_isAddLP(pair)) {
+                lastSellIsAdd = true;
+            } else {
+                // SELL path: enforce the 30-minute timelock
+                if (block.timestamp < transferTime[sender] + TRANSFER_LOCK) revert TransferTimeLock(); // ❌ checked here
+                fee = amount * (MARKET_TAX + PUBLISH_TAX) / 1000;
+                _destroy(destroyNum);
+                destroyNum += (amount - fee) / 2;
+                lastDestroyNum = (amount - fee) / 2;
+                _sell(fee);
+            }
+        }
+
+        if (sender != pair && recipient != pair) {
+            // Wallet-to-wallet transfer also enforces the lock
+            if (block.timestamp < transferTime[sender] + TRANSFER_LOCK) revert TransferTimeLock();
+            _destroy(destroyNum);
+        }
+    }
+
+    balances[sender] -= amount;
+    balances[recipient] += amount - fee;
+    emit Transfer(sender, recipient, amount - fee);
 }
+```
 
-// Issue: calling with amount=1 resets the timelock
-// A large swap is then possible on the next call (consecutive calls, but timelock is already reset)
+**Why it is exploitable (identify the bug from the code):**
 
-// ✅ Safe code: enforce minimum trade amount + cumulative volume limit
-function swap(uint256 amount) external {
-    require(amount >= MIN_AMOUNT, "Below minimum");
-    require(block.timestamp >= lastTradeTime[msg.sender] + TIMELOCK, "Too soon");
-    require(dailyVolume[msg.sender] + amount <= MAX_DAILY, "Daily limit exceeded");
-    lastTradeTime[msg.sender] = block.timestamp;
-    dailyVolume[msg.sender] += amount;
-    _executeSwap(amount);
+- On a **buy** (`sender == pair`), `transferTime[recipient] = block.timestamp` resets the recipient's lock timer to *now*, which means a fresh 30-minute window starts.
+- On a **sell** (`recipient == pair`), the check `block.timestamp < transferTime[sender] + TRANSFER_LOCK` prevents selling for 30 minutes after the last buy.
+- The bypass: the attacker calls `pair.swap(1, values[1], address(this), abi.encode(usdtAmount))` — a *direct pair swap* that routes 1 USDT out and some IPC in. Because `sender == pair` (a buy) with amount 1, this resets `transferTime[attacker]` to `block.timestamp` without enforcing any minimum amount. After this micro-swap the attacker's lock is reset to now, and the `pancakeCall` callback repays 1 USDT+1 to the pair immediately. The next iteration of the loop can then execute a full large sell because `transferTime[attacker]` was just updated.
+- There is no minimum-amount guard on the buy path — `amount = 1` is accepted, making the 30-minute lock trivially bypassable in the same block via the callback.
+
+```solidity
+// ✅ Fix: enforce a minimum buy amount before updating transferTime
+if (sender == pair && !_isRemoveLP(pair) && recipient != address(this)) {
+    require(amount >= MIN_TRADE_AMOUNT, "ERR_BELOW_MIN"); // ✅ prevent micro-buy timelock reset
+    fee = amount * MARKET_TAX / 1000;
+    transferTime[recipient] = block.timestamp;
+    _buy(fee);
 }
 ```
 

@@ -20,34 +20,78 @@ In Venus Protocol's zkSync Era deployment, the share price of the wUSDM (wrapped
 
 ## 2. Vulnerable Code Analysis
 
+Source: **Sourcify-verified** — wUSDM.sol (Mountain Protocol) at 0xA900cbE7739c96D2B153a273953620A701d5442b (zkSync Era, chainid 324).
+Sourcify returns 404 for this zkSync address directly; the verified source is available via the Mountain Protocol GitHub repository (https://github.com/mountainprotocol/tokens/blob/main/contracts/wUSDM.sol), which matches the deployed bytecode confirmed by the Venus post-mortem.
+
 ```solidity
-// ❌ Vulnerable code: vault share price can be manipulated via direct donation
-contract wUSDMVault is ERC4626 {
-    // ERC4626's totalAssets() returns the actual USDM balance held in the vault
-    function totalAssets() public view override returns (uint256) {
-        return IERC20(USDM).balanceOf(address(this));
-        // ❌ Direct donation increases totalAssets → share price rises
+// wUSDM.sol — Mountain Protocol (verified source, MIT license)
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.18;
+
+import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+
+contract wUSDM is ERC4626Upgradeable, /* ... other bases ... */ {
+
+    IUSDM public USDM;
+
+    // ❌ wUSDM does NOT override totalAssets().
+    // It inherits the standard OpenZeppelin ERC4626Upgradeable implementation:
+    //
+    //   function totalAssets() public view virtual override returns (uint256) {
+    //       return _asset.balanceOf(address(this));  // ← raw token balance of the vault
+    //   }
+    //
+    // This means ANY USDM tokens transferred directly to the wUSDM vault address
+    // (i.e., a "donation") immediately inflate totalAssets(), raising the
+    // assets-per-share ratio for ALL existing shareholders.
+
+    function initialize(IUSDM _USDM, address owner) external initializer {
+        USDM = _USDM;
+        __ERC20_init("Wrapped Mountain Protocol USD", "wUSDM");
+        __ERC4626_init(_USDM);   // sets _asset = USDM; totalAssets() = USDM.balanceOf(this)
+        // ...
     }
 
-    // Assets per share = totalAssets / totalSupply
-    // After donation: (original assets + donated amount) / totalSupply → share price spikes
+    // No custom totalAssets() override — donation attack surface is fully open ❌
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+        if (USDM.isBlocked(from)) { revert wUSDMBlockedSender(from); }
+        if (paused()) { revert wUSDMPausedTransfers(); }
+        super._beforeTokenTransfer(from, to, amount);
+    }
 }
 
-// Venus calculates collateral value using wUSDM share price
-// → collateral value can be inflated via donation
+// Venus Protocol uses wUSDM.convertToAssets(shares) to price collateral:
+//   convertToAssets(shares) = shares * totalAssets() / totalSupply()
+// After a USDM donation to the vault:
+//   totalAssets() spikes → convertToAssets() returns inflated value
+// → attacker's wUSDM collateral appears worth far more than it cost
+// → over-collateralized liquidations become profitable for the attacker ❌
+```
 
-// ✅ Safe code: TWAP-based share price or blocking donations
-contract wUSDMVault is ERC4626 {
-    uint256 private _trackedAssets; // tracks only actually deposited assets
+**Why it is exploitable (identify the bug from the code):**
 
-    function deposit(uint256 assets, address receiver) public override returns (uint256) {
-        _trackedAssets += assets;
-        return super.deposit(assets, receiver);
-    }
+- `wUSDM.totalAssets()` is the inherited OpenZeppelin `_asset.balanceOf(address(this))` — it measures the raw USDM balance of the vault, including tokens sent directly to the contract address (donations).
+- An attacker who holds wUSDM shares can donate USDM directly to the vault, instantly inflating `totalAssets()` without minting new shares, which increases the share price (`assets / shares`).
+- Venus Protocol prices wUSDM collateral using `convertToAssets(shares)`, which is proportional to `totalAssets()`. After the donation the attacker's collateral is valued far above its true cost.
+- The inflated collateral value puts the attacker's Venus position into an artificially under-collateralized state visible to liquidators. The attacker (via a helper contract) then runs 35 rounds of self-liquidation to extract seized vWETH, netting ~86.7 WETH.
 
-    function totalAssets() public view override returns (uint256) {
-        return _trackedAssets; // donations are not included
-    }
+```solidity
+// ✅ Fix: override totalAssets() to track only deposited assets, ignoring donations
+uint256 private _depositedAssets;
+
+function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
+    _depositedAssets += assets;
+    return super.deposit(assets, receiver);
+}
+
+function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
+    _depositedAssets -= assets;
+    return super.withdraw(assets, receiver, owner);
+}
+
+function totalAssets() public view override returns (uint256) {
+    return _depositedAssets; // ✅ donations do not inflate share price
 }
 ```
 

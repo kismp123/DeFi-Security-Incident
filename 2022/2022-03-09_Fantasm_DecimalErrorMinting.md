@@ -65,15 +65,47 @@ function mint(uint256 fsmAmount, uint256 minXftm) external {
 
 ### On-Chain Original Code
 
-Source: Source unconfirmed
+Source: **not verified on Sourcify** — Pool [0x880672AB1d46D987E5d663Fc7476CD8df3C9f937](https://ftmscan.com/address/0x880672AB1d46D987E5d663Fc7476CD8df3C9f937) (Fantom)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-**Vulnerable function** — `mint()`:
+The PoC (DeFiHackLabs `Fantasm_exp.sol`) calls two functions on the Pool contract: `mint(uint256 fsmAmount, uint256 minXftm)` and `collect()`. The `mint()` function takes FSM tokens from the caller and queues an xFTM output amount (`pendingRewards`), which is then withdrawn via `collect()`. The decimal scaling error occurs in the computation of the xFTM output — the price ratio is applied without correctly accounting for both tokens' 18-decimal representation, causing the output to be inflated by up to 1e18× per unit of FSM input.
+
 ```solidity
-// ❌ Root cause: decimal scaling error in the xFTM output calculation of mint() causes far more xFTM to be minted than intended per 1 FSM input
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: decimal scaling error in the xFTM output calculation of mint() causes far more xFTM to be minted than intended per 1 FSM input
+// Reconstructed from PoC — NOT verified source
+// Pool: 0x880672AB1d46D987E5d663Fc7476CD8df3C9f937 (Fantom)
+
+interface IPool {
+    // ❌ mint() queues over-minted xFTM in pendingRewards
+    function mint(uint256 fsmAmount, uint256 minXftm) external;
+    // ❌ collect() pays out the inflated pendingRewards balance
+    function collect() external;
+}
+
+// Attack sequence (from PoC at block 32,971,742):
+//   FSM token:  0xaa621D2002b5a6275EF62d7a065A865167914801
+//   xFTM token: 0xfBD2945D3601f21540DDD85c29C5C3CaF108B96F
+//
+// pool.mint(100e18, 1)
+//   → pendingRewards[attacker] += _xftmOut
+//   ❌ _xftmOut = (fsmAmount * priceRatio) / PRICE_PRECISION
+//      where PRICE_PRECISION is missing a factor of 1e18,
+//      so _xftmOut ≈ fsmAmount * priceRatio (18-decimal inflation)
+//
+// vm.roll(block.number + 1)
+// pool.collect()
+//   → xFTM.transfer(attacker, pendingRewards[attacker])   // receives ~1e18× too much
+```
+
+**Why it is exploitable (reconstructed from PoC and on-chain behavior):**
+- `mint()` converts an FSM input amount to an xFTM output amount using a price ratio, but the precision divisor is incorrect (or absent), causing the result to carry an extra 1e18 scale factor.
+- The inflated amount is stored in `pendingRewards[msg.sender]` and paid out unconditionally by `collect()`.
+- No output cap or sanity check existed to detect that the queued xFTM far exceeded the pool's actual xFTM reserve.
+
+```solidity
+// ✅ Fix: use a consistent 1e18 precision divisor
+// uint256 _xftmOut = (fsmAmount * priceRatio) / 1e18;
+// require(_xftmOut <= xFTM.balanceOf(address(this)), "Exceeds reserve");
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

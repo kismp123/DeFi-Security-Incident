@@ -50,40 +50,48 @@ function withdraw(uint256 amount) external {
 
 ### On-Chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** — contracts/sorraStaking.sol / 0x5d16b8Ba2a9a4ECA6126635a6FFbF05b52727d50 (Ethereum)
+https://sourcify.dev/server/files/any/1/0x5d16b8Ba2a9a4ECA6126635a6FFbF05b52727d50
 
 ```solidity
-// File: contracts/sorraStaking.sol
-function setDepositingEnabled(bool _enabled) external onlyOwner {
-    depositingEnabled = _enabled;
-    emit DepositingStatusChanged(_enabled);
-  }
-function deposit(uint256 _amount, uint8 _tier) external nonReentrant depositsEnabled {
-    require(_amount > 0, "Amount must be greater than 0");
-    require(_tier < vestingTiers.length, "Invalid tier");
-    require(totalDeposits + _amount <= MAX_POOL_CAP, "Pool cap reached");
-    
-    IERC20(rewardToken).safeTransferFrom(_msgSender(), address(this), _amount);
-    _updatePosition(_msgSender(), _amount, false, _tier);
+// State variables relevant to the exploit
+struct Deposit {
+    uint256 amount;       // remaining token amount in this deposit slot
+    uint256 depositTime;  // timestamp when deposit was made
+    uint8 tier;
+    uint256 rewardBps;    // reward rate in basis points
 }
+
+struct Position {
+    Deposit[] deposits;
+    uint256 totalAmount;
+}
+
+mapping(address => Position) public positions;
+mapping(address => uint256) public userRewardsDistributed; // tracks paid rewards
+
+// -------------------------------------------------------------------------
+
 function withdraw(uint256 _amount) external nonReentrant {
     require(_amount > 0, "Amount must be greater than 0");
     Position storage position = positions[_msgSender()];
     require(_amount <= position.totalAmount, "Insufficient balance");
-    
+
     uint256 withdrawableAmount = 0;
-    for(uint256 i = 0; i < position.deposits.length; i++) {
+    for (uint256 i = 0; i < position.deposits.length; i++) {
         Deposit memory dep = position.deposits[i];
-        if(block.timestamp > dep.depositTime + vestingTiers[dep.tier].period) {
+        if (block.timestamp > dep.depositTime + vestingTiers[dep.tier].period) {
             withdrawableAmount += dep.amount;
         }
     }
     require(withdrawableAmount >= _amount, "Lock period not finished");
-    
-    uint256 rewardAmount = getPendingRewards(_msgSender());
-    
+
+    uint256 rewardAmount = getPendingRewards(_msgSender()); // ❌ always returns FULL reward
+
     _updatePosition(_msgSender(), _amount, true, position.deposits[0].tier);
-    
+    // ❌ _decreasePosition subtracts only _amount from dep.amount,
+    //    but does NOT record that the reward was already paid for the remaining balance.
+
     if (rewardAmount > 0) {
         userRewardsDistributed[_msgSender()] += rewardAmount;
         totalRewardsDistributed += rewardAmount;
@@ -94,67 +102,53 @@ function withdraw(uint256 _amount) external nonReentrant {
     }
 }
 
-// ... (lines 131-212 omitted) ...
-
 function getPendingRewards(address wallet) public view returns (uint256) {
     if (positions[wallet].totalAmount == 0) {
         return 0;
     }
     return _calculateRewards(positions[wallet].totalAmount, wallet);
+    // ❌ returns _calculateRewards result; does NOT subtract userRewardsDistributed[wallet]
 }
-  function _calculateRewards(uint256 /* unusedParam */, address wallet) internal view returns (uint256) {
-    Position storage pos = positions[wallet];  // Use storage instead of memory
-    uint256 length = pos.deposits.length;     // Cache array length
+
+function _calculateRewards(uint256 /* unusedParam */, address wallet) internal view returns (uint256) {
+    Position storage pos = positions[wallet];
+    uint256 length = pos.deposits.length;
     if (length == 0) return 0;
 
     uint256 totalRewards = 0;
-    uint256 currentTime = block.timestamp;    // Cache timestamp
-    
+    uint256 currentTime = block.timestamp;
+
     for (uint256 i = 0; i < length; i++) {
-        Deposit storage dep = pos.deposits[i]; // Direct storage access
-        uint256 timeElapsed = currentTime - dep.depositTime;
+        Deposit storage dep = pos.deposits[i];
+        uint256 timeElapsed = currentTime - dep.depositTime; // ❌ always from original depositTime
         uint256 vestingTime = vestingTiers[dep.tier].period;
 
         if (timeElapsed >= vestingTime) {
-            uint256 rewardAmount = (dep.amount * dep.rewardBps) / 10000;
+            uint256 rewardAmount = (dep.amount * dep.rewardBps) / 10000; // ❌ full reward on remaining amount
             totalRewards += rewardAmount;
         }
     }
 
     return totalRewards;
-  }
-  function setVaultExtension(IPoolExtension _extension) external onlyOwner {
-    vaultExtension = _extension;
-  }
-  function emergencyWithdraw(uint256 _amount) external onlyOwner {
-    require(_amount == 0 || _amount > 0, "Invalid amount");
-    IERC20 _token = IERC20(rewardToken);
-    uint256 withdrawAmount = _amount == 0 ? _token.balanceOf(address(this)) : _amount;
-    require(withdrawAmount > 0, "Nothing to withdraw");
-    _token.safeTransfer(_msgSender(), withdrawAmount);
-  }
-  function setTierReward(uint8 _tier, uint256 _newRewardBps) external onlyOwner {
-    require(_tier < vestingTiers.length, "Invalid tier");
-    require(_newRewardBps <= 10000, "Reward too high"); // Max 100%
-    
-    uint256 oldBps = vestingTiers[_tier].rewardBps;
-    vestingTiers[_tier].rewardBps = _newRewardBps;
-    
-    emit RewardBpsUpdated(_tier, oldBps, _newRewardBps);
-  }
-  function getUserDeposits(address _user) external view returns (Deposit[] memory) {
-    return positions[_user].deposits;
-  }
-  function getRemainingPoolSpace() external view returns (uint256) {
-    if (totalDeposits >= MAX_POOL_CAP) return 0;
-    return MAX_POOL_CAP - totalDeposits;
-  }
-  function setPoolCap(uint256 _newCap) external onlyOwner {
-    require(_newCap >= totalDeposits, "New cap below current deposits");
-    uint256 oldCap = MAX_POOL_CAP;
-    MAX_POOL_CAP = _newCap;
-    emit PoolCapUpdated(oldCap, _newCap);
-  }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `_calculateRewards` computes a flat reward as `dep.amount * dep.rewardBps / 10000` — it is a one-time bonus, not a rate-per-second formula. The function does not track whether this reward was already distributed.
+- `getPendingRewards` returns `_calculateRewards(...)` **without subtracting** `userRewardsDistributed[wallet]`. So each call returns the same gross reward regardless of how many times it has already been paid out.
+- `withdraw(1)` deducts only 1 token unit from `dep.amount` via `_decreasePosition`. On the next call, `dep.amount` is almost unchanged, so `_calculateRewards` returns nearly the same large reward again.
+- An attacker who deposited a large balance (e.g. 122 billion SOR) and waited for the vesting period to elapse can call `withdraw(1)` hundreds of times, collecting the full reward amount on each call because neither the reward calculation nor the pending-rewards query accounts for previously paid rewards.
+
+```solidity
+// ✅ Fix: subtract already-distributed rewards from getPendingRewards
+function getPendingRewards(address wallet) public view returns (uint256) {
+    if (positions[wallet].totalAmount == 0) return 0;
+    uint256 gross = _calculateRewards(positions[wallet].totalAmount, wallet);
+    // ✅ never pay more than what has not yet been distributed
+    if (gross <= userRewardsDistributed[wallet]) return 0;
+    return gross - userRewardsDistributed[wallet];
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

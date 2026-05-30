@@ -8,7 +8,7 @@ Exploits that leverage predictable or manipulable on-chain randomness — blockh
 
 | Date | Protocol | Vulnerability Type | Report |
 |------|----------|--------------------|--------|
-| 2022-08 | LuckyTiger | WeakRandomness | [2022-08_LuckyTiger_WeakRandomness.md](../2022/2022-08_LuckyTiger_WeakRandomness.md) |
+| 2022-08-24 | LuckyTiger | WeakRandomness | [2022-08-24_LuckyTiger_WeakRandomness.md](../2022/2022-08-24_LuckyTiger_WeakRandomness.md) |
 | 2024-05-XX | RedKeysCoin | PredictableRNG | [2024-05-XX_RedKeysCoin_PredictableRNG.md](../2024/2024-05-XX_RedKeysCoin_PredictableRNG.md) |
 | 2025-01-13 | JPulsepot | ProfitFeeSwapManipulation | [2025-01-13_JPulsepot_ProfitFeeSwapManipulation.md](../2025/2025-01-13_JPulsepot_ProfitFeeSwapManipulation.md) |
 | 2025-01-14 | RoulettePotV2 | RoundFinishManipulation | [2025-01-14_RoulettePotV2_RoundFinishManipulation.md](../2025/2025-01-14_RoulettePotV2_RoundFinishManipulation.md) |

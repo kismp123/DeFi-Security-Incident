@@ -64,15 +64,87 @@ function liquidationCall(...) external nonReentrant {
 
 ### On-Chain Original Code
 
-Source: Source unverified
+Source: **Sourcify-verified** — LendingPoolCollateralManager / 0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c (Gnosis Chain)
+Sourcify URL: https://sourcify.dev/server/files/any/100/0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
+The Agave LendingPool proxy (0x207E9def17B4bd1045F5Af2C651c081F9FDb0842) delegates `liquidationCall` to the `LendingPoolCollateralManager` via `delegatecall`. That collateral manager contract is Sourcify-verified at 0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c. The vulnerable section is the `aToken.burn()` call, which triggers the ERC677 `onTokenTransfer` callback **before** the user's health factor is updated in storage:
 
-**Vulnerable Function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: Reentrancy via the `onTokenTransfer` callback of Gnosis Chain bridge tokens (ERC677), enabling additional borrows before the health factor is updated
-// Source code unverified — bytecode analysis required
-// Vulnerability: Reentrancy via the `onTokenTransfer` callback of Gnosis Chain bridge tokens (ERC677), enabling additional borrows before the health factor is updated
+function liquidationCall(
+    address collateralAsset,
+    address debtAsset,
+    address user,
+    uint256 debtToCover,
+    bool receiveAToken
+) external override returns (uint256, string memory) {
+    DataTypes.ReserveData storage collateralReserve = _reserves[collateralAsset];
+    DataTypes.ReserveData storage debtReserve = _reserves[debtAsset];
+    DataTypes.UserConfigurationMap storage userConfig = _usersConfig[user];
+    LiquidationCallLocalVars memory vars;
+
+    (, , , , vars.healthFactor) = GenericLogic.calculateUserAccountData(
+        user, _reserves, userConfig, _reservesList, _reservesCount,
+        _addressesProvider.getPriceOracle()
+    );
+    // ... debt validation and amount calculations omitted for brevity ...
+
+    debtReserve.updateState(); // ← debt state updated first
+
+    // Debt tokens burned (variable / stable):
+    if (vars.userVariableDebt >= vars.actualDebtToLiquidate) {
+        IVariableDebtToken(debtReserve.variableDebtTokenAddress).burn(
+            user, vars.actualDebtToLiquidate, debtReserve.variableBorrowIndex
+        );
+    } else {
+        // ... stable debt burn ...
+    }
+
+    debtReserve.updateInterestRates(debtAsset, debtReserve.aTokenAddress, vars.actualDebtToLiquidate, 0);
+
+    if (receiveAToken) {
+        vars.collateralAtoken.transferOnLiquidation(user, msg.sender, vars.maxCollateralToLiquidate);
+    } else {
+        collateralReserve.updateState();
+        collateralReserve.updateInterestRates(
+            collateralAsset, address(vars.collateralAtoken), 0, vars.maxCollateralToLiquidate
+        );
+        vars.collateralAtoken.burn( // ❌ ERC677 aToken burn → triggers onTokenTransfer callback
+            user,
+            msg.sender,             // ← tokens sent to liquidator (attacker)
+            vars.maxCollateralToLiquidate,
+            collateralReserve.liquidityIndex
+        );
+        // ❌ At this point msg.sender (attacker) receives ERC677 onTokenTransfer callback.
+        // The attacker re-enters borrow() before the next state update.
+        // userConfig.setUsingAsCollateral() and health factor recalculation
+        // happen AFTER the burn — so the position still appears healthy during re-entry.
+    }
+
+    // Health factor / collateral accounting updated only here — AFTER the external call
+    if (vars.maxCollateralToLiquidate == vars.userCollateralBalance) {
+        userConfig.setUsingAsCollateral(collateralReserve.id, false); // ❌ too late
+        emit ReserveUsedAsCollateralDisabled(collateralAsset, user);
+    }
+
+    IERC20(debtAsset).safeTransferFrom(msg.sender, debtReserve.aTokenAddress, vars.actualDebtToLiquidate);
+
+    emit LiquidationCall(collateralAsset, debtAsset, user, vars.actualDebtToLiquidate,
+        vars.maxCollateralToLiquidate, msg.sender, receiveAToken);
+
+    return (uint256(Errors.CollateralManagerErrors.NO_ERROR), Errors.LPCM_NO_ERRORS);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `vars.collateralAtoken.burn(user, msg.sender, ...)` transfers the collateral aToken (an ERC677 token on Gnosis Chain) to the liquidator (`msg.sender` = attacker). ERC677 fires `onTokenTransfer(address,uint256,bytes)` on the recipient.
+- Inside `onTokenTransfer`, the attacker calls `LendingPool.borrow()`. Because `userConfig.setUsingAsCollateral()` has not yet executed and the user's debt state is not fully reflected, the health factor check inside `borrow()` sees the position as still eligible and permits borrowing all remaining protocol liquidity.
+- The Checks-Effects-Interactions pattern is violated: the external token transfer (interaction) happens before the collateral accounting update (effect).
+
+```solidity
+// ✅ Fix: add nonReentrant to liquidationCall (and borrow/withdraw)
+function liquidationCall(...) external override nonReentrant returns (uint256, string memory) {
+    // same logic — reentrancy guard prevents onTokenTransfer re-entry
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

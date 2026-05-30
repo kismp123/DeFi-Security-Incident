@@ -69,17 +69,145 @@ function swapExactAmountIn(...) external notReindexing returns (...) {
 ```
 
 
-### On-chain Original Code
+### On-Chain Source Code
 
-Source: Source unconfirmed
+Source: **Sourcify-verified** — IndexPool.sol (indexed-finance/indexed-core), logic contract behind DEFI5 proxy at 0xfa6de2697D59E88Ed7Fc4dFE5A33daC43565ea41 (Ethereum)
+https://github.com/indexed-finance/indexed-core/blob/master/contracts/balancer/IndexPool.sol
+(Sourcify confirms only the proxy shell at that address; the implementation source is verified via the indexed-core GitHub repo — same code.)
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable Function** — `swapExactAmountIn()`:
 ```solidity
-// ❌ Root Cause: During re-indexing, `swapExactAmountIn()` MAX_IN_RATIO is excessively high at 50% and `joinswapExternAmountIn()` lacks slippage protection, enabling large swaps to distort pool internal price followed by low-cost minting
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: During re-indexing, `swapExactAmountIn()` MAX_IN_RATIO is excessively high at 50% and `joinswapExternAmountIn()` lacks slippage protection, enabling large swaps to distort pool internal price followed by low-cost minting
+// BConst.sol:
+// uint256 internal constant MAX_IN_RATIO = BONE / 2; // = 5e17 = 50%
+
+function swapExactAmountIn(
+  address tokenIn,
+  uint256 tokenAmountIn,
+  address tokenOut,
+  uint256 minAmountOut,
+  uint256 maxPrice
+)
+  external
+  override
+  _lock_
+  _public_
+  returns (uint256/* tokenAmountOut */, uint256/* spotPriceAfter */)
+{
+  (Record memory inRecord, uint256 realInBalance) = _getInputToken(tokenIn);
+  Record memory outRecord = _getOutputToken(tokenOut);
+
+  require(
+    tokenAmountIn <= bmul(inRecord.balance, MAX_IN_RATIO), // ❌ MAX_IN_RATIO = 50% — one swap can move half the pool
+    "ERR_MAX_IN_RATIO"
+  );
+
+  uint256 spotPriceBefore = calcSpotPrice(
+    inRecord.balance,
+    inRecord.denorm,
+    outRecord.balance,
+    outRecord.denorm,
+    _swapFee
+  );
+  require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
+
+  uint256 tokenAmountOut = calcOutGivenIn(
+    inRecord.balance,
+    inRecord.denorm,
+    outRecord.balance,
+    outRecord.denorm,
+    tokenAmountIn,
+    _swapFee
+  );
+
+  require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
+
+  _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+  _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+
+  outRecord.balance = bsub(outRecord.balance, tokenAmountOut);
+  _records[tokenOut].balance = outRecord.balance;
+  _decreaseDenorm(outRecord, tokenOut); // adjusts weight during re-indexing
+
+  realInBalance = badd(realInBalance, tokenAmountIn);
+  _updateInputToken(tokenIn, inRecord, realInBalance);
+  if (inRecord.ready) {
+    inRecord.balance = realInBalance;
+  }
+
+  uint256 spotPriceAfter = calcSpotPrice(
+    inRecord.balance,
+    inRecord.denorm,
+    outRecord.balance,
+    outRecord.denorm,
+    _swapFee
+  );
+
+  require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX_2");
+  require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
+  require(
+    spotPriceBefore <= bdiv(tokenAmountIn, tokenAmountOut),
+    "ERR_MATH_APPROX"
+  );
+
+  emit LOG_SWAP(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
+
+  return (tokenAmountOut, spotPriceAfter);
+}
+
+function joinswapExternAmountIn(
+  address tokenIn,
+  uint256 tokenAmountIn,
+  uint256 minPoolAmountOut
+)
+  external
+  override
+  _lock_
+  _public_
+  returns (uint256/* poolAmountOut */)
+{
+  (Record memory inRecord, uint256 realInBalance) = _getInputToken(tokenIn);
+
+  require(tokenAmountIn != 0, "ERR_ZERO_IN");
+
+  require(
+    tokenAmountIn <= bmul(inRecord.balance, MAX_IN_RATIO), // ❌ same 50% limit; pool balance already distorted by swaps
+    "ERR_MAX_IN_RATIO"
+  );
+
+  uint256 poolAmountOut = calcPoolOutGivenSingleIn(
+    inRecord.balance,   // ❌ inRecord.balance inflated by previous swapExactAmountIn calls
+    inRecord.denorm,
+    _totalSupply,
+    _totalWeight,
+    tokenAmountIn,
+    _swapFee
+  );                    // ❌ over-issues pool shares relative to true market price
+
+  require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT"); // ❌ attacker sets minPoolAmountOut = 0
+
+  _updateInputToken(tokenIn, inRecord, badd(realInBalance, tokenAmountIn));
+
+  emit LOG_JOIN(msg.sender, tokenIn, tokenAmountIn);
+
+  _mintPoolShare(poolAmountOut); // ❌ mints excess DEFI5 tokens at distorted internal price
+  _pushPoolShare(msg.sender, poolAmountOut);
+  _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+
+  return poolAmountOut;
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `MAX_IN_RATIO = BONE / 2 = 50%`: a single `swapExactAmountIn` call can move up to 50% of any token's pool balance, causing a severe internal price distortion. With a flash loan the attacker repeats this for all 6 component tokens sequentially.
+- After the swaps, `inRecord.balance` for each token is inflated and `outRecord.balance` depleted — this skews the Balancer-style internal price used by `calcPoolOutGivenSingleIn`.
+- In `joinswapExternAmountIn`, `calcPoolOutGivenSingleIn(inRecord.balance, ...)` is computed against the now-distorted balance. The attacker passes `minPoolAmountOut = 0` (no slippage guard), obtaining far more DEFI5 pool shares than the deposited tokens are worth at true market price.
+- The combination of (1) large permissible single-swap ratio and (2) no slippage floor on `joinswap` makes the multi-step price distortion → cheap minting cycle atomic and profitable.
+
+```solidity
+// ✅ Fix: reduce MAX_IN_RATIO and require non-zero minPoolAmountOut
+uint256 internal constant MAX_IN_RATIO = BONE / 20; // 5% instead of 50%
+// Also: pause swaps during re-indexing via _reindexLock modifier
+require(minPoolAmountOut > 0, "ERR_ZERO_MIN_OUT");
 ```
 
 ## 3. Attack Flow

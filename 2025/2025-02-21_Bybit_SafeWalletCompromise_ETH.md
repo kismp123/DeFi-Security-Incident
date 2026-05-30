@@ -35,10 +35,63 @@ With the implementation replaced, the attackers had full administrative control 
 
 ### How Safe{Wallet} Works
 
-A Safe proxy delegates all logic calls to an implementation (singleton) contract. The `fallback()` on the proxy forwards all calls to:
+A Safe proxy delegates all logic calls to an implementation (singleton) contract stored at slot 0 (`masterCopy`). The proxy's fallback unconditionally `delegatecall`s the current `masterCopy` — whoever controls that pointer controls every subsequent call.
 
+#### On-Chain Source Code — Safe Proxy (Victim Contract)
+
+Source: **Sourcify-verified** — Proxy.sol / 0x1Db92e2EeBC8E0c075a02BeA49a2935BcD2dFCF4 (Ethereum)
+https://sourcify.dev/server/files/any/1/0x1Db92e2EeBC8E0c075a02BeA49a2935BcD2dFCF4
+
+```solidity
+pragma solidity ^0.5.3;
+
+/// @title Proxy - Generic proxy contract allows to execute all transactions
+///        applying the code of a master contract.
+contract Proxy {
+
+    // masterCopy always needs to be first declared variable, to ensure that
+    // it is at the same location in the contracts to which calls are delegated.
+    address internal masterCopy; // ❌ slot 0 — whoever writes this controls the proxy
+
+    constructor(address _masterCopy) public {
+        require(_masterCopy != address(0), "Invalid master copy address provided");
+        masterCopy = _masterCopy;
+    }
+
+    function () external payable {
+        assembly {
+            let masterCopy := and(sload(0), 0xffffffffffffffffffffffffffffffffffffffff)
+            // ❌ If sload(0) is overwritten (via execTransaction → delegatecall), this
+            //    address changes to whatever the attacker's contract wrote there.
+            if eq(calldataload(0), 0xa619486e00000000000000000000000000000000000000000000000000000000) {
+                mstore(0, masterCopy)
+                return(0, 0x20)
+            }
+            calldatacopy(0, 0, calldatasize())
+            let success := delegatecall(gas, masterCopy, 0, calldatasize(), 0, 0) // ❌ unconditional delegatecall
+            returndatacopy(0, 0, returndatasize())
+            if eq(success, 0) { revert(0, returndatasize()) }
+            return(0, returndatasize())
+        }
+    }
+}
 ```
-address public implementation; // singleton address
+
+**Why it is exploitable (identify the bug from the code):**
+
+- The proxy's entire security depends on `sload(0)` returning the correct `masterCopy` address. There is no immutability or access-control on slot 0 at the proxy level — it is the *Safe singleton logic* (the implementation at `masterCopy`) that is supposed to guard `upgradeTo` calls.
+- The Safe singleton exposes `execTransaction()` which, when given a properly signed payload, can call any function including `upgradeTo(newImpl)`. There is no on-chain mechanism that prevents signers from authorizing an upgrade to a malicious implementation — it is a social/UI concern.
+- The Lazarus Group exploited this: the signing UI was tampered so that signers approved a transaction whose actual calldata called `upgradeTo(0x96221423...)` instead of the displayed ETH transfer. Once the `masterCopy` pointer was replaced, every subsequent `delegatecall` went to the attacker's contract.
+- The proxy code itself is correct — **there is no on-chain vulnerability in the proxy**. The exploit path was entirely through the off-chain signing interface, bypassing all smart-contract-level guards by obtaining legitimate signatures through deception.
+
+```solidity
+// ✅ Mitigation — not a code change but a process change:
+// Hardware signers must independently decode and display raw calldata.
+// Any transaction that touches `masterCopy` (slot 0) should trigger
+// mandatory review against a known-good implementation address.
+//
+// On-chain monitoring: alert if execTransaction calldata contains
+// the upgradeTo(address) selector (0x3659cfe6) on the Safe singleton.
 ```
 
 ### The Exploit

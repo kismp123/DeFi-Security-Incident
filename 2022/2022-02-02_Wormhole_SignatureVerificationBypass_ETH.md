@@ -24,28 +24,40 @@ Using this forged VAA, the attacker minted 120,000 wETH on Solana without lockin
 ---
 ## 2. Vulnerable Code Analysis
 
+> ⚠️ Contract not verified on Sourcify — source unavailable. Wormhole is a Solana program (non-EVM, written in Rust). The behavior below is reconstructed from the Certus One / Jump Crypto post-mortem and on-chain traces, not verified source.
+
+The exploit targeted the Solana-side `verify_signatures` instruction in the Wormhole Core Bridge program (written in Rust / Anchor). The program is not an EVM contract and is not indexed by Sourcify.
+
+**Reconstructed logic (labeled — not verified source):**
+
 ```rust
-// ❌ Vulnerable Wormhole Solana bridge (pseudocode)
-// The bridge allowed using a deprecated verify_signatures instruction path
-// that did not properly validate the sysvar account origin
+// ⚠️ RECONSTRUCTED — not verified Rust source
+// Real language: Rust (Solana Anchor program)
+// Vulnerability: deprecated code path accepted attacker-supplied sysvar account
 
 fn verify_signatures(ctx: Context<VerifySignatures>, data: VerifySignaturesData) -> Result<()> {
-    // ❌ Accepted legacy/deprecated secp256k1 instruction index without
-    //    verifying it came from the actual native secp256k1_program.
-    //    An attacker could substitute a sysvar they controlled.
-    let secp_ix = &ctx.accounts.instruction_sysvar.load()?;
-    // ❌ No check that instruction_sysvar is the real Instructions sysvar
-    //    populated by the secp256k1 native program
+    // ❌ Used a deprecated helper that read from ctx.accounts.instruction_sysvar
+    //    without verifying the preceding instruction genuinely came from
+    //    the native secp256k1_program (program ID: KeccakSecp256k11HDMpKqnYnvyd...).
+    //    An attacker-controlled account could be passed as instruction_sysvar.
+    let secp_ix = &ctx.accounts.instruction_sysvar.load()?; // ❌ source of secp_ix never validated
+    // ❌ No check: secp_ix.program_id == solana_program::secp256k1_program::ID
     validate_secp256k1_results(secp_ix, &data.signers)?;
-    // If validation passes, signature_set is marked as verified
+    // ❌ signature_set account is now marked fully verified using forged data
     Ok(())
 }
+```
 
-// ✅ Correct pattern: verify the instruction came from the secp256k1 native program
+**Why it is exploitable (identify the bug from the code):**
+- The deprecated path read signature verification results from `instruction_sysvar` without asserting the preceding instruction was from the real `secp256k1_program` native program.
+- An attacker crafted a transaction providing an attacker-controlled account as `instruction_sysvar`, pre-populated with forged guardian signature data that passed `validate_secp256k1_results`.
+- The resulting `SignatureSet` was accepted by `complete_wrapped()` as guardian-approved, allowing 120,000 wETH to be minted on Solana with zero ETH locked on Ethereum.
+
+```rust
+// ✅ Fix (as deployed in post-exploit patch):
 fn verify_signatures_fixed(ctx: Context<VerifySignatures>, data: VerifySignaturesData) -> Result<()> {
-    // Explicitly check the current instruction is from secp256k1_program
-    let current_ix = load_current_index_checked(&ctx.accounts.instruction_sysvar)?;
     let secp_ix = get_instruction_relative(-1, &ctx.accounts.instruction_sysvar)?;
+    // ✅ Verify the preceding instruction is from the real secp256k1 native program
     require!(
         secp_ix.program_id == solana_program::secp256k1_program::ID,
         WormholeError::InvalidSysvar

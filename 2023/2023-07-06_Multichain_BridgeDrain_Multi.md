@@ -24,7 +24,11 @@ On July 6–7, 2023, $126M drained from Multichain's custody addresses on multip
 The incident exposed that "decentralized bridge" claims were hollow — the entire protocol's security rested on one person's server access.
 
 ---
-## 2. Architecture Flaw
+## 2. On-Chain Source Code / Architecture Flaw
+
+> ⚠️ Contract not verified on Sourcify — source unavailable. The Multichain incident is not a smart contract vulnerability: it is a centralized operational failure where all MPC signing key material was under the physical control of a single individual. There is no exploitable Solidity function — the bridge custodian simply executed direct ERC-20 transfers from the custody multisig addresses using the seized private keys. No PoC exploit code exists; the "attack" was an authorized-looking token transfer signed with the real MPC keys.
+
+The architecture flaw is structural, not code-level:
 
 ```
 Claimed Architecture:

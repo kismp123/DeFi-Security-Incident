@@ -59,16 +59,66 @@ contract SafeProxy is Initializable {
 }
 ```
 
-### On-chain Original Code
+### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+Source: **not verified on Sourcify** — `0xd4f1afd0331255e848c119ca39143d41144f7cb3` (BSC)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0xd4f1afd0331255e848c119ca39143d41144f7cb3 (404 — not found)
+
+The contract at `0xd4f1` is unverified on-chain (no source published). The following is reconstructed pseudocode from the PoC ([unverified_d4f1_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-02/unverified_d4f1_exp.sol)) and the on-chain transaction trace:
 
 ```solidity
-// File: Unverified_decompiled.sol
-contract Unverified {
-    function initialize() external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// ⚠️ RECONSTRUCTED — not verified source. Derived from PoC + on-chain trace.
+// Contract: 0xd4f1afd0331255e848c119ca39143d41144f7cb3 (BSC)
+
+contract VulnerableProxy {
+    address public owner;
+    bool private _initialized;
+
+    // ❌ No `initializer` guard — can be called by anyone after deployment
+    // The proxy was deployed but initialize() was never called by the deployer.
+    function initialize(address _owner) external {
+        // ❌ Missing: require(!_initialized, "Already initialized");
+        owner = _owner;          // ❌ Attacker sets themselves as owner
+        _initialized = true;
     }
+
+    // ❌ Callable immediately once attacker owns the contract
+    function withdrawFees(address _to, uint256 _amount) external {
+        require(msg.sender == owner, "Not owner"); // passes after attacker initializes
+        // ❌ No zero-address check, no amount cap
+        payable(_to).transfer(_amount);            // drains contract balance
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `initialize()` has **no re-entrancy or already-initialized guard** — it can be called by any external address at any time after deployment.
+- The deployer never called `initialize()`, leaving `owner = address(0)` and `_initialized = false`.
+- The attacker called `initialize(attackerAddress)` first, setting themselves as owner.
+- `withdrawFees()` only checks `msg.sender == owner`, which now passes for the attacker; the contract balance is drained.
+
+```solidity
+// ✅ Fix: use OpenZeppelin Initializable modifier
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+
+contract SafeProxy is Initializable {
+    address public owner;
+
+    // ✅ `initializer` modifier ensures this can only ever be called once
+    function initialize(address _owner) external initializer {
+        require(_owner != address(0), "Zero address");
+        owner = _owner;
+    }
+
+    function withdrawFees(address _to, uint256 _amount) external {
+        require(msg.sender == owner, "Not owner");
+        require(_to != address(0), "Zero address recipient");
+        require(_amount > 0 && _amount <= address(this).balance, "Invalid amount");
+        payable(_to).transfer(_amount);
+    }
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -50,16 +50,69 @@ contract LifeProtocol {
 }
 ```
 
-### On-chain Original Code
+### On-Chain Original Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+>
+> Victim contract: `0x42e2773508e2ae8ff9434bea599812e28449e2cd` (Life Protocol, BSC)
+
+The PoC (`Lifeprotocol_exp.sol`) executes 53 `buy(1000e18)` calls followed by 53 `sell(1000e18)` calls within a DODO flash-loan callback, with no approval step between buy and sell. This confirms the contract holds an internal token balance tracked against BUSD contributions and that the exchange rate shifts with each trade:
 
 ```solidity
-// File: Lifeprotocol_decompiled.sol
+// ⚠️ RECONSTRUCTED from PoC — NOT verified source; presented as pseudocode only
+// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-04/Lifeprotocol_exp.sol
+
 contract Lifeprotocol {
-    function buy(uint256 a) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+    IERC20 public busd;
+    IERC20 public lifeToken;
+    uint256 public totalBusdIn;   // cumulative BUSD deposited
+    uint256 public totalLifeOut;  // cumulative LIFE issued
+
+    // ❌ Internal spot price derived from cumulative totals — shifts with every trade
+    function getCurrentPrice() public view returns (uint256) {
+        if (totalLifeOut == 0) return INITIAL_PRICE;
+        return totalBusdIn * 1e18 / totalLifeOut; // ❌ monotonically rising with each buy
     }
+
+    function buy(uint256 busdAmount) external {
+        busd.transferFrom(msg.sender, address(this), busdAmount);
+        uint256 price = getCurrentPrice();    // ❌ current (manipulable) spot price
+        uint256 lifeAmount = busdAmount * 1e18 / price;
+        totalBusdIn  += busdAmount;           // ❌ price rises after every buy
+        totalLifeOut += lifeAmount;
+        lifeToken.transfer(msg.sender, lifeAmount);
+    }
+
+    function sell(uint256 lifeAmount) external {
+        lifeToken.transferFrom(msg.sender, address(this), lifeAmount);
+        uint256 price = getCurrentPrice();    // ❌ still the elevated post-buy price
+        uint256 busdReturn = lifeAmount * price / 1e18;
+        totalLifeOut -= lifeAmount;
+        totalBusdIn  -= busdReturn;
+        busd.transfer(msg.sender, busdReturn); // ❌ attacker recovers at inflated price
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `getCurrentPrice()` is computed from `totalBusdIn / totalLifeOut` — it increases monotonically with every `buy()` call, because each purchase adds more BUSD than it removes LIFE at the current price.
+- An attacker with flash-loan capital can call `buy(1000e18)` 53 times, pushing the internal price up incrementally. They then call `sell(1000e18)` 53 times at the now-elevated price, receiving more BUSD per LIFE unit than they paid.
+- There is no per-block limit, no slippage cap, and no TWAP — each call within the same transaction sees an updated internal state that reflects the previous calls.
+- The flash-loan provides the 110,000 BUSD capital needed to make this repeated cycle profitable even after repayment.
+
+```solidity
+// ✅ Fix: enforce one trade per block and use an AMM pricing curve that is
+//    not monotonically exploitable via repeated same-block calls
+function buy(uint256 busdAmount) external {
+    require(lastTradeBlock[msg.sender] < block.number, "One trade per block"); // ✅
+    lastTradeBlock[msg.sender] = block.number;
+    // use constant-product AMM pricing, not cumulative-ratio pricing
+    uint256 lifeAmount = _getAmountOut(busdAmount, busdReserve, lifeReserve);
+    busdReserve += busdAmount;
+    lifeReserve -= lifeAmount;
+    lifeToken.transfer(msg.sender, lifeAmount);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -30,9 +30,9 @@ Issues caused by deflationary/tax/rebase token mechanics being incompatible with
 | 2023-05-24 | GPTToken | FeeMechanism BSC | [2023-05-24_GPTToken_FeeMechanism_BSC.md](../2023/2023-05-24_GPTToken_FeeMechanism_BSC.md) |
 | 2023-06-08 | STRAC | TokenBurnExploit | [2023-06-08_STRAC_TokenBurnExploit.md](../2023/2023-06-08_STRAC_TokenBurnExploit.md) |
 | 2023-06-17 | BabyDogeCoin02 | FeeLPManipulation | [2023-06-17_BabyDogeCoin02_FeeLPManipulation.md](../2023/2023-06-17_BabyDogeCoin02_FeeLPManipulation.md) |
-| 2024-10-22 | P719Token | SellMechanism | [2024-10-22_P719Token_SellMechanism.md](../2024/2024-10-22_P719Token_SellMechanism.md) |
-| 2024-10-28 | FireToken | TransferLPDrainExploit | [2024-10-28_FireToken_TransferLPDrainExploit.md](../2024/2024-10-28_FireToken_TransferLPDrainExploit.md) |
-| 2024-12-19 | SlurpyCoin | TransferFeeLoop | [2024-12-19_SlurpyCoin_TransferFeeLoop.md](../2024/2024-12-19_SlurpyCoin_TransferFeeLoop.md) |
+| 2024-10-11 | P719Token | SellMechanism | [2024-10-11_P719Token_SellMechanism.md](../2024/2024-10-11_P719Token_SellMechanism.md) |
+| 2024-10-01 | FireToken | TransferLPDrainExploit | [2024-10-01_FireToken_TransferLPDrainExploit.md](../2024/2024-10-01_FireToken_TransferLPDrainExploit.md) |
+| 2024-12-18 | SlurpyCoin | TransferFeeLoop | [2024-12-18_SlurpyCoin_TransferFeeLoop.md](../2024/2024-12-18_SlurpyCoin_TransferFeeLoop.md) |
 | 2025-03-20 | BBXToken | BurnMechanism | [2025-03-20_BBXToken_BurnMechanism.md](../2025/2025-03-20_BBXToken_BurnMechanism.md) |
 | 2025-04-04 | AIRWA | BurnRateManipulation | [2025-04-04_AIRWA_BurnRateManipulation.md](../2025/2025-04-04_AIRWA_BurnRateManipulation.md) |
 | 2026-01-12 | MTToken | IncorrectFeeLogic | [2026-01-12_MTToken_IncorrectFeeLogic.md](../2026/2026-01-12_MTToken_IncorrectFeeLogic.md) |

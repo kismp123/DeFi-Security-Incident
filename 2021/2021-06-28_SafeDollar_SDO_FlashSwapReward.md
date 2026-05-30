@@ -66,17 +66,116 @@ function getReward() external nonReentrant {
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Source unverified
+Source: **Sourcify-verified (partial)** — SdoRewardPool / 0x17684f4d5385FAc79e75CeafC93f22D90066eD5C (Polygon)
+https://sourcify.dev/server/files/any/137/0x17684f4d5385FAc79e75CeafC93f22D90066eD5C
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
+> Note: The corrected root cause is that `deposit()` immediately calls `_harvestReward()`, which mints SDO proportional to the deposited amount times the accumulated `accSdoPerShare`. An attacker who (a) deposits a massive flash-loan-funded position and (b) forces time to advance so rewards accumulate can claim all pool rewards in one transaction. There is no separate `getReward()` — reward minting occurs inside `deposit()` / `withdraw()` via `_harvestReward()`.
 
-**Vulnerable Function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: No minimum lockup period in SDO reward pool — getReward() callable immediately after deposit
-// Source code unverified — bytecode analysis required
-// Vulnerability: No minimum lockup period in SDO reward pool — getReward() callable immediately after deposit
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.12;
+
+contract SdoRewardPool {
+    using SafeMath for uint256;
+    using SafeERC20 for IERC20;
+
+    struct UserInfo {
+        uint256 amount;      // LP tokens staked
+        uint256 rewardDebt;  // Reward debt (for delta calculation)
+    }
+
+    struct PoolInfo {
+        IERC20 lpToken;
+        uint256 allocPoint;
+        uint256 lastRewardTime;
+        uint256 accSdoPerShare; // ❌ accumulated rewards per share — grows with time
+        bool isStarted;
+        uint16 depositFeeBP;
+        uint256 startTime;
+    }
+
+    // ❌ VULNERABLE: _harvestReward mints SDO for any staked balance immediately
+    function _harvestReward(uint256 _pid, address _account) internal {
+        UserInfo storage user = userInfo[_pid][_account];
+        if (user.amount > 0) {
+            PoolInfo storage pool = poolInfo[_pid];
+            uint256 _claimableAmount = user.amount
+                .mul(pool.accSdoPerShare)   // ❌ accSdoPerShare grows with every second elapsed
+                .div(1e18)
+                .sub(user.rewardDebt);
+            if (_claimableAmount > 0) {
+                IBasisAsset(sdo).mint(_account, _claimableAmount); // ❌ mint called unconditionally — no lockup
+                emit RewardPaid(_account, _pid, _claimableAmount);
+            }
+        }
+    }
+
+    // ❌ deposit() harvests rewards immediately after staking — no lockup period
+    function deposit(uint256 _pid, uint256 _amount) public lock checkHalving {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        updatePool(_pid);
+        _harvestReward(_pid, msg.sender); // ❌ called before setting new rewardDebt
+        if (_amount > 0) {
+            pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
+            if (pool.depositFeeBP > 0) {
+                uint256 _depositFee = _amount.mul(pool.depositFeeBP).div(10000);
+                pool.lpToken.safeTransfer(reserveFund, _depositFee);
+                user.amount = user.amount.add(_amount).sub(_depositFee);
+            } else {
+                user.amount = user.amount.add(_amount); // ❌ no cap on deposit size
+            }
+        }
+        user.rewardDebt = user.amount.mul(pool.accSdoPerShare).div(1e18);
+        emit Deposit(msg.sender, _pid, _amount);
+    }
+
+    // ❌ withdraw() also harvests rewards with no lockup check
+    function withdraw(uint256 _pid, uint256 _amount) public lock checkHalving {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        require(user.amount >= _amount, "withdraw: not good");
+        updatePool(_pid);
+        _harvestReward(_pid, msg.sender); // ❌ same issue — no lockup guard
+        if (_amount > 0) {
+            user.amount = user.amount.sub(_amount);
+            pool.lpToken.safeTransfer(msg.sender, _amount);
+        }
+        user.rewardDebt = user.amount.mul(pool.accSdoPerShare).div(1e18);
+        emit Withdraw(msg.sender, _pid, _amount);
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `deposit()` calls `_harvestReward()` at line 3 of its body, before updating `rewardDebt`. Any staked balance, no matter how recently deposited, immediately receives `user.amount * accSdoPerShare / 1e18 - rewardDebt` worth of minted SDO.
+- There is no lockup period, no minimum staking duration, and no per-block snapshot — a flash-loan-funded deposit immediately accrues rewards proportional to the (time-weighted) accumulated `accSdoPerShare`.
+- Because `accSdoPerShare` reflects all rewards since the pool's `startTime`, a massive late deposit effectively steals the accumulated share of all prior stakers: the new depositor's `rewardDebt` is set *after* the mint, so the window from 0 to the current `accSdoPerShare` is captured in one call.
+- The `lock` modifier prevents re-entry within a single call but does not block a deposit immediately followed by a withdraw within the same outer transaction (each call acquires and releases the lock independently).
+
+```solidity
+// ✅ Fix: enforce a minimum staking duration before rewards can be harvested
+mapping(uint256 => mapping(address => uint256)) public stakedAt;
+
+function deposit(uint256 _pid, uint256 _amount) public lock checkHalving {
+    PoolInfo storage pool = poolInfo[_pid];
+    UserInfo storage user = userInfo[_pid][msg.sender];
+    updatePool(_pid);
+    // ✅ Only harvest if the minimum lock period has elapsed
+    if (block.timestamp >= stakedAt[_pid][msg.sender] + 1 days) {
+        _harvestReward(_pid, msg.sender);
+    }
+    if (_amount > 0) {
+        stakedAt[_pid][msg.sender] = block.timestamp; // ✅ record deposit timestamp
+        pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
+        user.amount = user.amount.add(_amount);
+    }
+    user.rewardDebt = user.amount.mul(pool.accSdoPerShare).div(1e18);
+    emit Deposit(msg.sender, _pid, _amount);
+}
 ```
 
 ## 3. Attack Flow

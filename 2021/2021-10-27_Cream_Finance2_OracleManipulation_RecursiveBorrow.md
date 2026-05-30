@@ -69,17 +69,88 @@ function getUnderlyingPrice(CToken cToken) external view returns (uint) {
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Unconfirmed
+Source: **Sourcify partial-match** — CErc20Delegator.sol / `0x4BAa77013ccD6705ab0522853cB0E9d453579Dd4` (crYUSD, Ethereum)
+https://sourcify.dev/server/files/any/1/0x4BAa77013ccD6705ab0522853cB0E9d453579Dd4
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
+The crYUSD token is a transparent proxy (`CErc20Delegator`) that forwards all calls via `delegatecall` to the CErc20 implementation. The Sourcify-verified delegator dispatch is:
 
-**Vulnerable Function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root Cause: Collateral value calculated using yUSD vault's pricePerShare() as a spot value — manipulable within a single block via recursive mint/borrow
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: Collateral value calculated using yUSD vault's pricePerShare() as a spot value — manipulable within a single block via recursive mint/borrow
+// CErc20Delegator.sol — verified proxy dispatch pattern
+function mint(uint mintAmount) external returns (uint) {
+    mintAmount; // Shh
+    delegateAndReturn(); // ❌ all logic lives in implementation contract
+}
+
+function borrow(uint borrowAmount) external returns (uint) {
+    borrowAmount; // Shh
+    delegateAndReturn(); // ❌ collateral check is in Comptroller.getHypotheticalAccountLiquidity
+}
+
+// Internal delegatecall forwarder
+function delegateAndReturn() private returns (bytes memory) {
+    (bool success, ) = implementation.delegatecall(msg.data);
+    assembly {
+        let free_mem_ptr := mload(0x40)
+        returndatacopy(free_mem_ptr, 0, returndatasize)
+        switch success
+        case 0 { revert(free_mem_ptr, returndatasize) }
+        default { return(free_mem_ptr, returndatasize) }
+    }
+}
+```
+
+The Cream Comptroller's price oracle fetched yUSD vault price through `pricePerShare()` at the moment of the collateral check — a spot value that reflects the current vault share ratio:
+
+```solidity
+// Cream Finance Oracle (Ethereum, not separately Sourcify-verified for this addr)
+// Reconstructed from Cream Finance open-source oracle + on-chain traces
+function getUnderlyingPrice(CToken cToken) external view returns (uint) {
+    address underlying = CErc20(address(cToken)).underlying(); // yUSD vault address
+
+    if (isYVault(underlying)) {
+        // ❌ pricePerShare() returns totalAssets/totalSupply of the yUSD vault
+        // This ratio is manipulable within a single block: depositing a large
+        // amount temporarily inflates totalAssets, raising pricePerShare.
+        uint256 pricePerShare = IYVault(underlying).pricePerShare(); // ❌ spot value
+        uint256 basePrice = getBasePrice(underlying);                // USD per underlying asset
+        return pricePerShare.mul(basePrice).div(1e18);               // ❌ returns inflated price
+    }
+    // ...
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `IYVault(underlying).pricePerShare()` is a **live spot value** equal to `vault.totalAssets() / vault.totalSupply()`. It can be temporarily inflated within a single transaction by depositing a large amount via flash loan (increasing `totalAssets` proportionally).
+- The attacker used a second contract to recursively mint crYUSD using crETH (~524 k WETH) as collateral, depositing into the yUSD vault in the same block — inflating `pricePerShare` while the Comptroller used it to determine collateral value.
+- Because the inflated `pricePerShare` was accepted at face value, the attacker's crYUSD collateral was deemed worth many multiples of its true value, unlocking unlimited borrows across all 14 Cream markets.
+- The CErc20Delegator proxy provides no safeguard — it blindly forwards calls to the implementation, which defers collateral checks to the oracle without any TWAP or change-cap protection.
+
+```solidity
+// ✅ Fix: use a TWAP or a single-block change cap on pricePerShare
+uint256 public constant MAX_PPS_CHANGE_BPS = 100; // 1% max change per block
+
+mapping(address => uint256) public lastPricePerShare;
+mapping(address => uint256) public lastPriceBlock;
+
+function getUnderlyingPrice(CToken cToken) external view returns (uint) {
+    address underlying = CErc20(address(cToken)).underlying();
+    if (isYVault(underlying)) {
+        uint256 currentPPS = IYVault(underlying).pricePerShare();
+        uint256 lastPPS    = lastPricePerShare[underlying];
+        if (lastPPS > 0 && lastPriceBlock[underlying] == block.number) {
+            // ✅ Within the same block: reject if pricePerShare jumped > 1%
+            uint256 delta = currentPPS > lastPPS
+                ? (currentPPS - lastPPS) * 10000 / lastPPS
+                : (lastPPS - currentPPS) * 10000 / lastPPS;
+            if (delta > MAX_PPS_CHANGE_BPS) revert("PriceManipulation");
+        }
+        lastPricePerShare[underlying] = currentPPS;
+        lastPriceBlock[underlying]    = block.number;
+        return currentPPS.mul(getBasePrice(underlying)).div(1e18);
+    }
+}
 ```
 
 ## 3. Attack Flow

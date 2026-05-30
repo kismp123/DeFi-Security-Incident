@@ -58,14 +58,96 @@ function settle(...) external payable {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — Sourcify returns 404 for 0xbeb0b0623f66bE8cE162EbDfA2ec543A522F4ea6 on Arbitrum (chainid 42161). The source below is from the **public Bebop JAM contracts repository** (https://github.com/bebop-dex/bebop-jam-contracts), which matches the deployed bytecode per the Bebop post-mortem and the DeFiHackLabs PoC.
 
 ```solidity
-// File: Bebop_decompiled.sol
-contract Bebop {
-    function transferNativeFromContract(address a, uint256 b) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// JamSettlement.sol — Bebop JAM contracts (Solidity ^0.8.27, UNLICENSED)
+// Arbitrum deployment: 0xbeb0b0623f66bE8cE162EbDfA2ec543A522F4ea6
+
+function settle(
+    JamOrder calldata order,
+    bytes calldata signature,
+    JamInteraction.Data[] calldata interactions,
+    bytes memory hooksData,
+    address balanceRecipient
+) external payable nonReentrant {
+    JamHooks.Def memory hooks = hooksData.length != 0 ?
+        abi.decode(hooksData, (JamHooks.Def)) :
+        JamHooks.Def(new JamInteraction.Data[](0), new JamInteraction.Data[](0));
+    bytes32 hooksHash = hooksData.length != 0 ? JamHooks.hash(hooks) : JamHooks.EMPTY_HOOKS_HASH;
+
+    validateOrder(order, signature, hooksHash); // ❌ skipped when order.taker == msg.sender (see below)
+
+    if (hooksHash != JamHooks.EMPTY_HOOKS_HASH){
+        require(JamInteraction.runInteractionsM(hooks.beforeSettle, balanceManager), BeforeSettleHooksFailed());
     }
+    if (order.usingPermit2) {
+        balanceManager.transferTokensWithPermit2(order, signature, hooksHash, balanceRecipient);
+    } else {
+        balanceManager.transferTokens(order.sellTokens, order.sellAmounts, order.taker, balanceRecipient);
+    }
+
+    require(JamInteraction.runInteractions(interactions, balanceManager), InteractionsFailed()); // ❌ arbitrary calls executed
+
+    uint256[] memory buyAmounts = order.buyAmounts;
+    transferTokensFromContract(order.buyTokens, order.buyAmounts, buyAmounts, order.receiver, order.partnerInfo, false);
+    // ...
+}
+
+// JamValidation.sol — validateOrder()
+function validateOrder(JamOrder calldata order, bytes calldata signature, bytes32 hooksHash) internal {
+    // ❌ KEY BYPASS: if order.taker == msg.sender, NO signature is required
+    if (order.taker != msg.sender && !order.usingPermit2) {
+        bytes32 orderHash = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), order.hash(hooksHash)));
+        validateSignature(order.taker, orderHash, signature);
+    }
+    // ... nonce, executor, expiry checks ...
+}
+
+// JamInteraction.sol — runInteractions() (the core vulnerable function)
+library JamInteraction {
+    struct Data {
+        bool result;   // if true, revert on failure; if false, ignore failure
+        address to;    // ❌ arbitrary target address — any contract on Arbitrum
+        uint256 value;
+        bytes data;    // ❌ arbitrary calldata — including USDC.transferFrom(victim, attacker, amount)
+    }
+
+    function runInteractions(Data[] calldata interactions, IJamBalanceManager balanceManager) internal returns (bool) {
+        for (uint i; i < interactions.length; ++i) {
+            Data calldata interaction = interactions[i];
+            require(interaction.to != address(balanceManager), CallToBalanceManagerNotAllowed()); // only balanceManager is blocked
+            (bool execResult,) = payable(interaction.to).call{ value: interaction.value }(interaction.data); // ❌ arbitrary external call
+            if (!execResult && interaction.result) return false;
+        }
+        return true;
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `validateOrder()` skips signature verification entirely when `order.taker == msg.sender`. The attacker simply sets `order.taker = address(this)` (their own contract) and calls `settle()` — no valid signature required.
+- `runInteractions()` blocks only calls to `balanceManager` but permits calls to **any other address** with **any calldata**. The attacker passes `interaction.to = USDC`, `interaction.data = abi.encodeCall(IERC20.transferFrom, (victim, attacker, amount))`.
+- Because `JamSettlement` is an approved spender for victims' USDC (users had approved the settlement contract for trading), `USDC.transferFrom(victim, attacker, amount)` succeeds and drains each victim's balance.
+- The `sellTokens` / `buyTokens` arrays in the order can be empty — no actual swap is needed; the exploit lives entirely in the `interactions` array.
+
+```solidity
+// ✅ Fix: block transferFrom selector and restrict interaction targets
+function runInteractions(Data[] calldata interactions, IJamBalanceManager balanceManager) internal returns (bool) {
+    for (uint i; i < interactions.length; ++i) {
+        Data calldata interaction = interactions[i];
+        require(interaction.to != address(balanceManager), CallToBalanceManagerNotAllowed());
+        // ✅ Block direct ERC-20 transferFrom calls via interactions
+        if (interaction.data.length >= 4) {
+            bytes4 selector = bytes4(interaction.data[:4]);
+            require(selector != IERC20.transferFrom.selector, "transferFrom not allowed in interactions");
+        }
+        (bool execResult,) = payable(interaction.to).call{ value: interaction.value }(interaction.data);
+        if (!execResult && interaction.result) return false;
+    }
+    return true;
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

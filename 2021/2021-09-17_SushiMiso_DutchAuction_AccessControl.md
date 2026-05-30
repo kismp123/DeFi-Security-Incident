@@ -74,17 +74,73 @@ function setWallet(address payable _wallet) external onlyOperator {
 ```
 
 
-### On-chain Original Code
+### On-Chain Original Code
 
-Source: Source unconfirmed
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+>
+> Victim contract: `0x4c4564a1FE775D97297F9e3Dc2e762e0Ed5Dda0e` (MISO DutchAuction, Ethereum mainnet)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The on-chain PoC (`Sushimiso_exp.sol`) directly calls `initAuction()` with the attacker address as `_wallet`. The reconstructed signature matches the known MISO launchpad interface:
 
-**Vulnerable function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: Attacker injected an init() callback into the deployment script, replacing the auction wallet address with the attacker's address
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: Attacker injected an init() callback into the deployment script, replacing the auction wallet address with the attacker's address
+// ⚠️ RECONSTRUCTED from PoC — NOT verified source; presented as pseudocode only
+// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-09/Sushimiso_exp.sol
+
+function initAuction(
+    address _funder,
+    address _token,
+    uint256 _tokenSupply,
+    uint256 _startTime,
+    uint256 _endTime,
+    address _paymentCurrency,
+    uint256 _startPrice,
+    uint256 _minimumPrice,
+    address _operator,
+    address _pointList,
+    address payable _wallet   // ❌ receives all auction proceeds
+) external {
+    // ❌ No validation that _wallet belongs to the legitimate project operator.
+    // ❌ No event emitted immediately so the community can verify the wallet.
+    // ❌ Called once during deployment — caller is the deployment script (attacker-controlled).
+    wallet = _wallet;          // ❌ permanently set; no timelock for post-deploy change
+    // ... other init logic ...
+}
+
+// Funds collected by commitEth() accumulate:
+function commitEth(address payable _beneficiary, bool readAndAgreedToMarketParticipationAgreement)
+    public payable {
+    // ETH sent by investors is tracked against msg.sender
+    // ...
+}
+
+// On finalize(), proceeds sent to wallet:
+function finalize() external onlyOperator {
+    // ...
+    _safeTransferETH(wallet, address(this).balance); // ❌ goes to attacker's wallet
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `initAuction()` accepts an arbitrary `_wallet` address and stores it without any validation against a registry or operator multisig.
+- The function is called exactly once — during deployment — by the entity controlling the deployment script. An insider who controls the script can silently pass their own address.
+- No on-chain event announces the wallet address in a way that would trigger automated monitoring before funds accumulate.
+- `finalize()` unconditionally transfers the entire ETH balance to `wallet`, so all investor funds flow to the attacker the moment the auction ends.
+
+```solidity
+// ✅ Fix: validate wallet against an on-chain operator registry and emit an auditable event
+function initAuction(
+    // ... other params ...
+    address payable _wallet
+) external {
+    require(_wallet != address(0), "DutchAuction: zero wallet");
+    require(
+        IRegistry(registry).isApprovedWallet(_wallet),
+        "DutchAuction: wallet not in registry"
+    );
+    wallet = _wallet;
+    emit AuctionWalletSet(_wallet); // ✅ immediately observable on-chain
+}
 ```
 
 ## 3. Attack Flow

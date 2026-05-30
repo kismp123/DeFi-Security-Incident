@@ -68,15 +68,76 @@ function swapExactETHForTokens(...) external payable {
 
 ### On-Chain Source Code
 
-Source: Unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The Meter Passport bridge handler on Moonriver (chainid 1285) is not present on Sourcify's verified registry (neither token0 `0x868892cccedbff0b028f3b3595205ea91b99376b` nor token1 `0x639A647fbe20b6c8ac19E48E2de44ea792c62c5C` were found). The vulnerable behavior below is reconstructed from the attack PoC, the ChainBridge codebase (open source), and on-chain traces — not from verified source.
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The Meter Passport bridge was forked from ChainBridge. In ChainBridge's `ERC20Handler`, when a resource is registered as "burnable" (i.e., a mintable/burnable wrapped token like WBNB), the handler calls `burn()` on the token with the **amount taken directly from calldata** without checking `msg.value`. For native-wrapped tokens, the amount should come from `msg.value`, but it does not.
 
-**Vulnerable function** — `swapExactTokensForTokens()`:
 ```solidity
-// ❌ Root cause: when calling `swapExactTokensForTokens()`, native tokens (BNB/ETH) and wrapped tokens (WBNB/WETH) are not distinguished, allowing withdrawal of arbitrary amounts
-// Source code unverified — bytecode analysis required
-// Vulnerability: when calling `swapExactTokensForTokens()`, native tokens (BNB/ETH) and wrapped tokens (WBNB/WETH) are not distinguished, allowing withdrawal of arbitrary amounts
+// Reconstructed — ChainBridge ERC20Handler (open source, matches Meter's fork behavior)
+// Source: https://github.com/ChainSafe/chainbridge-solidity (Meter is a fork)
+// NOT verified on Sourcify; labeled as RECONSTRUCTED
+
+contract ERC20Handler {
+    // Maps resourceID → token contract address
+    mapping(bytes32 => address) public _resourceIDToTokenContractAddress;
+    // Tokens flagged as burnable (includes WBNB/WETH wrappers)
+    mapping(address => bool) public _burnList;
+
+    function deposit(
+        uint8 destinationChainID,
+        bytes32 resourceID,
+        bytes calldata data
+    ) external payable {
+        address tokenAddress = _resourceIDToTokenContractAddress[resourceID];
+
+        // Decode amountIn from calldata — no relation to msg.value
+        uint256 amount;
+        (amount) = abi.decode(data, (uint256)); // ❌ amount is caller-controlled
+
+        if (_burnList[tokenAddress]) {
+            // ❌ WBNB/WETH is in the burn list
+            // Burns `amount` from msg.sender WITHOUT verifying msg.value == amount
+            // Attacker sets amount = 2,000,000,000,000,000,000,000 (2000 BNB)
+            // while sending 0 ETH/BNB — the bridge mints/sends the full amount on the other side
+            IBurnableERC20(tokenAddress).burn(msg.sender, amount); // ❌ arbitrary amount
+        } else {
+            // ERC-20 path: transferFrom() would at least check sender balance
+            IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+        }
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the reconstructed code):**
+
+- `WBNB` and `WETH` are registered in `_burnList` because on the source chain they are mintable/burnable wrapper tokens.
+- The `deposit()` function decodes `amount` from `data` (calldata) — a value fully controlled by the caller.
+- For burnable tokens, it calls `burn(msg.sender, amount)` **without any check that `msg.sender` holds that many tokens** or that `msg.value` covers the amount.
+- The bridge then releases `amount` of native BNB/WBNB on the destination chain.
+- Attacker encodes `amount = 2e21` (2000 BNB) in calldata and calls `deposit()` with near-zero actual funds.
+
+```solidity
+// ✅ Fix: for native-wrapper tokens, require msg.value == amount
+function deposit(
+    uint8 destinationChainID,
+    bytes32 resourceID,
+    bytes calldata data
+) external payable {
+    address tokenAddress = _resourceIDToTokenContractAddress[resourceID];
+    uint256 amount;
+    (amount) = abi.decode(data, (uint256));
+
+    if (_isNativeWrapper[tokenAddress]) {
+        // ✅ Native token path: enforce msg.value matches the declared amount
+        require(msg.value == amount, "ERC20Handler: msg.value mismatch");
+        IWETH(tokenAddress).deposit{value: amount}();
+    } else if (_burnList[tokenAddress]) {
+        // ✅ Non-native burnable: still verify sender holds the tokens
+        IBurnableERC20(tokenAddress).burnFrom(msg.sender, amount);
+    } else {
+        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+    }
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

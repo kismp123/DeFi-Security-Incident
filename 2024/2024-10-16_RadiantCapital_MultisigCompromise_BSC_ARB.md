@@ -28,13 +28,48 @@ Once threshold signatures were obtained, the attacker executed a malicious `tran
 - The PDF contained a macOS infostealer (KANDYKORN variant) targeting hardware wallet signing utilities
 - Three separate multisig signers' machines were compromised without any visible anomaly during the signing ceremony
 
-### Ownership Takeover
+### Ownership Takeover — Verified On-Chain Source
+
+Source: **Sourcify-verified** (full match) — Radiant Capital `LendingPoolAddressesProvider` (`0x091d52CacE1edc5527C99cDCFA6937C1635330E4`, Arbitrum)
+https://sourcify.dev/server/files/any/42161/0x091d52CacE1edc5527C99cDCFA6937C1635330E4
+
+The privileged function used by the attacker (once 3/11 multisig threshold was met) was `setLendingPoolImpl()`, which calls `_updateImpl()` to upgrade the proxy implementation to a malicious contract:
 
 ```solidity
-// After acquiring 3/11 threshold signatures:
-// Attacker called via compromised multisig:
-LendingPoolAddressesProvider.setLendingPoolImpl(maliciousPool);
-// maliciousPool.transferFunds() drained all pool liquidity
+function setLendingPoolImpl(address pool) external override onlyOwner {
+    _updateImpl(LENDING_POOL, pool); // ❌ replaces the live LendingPool implementation
+    emit LendingPoolUpdated(pool);
+}
+
+function _updateImpl(bytes32 id, address newAddress) internal {
+    address payable proxyAddress = payable(_addresses[id]);
+
+    InitializableImmutableAdminUpgradeabilityProxy proxy = InitializableImmutableAdminUpgradeabilityProxy(
+        proxyAddress
+    );
+    bytes memory params = abi.encodeWithSignature("initialize(address)", address(this));
+
+    if (proxyAddress == address(0)) {
+        proxy = new InitializableImmutableAdminUpgradeabilityProxy(address(this));
+        proxy.initialize(newAddress, params);
+        _addresses[id] = address(proxy);
+        emit ProxyCreated(id, address(proxy));
+    } else {
+        proxy.upgradeToAndCall(newAddress, params); // ❌ atomically upgrades proxy to malicious impl
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `setLendingPoolImpl()` is gated only by `onlyOwner`. Once the attacker satisfied the 3-of-11 Gnosis Safe threshold (via stolen private keys from hardware wallets), they became the effective `owner` of the `LendingPoolAddressesProvider`.
+- `_updateImpl()` calls `proxy.upgradeToAndCall(newAddress, params)` — a single atomic transaction that replaces the entire LendingPool logic contract with an attacker-supplied implementation. The new implementation contained a function to drain all underlying token balances from every pool.
+- There is no time-lock, no guardian veto, and no secondary delay between the upgrade proposal and execution. The attack was irreversible the moment the threshold signatures were obtained.
+
+```solidity
+// ✅ Fix: add a time-lock between setLendingPoolImpl() proposal and execution
+// (e.g., 48-hour delay with a guardian that can cancel malicious proposals)
+// Also: conduct signing ceremonies on air-gapped, internet-isolated machines
 ```
 
 ### Draining Sequence

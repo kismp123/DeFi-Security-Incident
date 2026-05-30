@@ -78,15 +78,67 @@ contract SafeMUBank {
 
 ### On-Chain Source Code
 
-Source: Unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+>
+> Victim contract: `0x4aA679402c6afcE1E0F7Eb99cA4f09a30ce228ab` (MUBank, Avalanche)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The PoC (`MUMUG_exp.sol`) calls `mu_bond(3300e6)` and `mu_gold_bond(6990e6)` inside the `joeCall` flash-loan callback — immediately after swapping borrowed MU tokens for USDC.e, which crashed the MU spot price. This confirms the contract reads the AMM spot price at call time with no TWAP or cooldown protection:
 
-**Vulnerable function** — `mu_bond()`:
 ```solidity
-// ❌ Root cause: the bond issuance price in `mu_bond()`/`mu_gold_bond()` relies on the AMM spot price (`_getMUSpotPrice()`), allowing price manipulation via a full MU dump within a single transaction to over-mint MUG (no TWAP / no cooldown)
-// Source code unverified — bytecode analysis required
-// Vulnerability: the bond issuance price in `mu_bond()`/`mu_gold_bond()` relies on the AMM spot price (`_getMUSpotPrice()`), allowing price manipulation via a full MU dump within a single transaction to over-mint MUG (no TWAP / no cooldown)
+// ⚠️ RECONSTRUCTED from PoC — NOT verified source; presented as pseudocode only
+// Source: https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2022-12/MUMUG_exp.sol
+
+contract MUBank {
+    IUniswapV2Pair public muMugPair;   // MU/MUG pair on Trader Joe
+    IERC20 public usdce;
+    IERC20 public mugToken;
+
+    // ❌ reads AMM spot price at call time — no TWAP, no cooldown
+    function _getMUSpotPrice() internal view returns (uint256) {
+        (uint112 muReserve, uint112 mugReserve,) = muMugPair.getReserves();
+        // price = mugReserve / muReserve  (manipulable in same tx)
+        return uint256(mugReserve) * 1e18 / uint256(muReserve); // ❌ spot price
+    }
+
+    function mu_bond(uint256 usdceAmount) external {
+        // ❌ No flash-loan guard — callable inside a joeCall / flash-loan callback
+        usdce.transferFrom(msg.sender, address(this), usdceAmount);
+
+        uint256 muPrice = _getMUSpotPrice(); // ❌ price already manipulated by attacker
+        // After attacker dumps MU → USDC.e, MU reserve is huge, MUG reserve tiny
+        // → muPrice (MUG per MU) is very low → mugAmount is very high
+        uint256 mugAmount = usdceAmount * 1e18 / muPrice; // ❌ over-minted MUG
+
+        mugToken.transfer(msg.sender, mugAmount);
+    }
+
+    function mu_gold_bond(uint256 usdceAmount) external {
+        // ❌ identical spot-price vulnerability
+        usdce.transferFrom(msg.sender, address(this), usdceAmount);
+        uint256 muPrice = _getMUSpotPrice();                        // ❌
+        uint256 mugAmount = usdceAmount * GOLD_MULTIPLIER / muPrice; // ❌
+        mugToken.transfer(msg.sender, mugAmount);
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `_getMUSpotPrice()` calls `muMugPair.getReserves()` and computes price from the current reserve ratio. Reserves are changed by any swap, including swaps executed in the same transaction's flash-loan callback.
+- The attacker borrowed almost the entire MU supply from the MU/MUG pair via Trader Joe flash swap, then swapped it all for USDC.e. This drained the MU reserve and inflated USDC.e, crashing the MU→MUG spot price.
+- With MU price near zero, `mugAmount = usdceAmount * 1e18 / muPrice` produces an astronomically large MUG quantity for the same USDC.e input.
+- There is no TWAP window, no per-block cooldown, and no re-entrancy guard preventing bond purchase inside the flash callback.
+
+```solidity
+// ✅ Fix: use a TWAP price and block bond purchases in the same block as a large price move
+function mu_bond(uint256 usdceAmount) external {
+    require(block.timestamp >= lastBondTime[msg.sender] + 1 days, "Cooldown"); // ✅
+    lastBondTime[msg.sender] = block.timestamp;
+    usdce.transferFrom(msg.sender, address(this), usdceAmount);
+    uint256 muTwapPrice = oracle.consult(address(muToken), 1e18, 30 minutes); // ✅ TWAP
+    uint256 mugAmount = usdceAmount * 1e18 / muTwapPrice;
+    mugToken.transfer(msg.sender, mugAmount);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

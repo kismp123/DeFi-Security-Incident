@@ -38,119 +38,80 @@ function getYBPrice() internal view returns (uint256) {
 }
 ```
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
+
+Source: **not verified on Sourcify** — `0x113F16A3341D32c4a38Ca207Ec6ab109cF63e434` (BSC)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0x113F16A3341D32c4a38Ca207Ec6ab109cF63e434 (404 — not found)
+
+The YBToken contract at `0x113F` is unverified on-chain. The following is reconstructed from the PoC ([YBToken_exp.sol](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-04/YBToken_exp.sol)) and the on-chain transaction trace. The core vulnerability is a `_transfer` hook that buys/sells YB via the PancakeSwap V2 pair using the **instantaneous spot price**:
 
 ```solidity
-// File: YBToken_decompiled.sol
-contract YBToken {
-contract YBToken {
+// ⚠️ RECONSTRUCTED — not verified source. Derived from PoC + on-chain trace.
+// Contract: 0x113F16A3341D32c4a38Ca207Ec6ab109cF63e434 (YBToken, BSC)
 
-    // Selector: 0xfc37987b
-    function buyRate() external view returns (uint256) {  // ❌ Vulnerable
-        // TODO: decompiled logic not implemented
+contract YBToken is IERC20 {
+    IUniswapV2Pair  public  pair;     // YB/BUSD PancakeSwap V2 pair
+    IUniswapV2Router02 public router;
+    uint256 public buyRate;           // set by owner (selector 0xfc37987b)
+    uint256 public sellRate;          // set by owner (selector 0x6217229b)
+
+    // ❌ Called on every token transfer — triggers auto-swap using spot reserves
+    function _transfer(address from, address to, uint256 amount) internal override {
+        if (to == address(pair)) {
+            // Sell path: swap YB → BUSD via router
+            // ❌ Router reads current pair reserves (spot price) — manipulable
+            address[] memory path = new address[](2);
+            path[0] = address(this);
+            path[1] = BUSD;
+            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amount * sellRate / 100,  // ❌ sellRate applied to spot price
+                0,                        // ❌ no minimum out (amountOutMin=0)
+                path,
+                feeReceiver,
+                block.timestamp
+            );
+        } else if (from == address(pair)) {
+            // Buy path: swap BUSD → YB — quantity computed from spot reserves
+            // ❌ getAmountsOut uses manipulated reserves after flash-loan swap
+            address[] memory path = new address[](2);
+            path[0] = BUSD;
+            path[1] = address(this);
+            uint256 busdIn = getTokenValue(amount); // ❌ spot-price lookup
+            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                busdIn * buyRate / 100,
+                0,
+                path,
+                feeReceiver,
+                block.timestamp
+            );
+        }
+        super._transfer(from, to, amount);
     }
 
-    // Selector: 0xa9059cbb
-    function transfer(address a, uint256 b) external {
-        // TODO: decompiled logic not implemented
+    // ❌ Spot-price oracle — reads live pair reserves, not TWAP
+    function getTokenValue(uint256 amount) public view returns (uint256) {
+        (uint112 r0, uint112 r1,) = IUniswapV2Pair(pair).getReserves(); // ❌
+        // r0 = YB reserve, r1 = BUSD reserve
+        return uint256(r1) * amount / uint256(r0);  // ❌ spot price, manipulable
     }
-
-
-    // This function is part of the exploit path: token price calculation relies on manipulable LP reserve spot price, allowing price distortion via K-value manipulation
-    function _swapRouter() external returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x150e4c47
-    function setFeeWhiteList(address[] a, bool b) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x4e487b71
-    function Panic(uint256 a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: token price calculation relies on manipulable LP reserve spot price, allowing price distortion via K-value manipulation
-    function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint256 a, uint256 b, address[] c, address d, uint256 e) external returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x85e436bf
-    function setBuyRate(uint256 a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: token price calculation relies on manipulable LP reserve spot price, allowing price distortion via K-value manipulation
-    function setSwapRouter(address a) external returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x70a08231
-    function balanceOf(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xb3f00674
-    function feeReceiver() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x095ea7b3
-    function approve(address a, uint256 b) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xd10424c7
-    function getTokenValue(uint256 a) external view returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x8e0b017d
-    function setSellRate(uint256 a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x6217229b
-    function sellRate() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x89675cac
-    function set(address a, address b) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x01986fad
-    function _feeWhiteList(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xfc0c546a
-    function token() external view returns (address) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xd06ca61f
-    function getAmountsOut(uint256 a, address[] b) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x2f48ab7d
-    function usdt() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xd7fd0e77
-    function requestTime() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
 }
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `getTokenValue()` computes price from live `getReserves()` — a single large BUSD injection via flash loan shifts `r1` dramatically, making YB appear cheap.
+- The `_transfer` hook fires on every YB movement and routes the fee through the router at this manipulated spot price.
+- `amountOutMin = 0` on all router calls means there is no slippage guard — the router executes at whatever the (manipulated) price happens to be.
+- The attacker swaps a large BUSD amount into the pair (inflating r1, depressing the YB spot price), buys discounted YB, then sells after price normalises — netting the spread.
+
+```solidity
+// ✅ Fix: use a TWAP oracle instead of spot reserves
+function getTokenValue(uint256 amount) public view returns (uint256) {
+    // consult() returns the time-weighted average price over the observation window
+    return ITWAPOracle(twapOracle).consult(address(this), amount, BUSD); // ✅
+}
+// Also enforce a non-zero amountOutMin in every router call.
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

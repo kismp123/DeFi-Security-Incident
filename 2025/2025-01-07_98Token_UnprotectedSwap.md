@@ -42,14 +42,66 @@ function swapTokensForTokens(...) external onlyOwner {
 
 ### On-Chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** — Main (PancakeRouter base) / 0xB040D88e61EA79a1289507d56938a6AD9955349C (BSC)
+BSCScan verified source: https://bscscan.com/address/0xB040D88e61EA79a1289507d56938a6AD9955349C#code
 
 ```solidity
-// File: 98Token_decompiled.sol
-contract 98Token {
-    function swapTokensForTokens(address[] a, uint256 b, uint256 c, address d) external returns (address) {  // ❌ vulnerability
-        // TODO: decompiled logic not implemented
+// SPDX-License-Identifier: MIT
+// File: Main.sol  (contract PancakeRouter, inherited by Main)
+// Source: BSCScan verified — 0xB040D88e61EA79a1289507d56938a6AD9955349C (BSC)
+
+contract PancakeRouter {
+    IPancakeRouter public constant _IPancakeRouter =
+        IPancakeRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+
+    // ❌ No access control modifier — callable by ANY address
+    // ❌ `to` parameter lets caller redirect output to any address (e.g. themselves)
+    // ❌ `tokenOutMin = 0` accepted with no validation
+    function swapTokensForTokens(
+        address[] memory path,
+        uint256 tokenAmount,
+        uint256 tokenOutMin,
+        address to           // ❌ arbitrary recipient — attacker passes own address
+    ) public {               // ❌ public with no onlyOwner or access check
+        _IPancakeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            tokenAmount,
+            tokenOutMin,     // ❌ attacker supplies 0 — no slippage protection
+            path,
+            to,              // ❌ funds sent directly to attacker-controlled address
+            block.timestamp + 60
+        );
     }
+}
+
+contract Main is PancakeRouter, Ownable {
+    using SafeERC20 for IERC20;
+    IERC20 public constant USDT  = IERC20(0x55d398326f99059fF775485246999027B3197955);
+    IERC20 public Token          = IERC20(0xc0dDfD66420ccd3a337A17dD5D94eb54ab87523F); // 98Token
+    // ... (rest of business logic omitted)
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `swapTokensForTokens` is declared `public` in `PancakeRouter` with no `onlyOwner`, `onlyRole`, or any caller check.
+- The `to` parameter is forwarded directly to the router: any caller can set it to their own address, causing the contract's own token balance to be swapped and sent to the attacker.
+- `tokenOutMin = 0` is accepted without validation, enabling zero-slippage drains with no minimum output requirement.
+- The contract holds 98Token on behalf of the protocol (accumulated from fees/purchases). The attacker called the function with `path = [98Token, USDT]`, `tokenAmount = contract's full balance`, `tokenOutMin = 0`, `to = attacker address`, draining 28,000 USDT in a single call.
+
+```solidity
+// ✅ Fix: restrict caller and hardcode recipient
+function swapTokensForTokens(
+    address[] memory path,
+    uint256 tokenAmount,
+    uint256 tokenOutMin
+) external onlyOwner {                          // ✅ only owner may call
+    _IPancakeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        tokenAmount,
+        tokenOutMin,
+        path,
+        owner(),                                // ✅ funds go to owner, not caller-supplied address
+        block.timestamp + 60
+    );
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

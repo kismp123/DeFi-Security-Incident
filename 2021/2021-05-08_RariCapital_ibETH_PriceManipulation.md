@@ -24,55 +24,93 @@ This is **price manipulation via a privileged internal function**, not an ERC-67
 ---
 ## 2. Vulnerable Code Analysis
 
-### 2.1 CEther.borrow() — State Updated After External Call (CEI Violation)
+Source: **Sourcify-verified** (partial match) — Alpha Finance Bank / ibETH (`0x67B66C99D3Eb37Fa76Aa3Ed1ff33E8e39F0b9c7A`, Ethereum)
+https://sourcify.dev/server/files/any/1/0x67B66C99D3Eb37Fa76Aa3Ed1ff33E8e39F0b9c7A
+
+The vulnerable contract is Alpha Finance's `Bank.sol` — the ibETH vault. Rari Capital's Fuse Pool used `ibETH.totalETH() / ibETH.totalSupply()` to price ibETH collateral. The attacker manipulated `totalETH()` by calling `work()`, which sends ETH to a goblin contract and uses `address(this).balance` as part of the debt accounting — a value the attacker could shift without depositing proportional ETH.
+
+### 2.1 `work()` — The Manipulation Vector
 
 ```solidity
-// ❌ Rari Fuse Pool — CEther (Compound fork) borrow()
-// ibETH.transferFrom() fires a callback before borrow balance is recorded
-function borrowFresh(address payable borrower, uint borrowAmount) internal returns (uint) {
-    // 1. Check: verify borrower has sufficient collateral
-    uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
-    require(allowed == 0, "borrow not allowed");
-
-    // 2. Interaction: transfer ibETH collateral (fires ERC-677 hook on recipient)
-    //    ❌ Attacker's callback reenters borrow() here — borrow balance still = 0
-    doTransferOut(borrower, borrowAmount);  // sends ETH, triggering receive()
-
-    // 3. Effect: borrow balance updated AFTER the external call
-    //    ❌ Too late — reentrancy already exploited the stale state
-    accountBorrows[borrower].principal = accountBorrowsNew;
-    totalBorrows = totalBorrowsNew;
+function work(uint256 id, address goblin, uint256 loan, uint256 maxReturn, bytes calldata data)
+    external payable
+    onlyEOA accrue(msg.value) nonReentrant
+{
+    // 1. Sanity check the input position, or add a new position of ID is 0.
+    if (id == 0) {
+        id = nextPositionID++;
+        positions[id].goblin = goblin;
+        positions[id].owner = msg.sender;
+    } else {
+        require(id < nextPositionID, "bad position id");
+        require(positions[id].goblin == goblin, "bad position goblin");
+        require(positions[id].owner == msg.sender, "not position owner");
+    }
+    emit Work(id, loan);
+    // 2. Make sure the goblin can accept more debt and remove the existing debt.
+    require(config.isGoblin(goblin), "not a goblin");
+    require(loan == 0 || config.acceptDebt(goblin), "goblin not accept more debt");
+    uint256 debt = _removeDebt(id).add(loan);
+    // 3. Perform the actual work, using a new scope to avoid stack-too-deep errors.
+    uint256 back;
+    {
+        uint256 sendETH = msg.value.add(loan);
+        require(sendETH <= address(this).balance, "insufficient ETH in the bank");
+        uint256 beforeETH = address(this).balance.sub(sendETH);
+        Goblin(goblin).work.value(sendETH)(id, msg.sender, debt, data); // ❌ External call to attacker-controlled goblin
+        back = address(this).balance.sub(beforeETH);
+    }
+    // 4. Check and update position debt.
+    uint256 lessDebt = Math.min(debt, Math.min(back, maxReturn));
+    debt = debt.sub(lessDebt);
+    if (debt > 0) {
+        require(debt >= config.minDebtSize(), "too small debt size");
+        uint256 health = Goblin(goblin).health(id);
+        uint256 workFactor = config.workFactor(goblin, debt);
+        require(health.mul(workFactor) >= debt.mul(10000), "bad work factor");
+        _addDebt(id, debt);
+    }
+    // 5. Return excess ETH back.
+    if (back > lessDebt) SafeToken.safeTransferETH(msg.sender, back - lessDebt);
 }
 ```
 
-**Fixed Code**:
+### 2.2 `totalETH()` — The Oracle Read by Rari
+
 ```solidity
-// ✅ CEI pattern: Effects before Interactions, plus nonReentrant guard
-function borrowFresh(address payable borrower, uint borrowAmount) internal nonReentrant returns (uint) {
-    // 1. Checks
-    uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
-    require(allowed == 0, "borrow not allowed");
-
-    // 2. Effects: update borrow state FIRST
-    accountBorrows[borrower].principal = accountBorrowsNew;
-    totalBorrows = totalBorrowsNew;
-
-    // 3. Interactions: external call last — reentrancy now harmless
-    doTransferOut(borrower, borrowAmount);
+function totalETH() public view returns (uint256) {
+    return address(this).balance.add(glbDebtVal).sub(reservePool);
+    // ❌ address(this).balance reflects the Bank's actual ETH balance
+    //    During work(), ETH is transferred out to the goblin and can be returned
+    //    via crafted payloads that inflate glbDebtVal without corresponding real ETH
 }
 ```
 
-### On-Chain Original Code
+### 2.3 `deposit()` — Share Minting Uses totalETH()
 
-Source: Source unverified
-
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable Function** — `borrowFresh()`:
 ```solidity
-// ❌ Root cause: ibETH ERC-677 transfer hook triggers reentrancy into borrow() before
-//    borrow balance is updated, allowing over-borrowing against the same ibETH collateral.
-//    Source code unverified — bytecode analysis required.
+function deposit() external payable accrue(msg.value) nonReentrant {
+    uint256 total = totalETH().sub(msg.value);
+    uint256 share = total == 0 ? msg.value : msg.value.mul(totalSupply()).div(total);
+    // ❌ totalETH() is the oracle Rari reads for ibETH collateral price
+    //    If totalETH() is inflated (more ETH "accounted" than really present),
+    //    each ibETH share appears more valuable than it truly is
+    _mint(msg.sender, share);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `work()` allows any authorized EOA to invoke a goblin contract with ETH from the Bank. The goblin is an external, attacker-controlled contract — in the original Alpha Finance design, goblins were whitelisted yield strategies.
+- `totalETH()` reads `address(this).balance + glbDebtVal - reservePool`. The `glbDebtVal` accumulates debt records which, if manipulated via crafted `work()` calls, cause `totalETH()` to diverge from the true backing.
+- Rari Capital priced ibETH collateral as `ibETH.totalETH() / ibETH.totalSupply()`. By making the Bank report a higher `totalETH()` than the ETH actually backing the shares, the attacker inflated the apparent per-share price of ibETH, enabling over-borrowing from Rari's Fuse pools.
+- The root cause is **protocol incompatibility**: Rari used a mutable internal accounting variable (`totalETH()`) of a third-party protocol as a collateral price oracle, without recognizing that `work()` could shift that variable without proportional real ETH backing.
+
+```solidity
+// ✅ Fix: Never use an AMM's or vault's own internal balance tracker as a price oracle.
+// Use a hardened external oracle (Chainlink TWAP) for ibETH/ETH pricing.
+// Additionally, whitelist acceptable collateral types and audit their full interfaces
+// before listing — specifically any privileged functions that affect balance accounting.
 ```
 
 ## 3. Attack Flow

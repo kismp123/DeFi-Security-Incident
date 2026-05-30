@@ -74,15 +74,61 @@ contract SafeSwapMining {
 
 ### On-chain Original Code
 
-Source: Source unconfirmed
+Source: **not verified on Sourcify** — SwapMining [0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636](https://bscscan.com/address/0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636) (BSC)
 
-> ⚠️ No on-chain source code — bytecode only or source not verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-**Vulnerable Function** — `vulnerableFunction()`:
+The PoC (DeFiHackLabs `BabySwap_exp.sol`) confirms the only function called on the SwapMining contract is `takerWithdraw()`. The BabySwap Router's `swapExactTokensForTokens()` accepts a caller-supplied `factories` array, which the SwapMining reward hook uses without whitelisting the official factory. A fake factory is deployed that returns the attacker-controlled pair for any `getPair()` call, enabling arbitrary swap volume accumulation.
+
 ```solidity
-// ❌ Root cause: The `SwapMining` contract does not validate the Factory used by the router, allowing swap records to be manipulated via a fake Factory
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: The `SwapMining` contract does not validate the Factory used by the router, allowing swap records to be manipulated via a fake Factory
+// Reconstructed from PoC — NOT verified source
+// SwapMining: 0x5c9f1A9CeD41cCC5DcecDa5AFC317b72f1e49636 (BSC)
+// BabySwap Router: 0x8317c460C22A9958c27b4B6403b98d2Ef4E2ad32
+
+// BabySwap Router interface (confirmed from PoC):
+interface IBabySwapRouter {
+    // ❌ 'factories' array is caller-supplied — no whitelist check
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] memory path,
+        address[] memory factories,  // ❌ any factory accepted
+        uint256[] memory fees,
+        address to,
+        uint256 deadline
+    ) external;
+}
+
+// SwapMining interface (confirmed from PoC):
+interface ISwapMining {
+    // ❌ takerWithdraw() pays out rewards accumulated via fake factory volume
+    function takerWithdraw() external;
+}
+
+// Reconstructed SwapMining.swap() logic (called internally by Router):
+// function swap(address account, address input, address output, uint256 amount) external onlyRouter {
+//     address pair = factory.getPair(input, output);  // ❌ factory is the attacker-supplied one
+//     pairSwapVolume[pair] += amount;                  // inflated volume recorded
+// }
+//
+// Attack flow:
+// 1. Deploy FakeFactory (getPair → returns attacker contract with huge getReserves())
+// 2. Call Router.swapExactTokensForTokens(..., [fakeFactory], ...)
+//    → SwapMining records inflated volume against fake pair
+// 3. Call SwapMining.takerWithdraw()
+//    → BABY tokens paid out proportional to fake volume
+```
+
+**Why it is exploitable (reconstructed from PoC and on-chain behavior):**
+- The BabySwap Router passes the caller-provided `factories` array directly to the SwapMining hook without checking that the factory is the official BabySwap Factory.
+- SwapMining accumulates swap volume per pair using the unvalidated factory's `getPair()` result.
+- `takerWithdraw()` pays BABY rewards proportional to that accumulated (fake) volume.
+
+```solidity
+// ✅ Fix: enforce official factory in SwapMining.swap()
+// require(msg.sender == officialRouter, "Only router");
+// address pair = OFFICIAL_FACTORY.getPair(input, output);
+// require(pair != address(0), "Unknown pair");
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -70,15 +70,65 @@ contract OneRingVaultFixed {
 
 ### On-Chain Source Code
 
-Source: Source unverified
+Source: **not verified on Sourcify** — OneRing Vault / 0x4e332D616b5bA1eDFd87c899E534D996c336a2FC (Fantom)
+(Sourcify returned HTTP 404; FTMScan source not retrievable via WebFetch)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces (Knownsec Blockchain Lab analysis), not verified source.
 
-**Vulnerable function** — `depositSafe()`:
+The DeFiHackLabs PoC calls `vault.depositSafe(amount0, address(usdc), 1)` and `vault.withdraw(vault.balanceOf(address(this)), address(usdc))`. The Knownsec post-mortem traces the price path as: `depositSafe` → `_deposit` → `_doHardWorkAll` → `getSharePrice` → `balanceWithInvested` → `investedBalanceInUSD` (reads current reserves). Reconstructed from on-chain traces:
+
 ```solidity
-// ❌ Root cause: Share issuance in `depositSafe()` is calculated using `pricePerShare()` based on the current block's `totalAssets` (spot balance), enabling profit through a large deposit followed by immediate withdrawal within the same transaction
-// Source code unverified — bytecode analysis required
-// Vulnerability: Share issuance in `depositSafe()` is calculated using `pricePerShare()` based on the current block's `totalAssets` (spot balance), enabling profit through a large deposit followed by immediate withdrawal within the same transaction
+// ⚠️ RECONSTRUCTED — not verified source. Behavior confirmed by on-chain analysis.
+// OneRing Vault — 0x4e332D616b5bA1eDFd87c899E534D996c336a2FC (Fantom)
+
+function getSharePrice() public view returns (uint256) {
+    // ❌ reads current spot balance of invested LP reserves — manipulable via flash loan deposit
+    uint256 totalAssets = balanceWithInvested();   // sum of current reserve balances
+    uint256 supply = totalSupply();
+    if (supply == 0) return 1e18;
+    return totalAssets * 1e18 / supply;            // ❌ spot price — no TWAP
+}
+
+function depositSafe(
+    uint256 _amount,
+    address _token,
+    uint256 _minShares
+) external nonReentrant {
+    uint256 sharePrice = getSharePrice();          // ❌ snapshot of inflated spot price
+    uint256 shares = _amount * 1e18 / sharePrice; // ❌ fewer shares minted when price is inflated
+    IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+    _mint(msg.sender, shares);
+    // No same-block deposit/withdraw protection
+}
+
+function withdraw(uint256 _shares, address _token) external nonReentrant {
+    uint256 sharePrice = getSharePrice();          // ❌ still reads spot price — still elevated right after deposit
+    uint256 amount = _shares * sharePrice / 1e18; // ❌ returns more than fair value
+    _burn(msg.sender, _shares);
+    IERC20(_token).safeTransfer(msg.sender, amount);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `getSharePrice()` divides `balanceWithInvested()` (live reserve total) by `totalSupply()`. When an 80 M USDC flash loan deposit hits, `balanceWithInvested()` spikes, so `getSharePrice()` returns an inflated value.
+- `depositSafe` uses the inflated price → the attacker receives *fewer* OShares than their deposit is worth at fair price.
+- Immediately after, `withdraw` re-reads the same still-inflated `getSharePrice()`, so each OShare is redeemed for more USDC than was originally minted — netting a profit of ~$1.45 M in a single atomic transaction.
+- No delay between deposit and withdrawal is enforced; no TWAP smoothing protects `getSharePrice()`.
+
+```solidity
+// ✅ Fix: enforce same-block deposit/withdraw protection
+mapping(address => uint256) public lastDepositBlock;
+
+function depositSafe(uint256 _amount, address _token, uint256 _minShares) external nonReentrant {
+    lastDepositBlock[msg.sender] = block.number;  // ✅ record deposit block
+    // ... existing mint logic ...
+}
+
+function withdraw(uint256 _shares, address _token) external nonReentrant {
+    require(block.number > lastDepositBlock[msg.sender], "same-block deposit/withdraw disallowed"); // ✅
+    // ... existing burn/transfer logic ...
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

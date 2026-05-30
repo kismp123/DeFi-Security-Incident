@@ -64,15 +64,39 @@ contract SafeBondTeller {
 
 ### On-Chain Source Code
 
-Source: Unverified
+Source: **Sourcify-verified** — BondFixedExpiryTeller / 0x007FE7c498A2Cf30971ad8f2cbC36bd14Ac51156 (Ethereum Mainnet)
+https://sourcify.dev/server/files/any/1/0x007FE7c498A2Cf30971ad8f2cbC36bd14Ac51156
 
-> ⚠️ No on-chain source code available — bytecode only or source not verified
-
-**Vulnerable function** — `redeem()`:
 ```solidity
-// ❌ Root cause: `redeem()` function does not validate whether the supplied token address is a genuine BondFixedExpiry token, allowing OHM to be drained via a fake token
-// Source code unverified — bytecode analysis required
-// Vulnerability: `redeem()` function does not validate whether the supplied token address is a genuine BondFixedExpiry token, allowing OHM to be drained via a fake token
+// From: src/BondFixedExpiryTeller.sol
+
+/// @inheritdoc IBondFixedExpiryTeller
+function redeem(ERC20BondToken token_, uint256 amount_) external override nonReentrant {
+    if (uint48(block.timestamp) < token_.expiry())
+        revert Teller_TokenNotMatured(token_.expiry()); // ← expiry check passes for any token returning a past timestamp
+    token_.burn(msg.sender, amount_);                   // ❌ burn() called on attacker-controlled address — does nothing
+    token_.underlying().transfer(msg.sender, amount_);  // ❌ underlying() returns OHM (set by attacker) → OHM transferred out
+}
+```
+
+Note: the contract maintains a `tokenCreated` mapping (in `src/bases/BondBaseTeller.sol`) that tracks bond tokens legitimately issued by this Teller, but **`redeem()` never checks it**. Any address whose `expiry()` returns a past value and whose `underlying()` returns OHM passes all guards.
+
+**Why it is exploitable (identify the bug from the code):**
+- `redeem()` accepts any `ERC20BondToken token_` parameter with no validation that the token was actually issued by this Teller.
+- The only guard is `token_.expiry() <= block.timestamp`, which any attacker-crafted contract can satisfy by returning `1`.
+- `token_.burn()` is then called on the attacker contract — which is a no-op.
+- `token_.underlying()` returns the OHM address (chosen by the attacker), causing the Teller to transfer its entire OHM balance to `msg.sender`.
+- The missing check: `require(tokenCreated[token_], "Not an issued bond token")`.
+
+```solidity
+// ✅ Fix: validate the token was issued by this Teller
+function redeem(ERC20BondToken token_, uint256 amount_) external override nonReentrant {
+    require(tokenCreated[token_], "Teller: token not created by this teller"); // ✅ whitelist check
+    if (uint48(block.timestamp) < token_.expiry())
+        revert Teller_TokenNotMatured(token_.expiry());
+    token_.burn(msg.sender, amount_);
+    token_.underlying().transfer(msg.sender, amount_);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

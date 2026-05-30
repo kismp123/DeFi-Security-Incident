@@ -20,45 +20,92 @@ The AST token contract had a bug in its internal logic during liquidity removal 
 
 ## 2. Vulnerable Code Analysis
 
+### On-Chain Source Code (verified)
+
+Source: **Sourcify-verified** — `AST` token `0xc10E0319337c7F83342424Df72e73a70A29579B2` (BSC), Solidity v0.8.28
+(`https://sourcify.dev/server/files/any/56/0xc10E0319337c7F83342424Df72e73a70A29579B2`)
+
+The vulnerability lives entirely inside the token's custom `_transfer` override. Two interacting defects create a tiny, repeatable accounting surplus inside the PancakeSwap pair:
+
 ```solidity
-// ❌ Vulnerable code: double token transfer bug during liquidity removal
-function removeLiquidity(uint256 lpAmount) external {
-    (uint256 amount0, uint256 amount1) = _calculateAmounts(lpAmount);
+function _transfer(address from, address to, uint256 amount) internal virtual {
+    require(from != address(0), "ERC20: transfer from the zero address");
+    _beforeTokenTransfer(from, to, amount);
 
-    _burn(msg.sender, lpAmount);
+    uint256 fromBalance = _balances[from];
+    require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
+    unchecked {
+        _balances[from] = fromBalance - amount;   // (1) sender debited the FULL `amount`
+    }
+    // ❌ DEFECT A: when the entire balance is moved, the local `amount` is silently
+    //    shaved by 1e14 — but `_balances[from]` was already reduced by the full amount above.
+    if (fromBalance == amount && fromBalance >= 1e14) {
+        amount -= 1e14;                            // 1e14 "vanishes" from the credited side
+    }
 
-    // ❌ Bug: transfer is internally executed twice
-    // Additional transfer occurs inside AST token's _transfer hook
-    IERC20(token0).transfer(msg.sender, amount0);
-    IERC20(token1).transfer(msg.sender, amount1);
-
-    // Result: token0 balance in LP is 1 unit more than amount0
-    // This surplus is extractable via skim()
+    if (from != uniswapV2Pair && !wList[from] && !wList[to] && to != uniswapV2Pair) {
+        _balances[to] += (amount);
+        emit Transfer(from, to, (amount));
+    } else if (wList[from] || wList[to]) {
+        _balances[to] += amount;
+        emit Transfer(from, to, amount);
+    } else {
+        uint feeAmount;
+        if (to == uniswapV2Pair) {
+            if (!checkLiquidityAdd(from)) {
+                if (saleFeeRate > 0) { feeAmount = amount * saleFeeRate / 100;
+                    _balances[sellfee] += feeAmount; emit Transfer(from, sellfee, feeAmount); }
+            }
+        }
+        if (from == uniswapV2Pair) {
+            if (checkLiquidityRm(to)) {
+                // ❌ DEFECT B: on liquidity removal the pair is the sender; `_burn` uses the
+                //    ALREADY-shaved `amount`, so the pair burns 1e14 LESS than it was debited.
+                _burn(from, amount);
+                amount = 0;
+            } else {
+                if (buyFeeRate > 0) { feeAmount = amount * buyFeeRate / 100;
+                    _balances[buyfee] += feeAmount; emit Transfer(from, buyfee, feeAmount); }
+            }
+        }
+        _balances[to] += (amount - feeAmount);
+        emit Transfer(from, to, (amount - feeAmount));
+    }
+    _afterTokenTransfer(from, to, amount);
 }
 
-// ✅ Safe code: verify actual transfer amount by comparing pre/post balances
-function removeLiquidity(uint256 lpAmount) external nonReentrant {
-    (uint256 amount0, uint256 amount1) = _calculateAmounts(lpAmount);
-    _burn(msg.sender, lpAmount);
-
-    uint256 before0 = IERC20(token0).balanceOf(address(this));
-    IERC20(token0).transfer(msg.sender, amount0);
-    uint256 after0 = IERC20(token0).balanceOf(address(this));
-    // Verify actual amount transferred
-    require(before0 - after0 == amount0, "Transfer amount mismatch");
+// Detects a liquidity-removal transfer by watching the caller's LP-token balance shrink.
+function checkLiquidityRm(address user) internal returns (bool) {
+    IERC20 lpToken = IERC20(uniswapV2Pair);
+    uint256 currentBalance = lpToken.balanceOf(user);
+    uint256 previousBalance = lastBalance[user];
+    if (currentBalance < previousBalance) {           // LP balance fell → user removed liquidity
+        emit LiquidityRemoved(user, previousBalance - currentBalance);
+        lastBalance[user] = currentBalance;
+        return true;
+    }
+    return false;
 }
 ```
 
-### On-Chain Source Code
-
-Source: Sourcify verified
+**Why it is exploitable (identify the bug from the code):**
+- At **(1)** the contract debits `_balances[from]` by the *full* `amount`.
+- **DEFECT A** then reduces the local `amount` by `1e14` whenever the full balance is moved, so every downstream credit/burn that uses `amount` is `1e14` short of what was debited.
+- **DEFECT B**: during liquidity removal the pair (`from == uniswapV2Pair`) burns only the shaved `amount`. The pair's *real* AST balance therefore ends up `1e14` higher than the `reserve` the AMM recorded. That stranded `1e14` is exactly what `skim()` (which pays out `balanceOf(pair) - reserve` to the caller) hands to the attacker — repeatedly, once per crafted full-balance removal.
 
 ```solidity
-// File: ASTToken_decompiled.sol
-contract ASTToken {
-    function balanceOf(address a) external view returns (uint256) {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// ✅ Fix: never mutate the working `amount` after the balance has been debited, and make
+//    burn/credit amounts derive from a single source of truth.
+function _transfer(address from, address to, uint256 amount) internal virtual {
+    require(from != address(0), "ERC20: transfer from the zero address");
+    uint256 fromBalance = _balances[from];
+    require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
+    _balances[from] = fromBalance - amount;
+    // no `amount -= 1e14` shaving; burn and credit use the same `amount` that was debited
+    if (from == uniswapV2Pair && checkLiquidityRm(to)) { _burn(from, amount); return; }
+    _balances[to] += amount;
+    emit Transfer(from, to, amount);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

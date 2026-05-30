@@ -9,7 +9,7 @@
 | **Attacker** | [0xad2cb8f48e74065a0b884af9c5a4ecbba101be23](https://bscscan.com/address/0xad2cb8f48e74065a0b884af9c5a4ecbba101be23) |
 | **Attack Tx** | [0x2d9c1a00](https://bscscan.com/tx/0x2d9c1a00cf3d2fda268d0d11794ad2956774b156355e16441d6edb9a448e5a99) |
 | **Vulnerable Contract** | [0xc321ac21a07b3d593b269acdace69c3762ca2dd0](https://bscscan.com/address/0xc321ac21a07b3d593b269acdace69c3762ca2dd0) |
-| **Root Cause** | Reflection mechanism allows large holders to claim disproportionate reflection rewards |
+| **Root Cause** | `_autoBurnLiquidityPairTokens()` is triggered on every non-pair transfer and calls `rant_center.updateAllAverage()` using the current LP balance; an attacker who holds a flash-loaned RANT position triggers this function while the LP balance reflects a manipulated state, skewing reward accounting in their favor |
 | **PoC Source** | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2025-07/RANTToken_exp.sol) |
 
 ---
@@ -48,14 +48,95 @@ modifier noFlashLoan() {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** — RANTToken / 0xc321AC21A07B3d593B269AcdaCE69C3762CA2dd0 (BSC)
+BSCScan verified source: https://bscscan.com/address/0xc321AC21A07B3d593B269AcdaCE69C3762CA2dd0#code
+
+> Note: The doc's description of a "reflection token with `_reflectFee`" is incorrect. RANT is not a standard reflection token. The actual vulnerability is in `_autoBurnLiquidityPairTokens()`, which is called unconditionally on every non-pair transfer and performs `pair.sync()` + `rant_center.updateAllAverage()` based on the current LP balance. An attacker who holds a large flash-loaned position while triggering this auto-burn can manipulate how rewards are accounted in `rant_center`.
 
 ```solidity
-// File: RANTToken_decompiled.sol
-contract RANTToken {
-    function earnedToken(address a) external view returns (address) {  // ❌ vulnerability
-        // TODO: decompiled logic not implemented
+// SPDX-License-Identifier: MIT
+// File: contracts/TEST/RANT.sol
+// Source: BSCScan verified — 0xc321AC21A07B3d593B269AcdaCE69C3762CA2dd0 (BSC)
+
+contract RANTToken is Context, ERC20 {
+    IRantCenter public rant_center; // external reward/accounting contract
+
+    // ❌ _transfer: calls _autoBurnLiquidityPairTokens() on EVERY non-pair transfer
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal virtual override {
+        uint256 buyEarnSender    = rant_center.takeToken(sender);
+        uint256 buyEarnRecipient = rant_center.takeToken(recipient);
+        if (buyEarnSender > 0)    { super._transferAdd(sender, buyEarnSender); }
+        if (buyEarnRecipient > 0) { super._transferAdd(recipient, buyEarnRecipient); }
+
+        if (isPair[sender] || isPair[recipient]) {
+            // ... buy/sell/add-LP/remove-LP handling (no auto-burn here)
+        } else {
+            // ❌ Auto-burn is triggered on EVERY wallet-to-wallet transfer
+            if (!lockburn) {
+                _autoBurnLiquidityPairTokens(); // ❌ reads current LP balance → manipulable
+            }
+            if (!isWhiteList(sender) && !isWhiteList(recipient)) {
+                require(recipient == address(this), "wrong address");
+                if (!lockburn) { _sellBurnLiquidityPairTokens(amount); }
+                if (!center_sell) {
+                    center_sell = true;
+                    super._transfer(sender, address(rant_center), amount);
+                    rant_center.sell_rant(amount, sender);
+                    center_sell = false;
+                }
+            } else {
+                super._transfer(sender, recipient, amount);
+            }
+        }
     }
+
+    // ❌ _autoBurnLiquidityPairTokens: reads LP balance and calls rant_center.updateAllAverage()
+    // Attacker triggers this while holding flash-loaned RANT — LP price is manipulated
+    function _autoBurnLiquidityPairTokens() internal isLock() returns (bool) {
+        uint256 liquidityPairBalance = this.balanceOf(uniswapPair); // ❌ reads current pair balance
+        // ...
+        uint256 amountToBurn = caculateBurnAmount(10000 - burnRate, 10000, getTimes() - burnTimes);
+        burnTimes = getTimes();
+        if (liquidityPairBalance > amountToBurn) {
+            super._transferSub(uniswapPair, amountToBurn);
+            rant_center.updateAllAverage(amountToBurn); // ❌ updates reward accounting with manipulated amount
+        }
+        IUniswapV2Pair(uniswapPair).sync(); // ❌ syncs pair at manipulated state
+        emit AutoNukeLP();
+        return true;
+    }
+}
+
+interface IRantCenter {
+    function buyRant(address _user) external payable;
+    function updateAllAverage(uint256 _tokenAmount) external; // ❌ reward accounting updatable via _transfer
+    function takeToken(address account) external returns (uint256 tokenAmount);
+    function earnedToken(address account) external view returns (uint256);
+    function sell_rant(uint256 _amount, address _user) external;
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- The attack entry point is `IERC20(RANT).transfer(RANT, large_amount)` — sending RANT to the RANT contract itself (the contract address is whitelisted and this triggers the `else` branch without restrictions).
+- This `_transfer()` call fires `_autoBurnLiquidityPairTokens()`, which reads `this.balanceOf(uniswapPair)` and calls `rant_center.updateAllAverage(amountToBurn)`.
+- The attacker has a flash-loaned position in the PancakeSwap V3 pool. The flash loan sets up the LP-price state before the `transfer(RANT, ...)` call, causing `liquidityPairBalance` and `amountToBurn` to reflect manipulated values.
+- `rant_center.updateAllAverage()` records this manipulated burn amount as a reward distribution event. Because the attacker holds a large balance during the event, they receive disproportionate claim credit, which they later redeem for BNB via `sell_rant`.
+
+```solidity
+// ✅ Fix: do not call _autoBurnLiquidityPairTokens() during flash-loan-detectable states;
+// at minimum, require that the LP balance has not changed in the same block
+modifier noSameBurnBlock() {
+    require(block.number > lastBurnBlock, "burn once per block");
+    lastBurnBlock = block.number;
+    _;
+}
+function _autoBurnLiquidityPairTokens() internal isLock() noSameBurnBlock() returns (bool) {
+    // ... same logic but protected from same-block manipulation
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

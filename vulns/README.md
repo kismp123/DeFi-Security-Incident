@@ -4,21 +4,21 @@ Browse DeFi security incidents by vulnerability category.
 
 | Category | Incidents |
 |----------|-----------|
-| [Reentrancy](./reentrancy.md) | 75 |
-| [Flash Loan](./flash-loan.md) | 124 |
-| [Oracle & Price Manipulation](./oracle-price-manipulation.md) | 117 |
-| [Access Control](./access-control.md) | 98 |
-| [Business Logic](./business-logic.md) | 149 |
-| [Signature Replay](./signature-replay.md) | 14 |
-| [Private Key Compromise](./private-key-compromise.md) | 12 |
-| [Integer & Precision](./integer-precision.md) | 31 |
-| [Bridge & Cross-Chain](./bridge-crosschain.md) | 2 |
+| [Reentrancy](./reentrancy.md) | 61 |
+| [Flash Loan](./flash-loan.md) | 116 |
+| [Oracle & Price Manipulation](./oracle-price-manipulation.md) | 96 |
+| [Access Control](./access-control.md) | 95 |
+| [Business Logic](./business-logic.md) | 134 |
+| [Signature Replay](./signature-replay.md) | 13 |
+| [Private Key Compromise](./private-key-compromise.md) | 11 |
+| [Integer & Precision](./integer-precision.md) | 26 |
+| [Bridge & Cross-Chain](./bridge-crosschain.md) | 4 |
 | [Governance](./governance.md) | 8 |
-| [Arbitrary Call / Input Validation](./arbitrary-call.md) | 79 |
-| [Slippage & AMM](./slippage-amm.md) | 27 |
+| [Arbitrary Call / Input Validation](./arbitrary-call.md) | 73 |
+| [Slippage & AMM](./slippage-amm.md) | 26 |
 | [Proxy & Storage Collision](./proxy-storage.md) | 12 |
-| [Staking & Reward](./staking-reward.md) | 47 |
-| [NFT](./nft.md) | 9 |
+| [Staking & Reward](./staking-reward.md) | 45 |
+| [NFT](./nft.md) | 8 |
 | [Deflationary / Tax Token](./defl-tax-token.md) | 31 |
 | [Donation / Vault Inflation](./donation-inflation.md) | 10 |
 | [Weak / Predictable Randomness](./weak-randomness.md) | 6 |

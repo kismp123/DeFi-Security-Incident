@@ -47,14 +47,77 @@ function _autoBurn() internal {
 
 ### On-chain Original Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** (partial match) — BBXToken / 0x67Ca347e7B9387af4E81c36cCA4eAF080dcB33E9 (BSC)
+https://sourcify.dev/server/files/any/56/0x67Ca347e7B9387af4E81c36cCA4eAF080dcB33E9
+
+Note: `0x6051428b580f561b627247119eed4d0483b8d28e` in the doc header is the BBX/BUSD LP pair address. The BBX token contract (victim) is at `0x67Ca347e7B9387af4E81c36cCA4eAF080dcB33E9`.
 
 ```solidity
-// File: BBXToken_decompiled.sol
-contract BBXToken {
-    function burn(address a) external {  // ❌ vulnerability
-        // TODO: decompiled logic not implemented
+// From: BBXToken.sol
+
+uint256 public burnRate = 300;           // 3%
+uint256 public lastBurnTime;
+uint256 public lastBurnGapTime = 1 days; // burn fires at most once per day
+address public liquidityPool;            // the BBX/BUSD PancakeSwap pair
+
+function _transfer(address from, address recipient, uint256 amount) internal override {
+    if (block.timestamp >= lastBurnTime + lastBurnGapTime) {
+        uint256 totalNum = this.balanceOf(liquidityPool); // ❌ reads current LP balance — manipulable by direct transfer
+        uint256 burnNum = totalNum * burnRate / 10000;    // ❌ burnNum scales linearly with LP balance
+        super._transfer(liquidityPool, address(0xdead), burnNum); // burn from LP
+        IPancakePari(liquidityPool).sync();               // update pair reserves
+        lastBurnTime = block.timestamp;                   // reset timer
     }
+
+    if (isExcludedFromFee[from] || isExcludedFromFee[recipient]) {
+        super._transfer(from, recipient, amount);
+        return;
+    }
+
+    if (from == liquidityPool) {
+        uint256 taxAmount = (amount * buyorsellTax) / 10000;
+        uint256 amountAfterTax = amount - taxAmount;
+        uint256 tax1 = (taxAmount * 20) / 30;
+        uint256 tax2 = (taxAmount * 10) / 30;
+        super._transfer(from, buyorsellTaxWallet, tax1);
+        super._transfer(from, dividendAddress, tax2);
+        super._transfer(from, recipient, amountAfterTax);
+        return;
+    }
+
+    if (recipient == liquidityPool) {
+        uint256 taxAmount = (amount * buyorsellTax) / 10000;
+        uint256 amountAfterTax = amount - taxAmount;
+        uint256 tax1 = (taxAmount * 20) / 30;
+        uint256 tax2 = (taxAmount * 10) / 30;
+        super._transfer(from, buyorsellTaxWallet, tax2);
+        super._transfer(from, dividendAddress, tax1);
+        super._transfer(from, recipient, amountAfterTax);
+        return;
+    }
+    super._transfer(from, recipient, amount);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `totalNum = this.balanceOf(liquidityPool)` reads the live LP balance of BBX tokens, which any address can inflate by sending BBX directly to the pair address (ERC-20 `transfer` bypasses pair reserves).
+- `burnNum = totalNum * burnRate / 10000` then computes 3% of that inflated balance, burning far more tokens than the protocol intended.
+- The PoC calls `transfer(address(this), 0)` 500 times after advancing `block.timestamp` by 15 minutes (to reach the next burn window). Each zero-amount transfer checks the burn condition, but the attacker had first purchased BBX and warped time so the condition fires on the first iteration, burning 3% of the (now elevated) LP balance. The resulting price spike allows the attacker to sell their pre-acquired BBX for BUSD at a profit.
+- There is no upper-bound cap on `burnNum` and no snapshot mechanism — the burn amount is fully at the mercy of the current (manipulable) LP balance.
+
+```solidity
+// ✅ Fix: use a fixed or capped burn amount, independent of current LP balance
+uint256 public constant MAX_BURN_PER_INTERVAL = 100_000 * 1e18; // example cap
+
+function _autoBurn() internal {
+    uint256 snapshotBalance = lastRecordedLPBalance; // ✅ use a pre-recorded snapshot
+    uint256 burnNum = snapshotBalance * burnRate / 10000;
+    if (burnNum > MAX_BURN_PER_INTERVAL) burnNum = MAX_BURN_PER_INTERVAL; // ✅ cap
+    super._transfer(liquidityPool, address(0xdead), burnNum);
+    IPancakePari(liquidityPool).sync();
+    lastBurnTime = block.timestamp;
+    lastRecordedLPBalance = this.balanceOf(liquidityPool); // update snapshot after burn
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

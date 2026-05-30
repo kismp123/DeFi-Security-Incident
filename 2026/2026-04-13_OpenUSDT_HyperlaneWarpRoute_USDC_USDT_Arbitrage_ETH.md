@@ -68,24 +68,64 @@ Tx #1 (10.9 USDC) is a probe; subsequent txs are full cycles. Each withdrawal ro
 
 ### 3.1 Fixed-rate mint against wrong asset
 
-```
-// Pseudocode of the Base oUSDT warp route
-function mint(uint256 usdcAmount) external {
-    USDC.transferFrom(msg.sender, address(this), usdcAmount);
-    _mintOUsdt(msg.sender, usdcAmount);     // ❌ 1:1 against USDC
+> ⚠️ Contract not verified on Sourcify — the Hyperlane warp route proxy (`0xd05909852aE07118857f9D071781671D12c0f36c`, Ethereum) and the Base/Celo counterpart contracts have no Sourcify entries. The Solidity snippets below are reconstructed from the Hyperlane open-source warp route implementation and the on-chain transaction data, not verified source.
+
+Source: **not verified on Sourcify** — `0xd05909852aE07118857f9D071781671D12c0f36c` (Ethereum mainnet)
+Sourcify URL: https://sourcify.dev/server/files/any/1/0xd05909852aE07118857f9D071781671D12c0f36c (not found)
+
+```solidity
+// ⚠️ RECONSTRUCTED — not verified source. Derived from Hyperlane open-source warp route
+// pattern and on-chain traces. Real language: Solidity (EVM).
+
+// Base chain — oUSDT HyperlaneERC20WarpRoute (collateral: USDC)
+function transferRemote(
+    uint32  destination,
+    bytes32 recipient,
+    uint256 amount
+) external payable returns (bytes32 messageId) {
+    USDC.transferFrom(msg.sender, address(this), amount);
+    // ❌ Mints oUSDT 1:1 against USDC regardless of the USDC/USDT market rate
+    _mint(address(this), amount);                  // ❌ hard-coded 1:1
+    return _dispatch(destination, recipient, amount);
 }
-```
 
-On Celo:
-
-```
-function redeem(uint256 oUsdtAmount) external {
-    _burnOUsdt(msg.sender, oUsdtAmount);
-    USDT.transfer(msg.sender, oUsdtAmount); // ❌ 1:1 against USDT
+// Celo chain — oUSDT HyperlaneERC20WarpRoute (collateral: USDT)
+function handle(
+    uint32  origin,
+    bytes32 sender,
+    bytes   calldata message
+) external {
+    (bytes32 recipient, uint256 amount) = abi.decode(message, (bytes32, uint256));
+    _burn(address(this), amount);
+    // ❌ Redeems oUSDT 1:1 for USDT regardless of the USDC/USDT market rate
+    USDT.transfer(address(uint160(uint256(recipient))), amount); // ❌ hard-coded 1:1
 }
 ```
 
 Both sides are 1:1, but the **collateral asset differs** (USDC ↔ USDT), so any non-zero USDC/USDT basis is pocketed by the caller.
+
+**Why it is exploitable (identify the bug from the code):**
+- `transferRemote()` on Base locks USDC and mints oUSDT at an exact 1:1 ratio with no oracle consultation.
+- `handle()` on Celo burns oUSDT and releases USDT at an exact 1:1 ratio.
+- Because USDC and USDT are not identical assets (market rate ≈ 0.9998 USDT per USDC), each round-trip captures the basis: deposit 1,000,000 USDC → receive 1,000,000 USDT → sell USDT for ≈1,000,200 USDC → repeat.
+- No oracle, no rate-limit, no slippage check exists in either direction.
+
+```solidity
+// ✅ Fix: consult a Chainlink USDC/USDT oracle before minting
+function transferRemote(uint32 destination, bytes32 recipient, uint256 usdcAmount)
+    external payable returns (bytes32)
+{
+    USDC.transferFrom(msg.sender, address(this), usdcAmount);
+    // ✅ Price the USDC collateral in USDT terms via oracle
+    uint256 oUsdtAmount = _usdcToUsdt(usdcAmount); // oracle-adjusted amount
+    _mint(address(this), oUsdtAmount);
+    return _dispatch(destination, recipient, oUsdtAmount);
+}
+function _usdcToUsdt(uint256 usdcAmount) internal view returns (uint256) {
+    (, int256 price,,,) = IChainlinkFeed(USDC_USDT_FEED).latestRoundData();
+    return usdcAmount * uint256(price) / 1e8; // ✅ market-rate conversion
+}
+```
 
 ### 3.2 Why it is structurally drainable
 

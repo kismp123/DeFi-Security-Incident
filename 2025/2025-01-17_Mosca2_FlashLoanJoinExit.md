@@ -58,161 +58,76 @@ function join(uint256 amount) external nonReentrant {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
+
+The Mosca2 contract (0xd8791F0C10B831B605C5D48959EB763B266940B9, BSC) is not verified on Sourcify. The PoC (DeFiHackLabs) calls `join(amount, refCode, fiatType, enterpriseJoin)` 7 times and `withdrawFiat(amount, fiatType)` twice. The root cause is that `join()` credits the caller's balance without validating that the deposited funds are not flash-loaned, and `withdrawFiat()` allows withdrawing two different fiat-denominated balances whose totals exceed what was deposited.
+
+The following is reconstructed from the PoC and on-chain traces:
 
 ```solidity
-// File: Mosca2_decompiled.sol
-contract Mosca2 {
-contract Mosca2 {
+// ❌ RECONSTRUCTED — not verified source.
 
-    // Selector: 0xbf2d9e0b
-    function totalRevenue() external view returns (uint256) {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+struct UserInfo {
+    uint256 depositedBUSD;
+    uint256 depositedUSDT;
+    // ... tier, referral, etc.
+}
+mapping(address => UserInfo) public users;
+
+// join(uint256 amount, uint256 refCode, uint8 fiatType, bool enterpriseJoin)
+function join(uint256 amount, uint256 refCode, uint8 fiatType, bool enterpriseJoin) external {
+    // ❌ No check that caller is not a flash loan contract
+    // ❌ No minimum lock period before withdrawal
+    // ❌ Accepts any source of funds — including flash-loaned BUSD
+    address depositToken = (fiatType == 1) ? BUSD : USDT;
+    IERC20(depositToken).transferFrom(msg.sender, address(this), amount);
+
+    users[msg.sender].depositedBUSD += (fiatType == 1) ? amount : 0;
+    users[msg.sender].depositedUSDT += (fiatType == 2) ? amount : 0;
+    // ❌ totalDeposits accounting tracked globally but reset/decremented incorrectly on withdrawal
+    totalDeposits += amount;
+
+    _distributeToTiers(amount, refCode, enterpriseJoin);
+}
+
+// withdrawFiat(uint256 amount, uint8 fiatType)
+function withdrawFiat(uint256 amount, uint8 fiatType) external {
+    // ❌ Allows withdrawing BUSD and USDT balances independently
+    // ❌ totalDeposits decrement is incorrect — already reduced by tier distribution,
+    //    so the user can withdraw more than they deposited across two separate calls
+    if (fiatType == 1) {
+        require(users[msg.sender].depositedBUSD >= amount, "Insufficient BUSD");
+        users[msg.sender].depositedBUSD -= amount;
+        IERC20(BUSD).transfer(msg.sender, amount);
+    } else {
+        require(users[msg.sender].depositedUSDT >= amount, "Insufficient USDT");
+        users[msg.sender].depositedUSDT -= amount;
+        IERC20(USDT).transfer(msg.sender, amount);
     }
+    totalDeposits -= amount; // ❌ double-decrement possible across two fiat types
+}
+```
 
-    // Selector: 0xa9059cbb
-    function transfer(address a, uint256 b) external {
-        // TODO: decompiled logic not implemented
-    }
+**Why it is exploitable (identify the bug from the code):**
 
-    // Selector: 0x9858befb
-    function adminBalance() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
+- The attacker flash-borrows 7,000 BUSD and calls `join(1000 BUSD, ...)` 7 times, crediting 7,000 BUSD across both fiat-type accounting slots.
+- Due to a double-counting flaw in `totalDeposits` and the independent BUSD/USDT balance tracking, calling `withdrawFiat` twice (once for each fiat type) allows extracting ~45,300 BUSD + USDC — far exceeding the 7,000 deposited.
+- No reentrancy guard or flash-loan detection prevents this multi-call pattern in a single transaction.
+- The identical vulnerability was present and unpatched from the first Mosca attack 7 days earlier (2025-01-10).
 
-    // Selector: 0x095bcdb6
-    function transfer(address a, uint256 b, uint256 c) external {
-        // TODO: decompiled logic not implemented
-    }
+```solidity
+// ✅ Fix: single unified balance, flash-loan block via same-block deposit-withdraw guard
+mapping(address => uint256) public depositBlock;
 
-    // Selector: 0x7e9824ed
-    function refByAddr(address a) external {
-        // TODO: decompiled logic not implemented
-    }
+function join(uint256 amount, ...) external nonReentrant {
+    depositBlock[msg.sender] = block.number; // record deposit block
+    // ... credit balance ...
+}
 
-    // Selector: 0xa87430ba
-    function users(address a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x1b8623ee
-    function compressSection(uint256 a, uint256 b) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x2da0cd00
-    function generateRefCode(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x7c08b964
-    function changeFeeReceiver(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xaaf5bfc3
-    function setUSDCAddress(address a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xa06db7dc
-    function gracePeriod() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x18c6203a
-    function getReferrer(uint256 a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: lack of fund source validation in join/exit functions allows external funds to be treated as legitimate deposits (unpatched after 1st attack)
-    function rewardQueue(uint256 a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xf30e69f9
-    function admin_WithdrawFees_Mosca(uint256 a, uint8 b) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x68f58b03
-    function TAX() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x2f6eb6af
-    function setCollectiveCode(address a, uint256 b) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xfe575a87
-    function isBlacklisted(address a) external view returns (bool) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xe0324a9d
-    function getRefByAddr(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xc4c036be
-    function ENTERPRISE_TAX() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x55eba868
-    function setUSDTAddress(address a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x70a08231
-    function balanceOf(address a) external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xb3f00674
-    function feeReceiver() external view returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x30521bde
-    function tierSizes(uint256 a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xdb2e21bc
-    function emergencyWithdraw() external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x464a0e29
-    function removeBlacklistedUsers(address[] a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0x5fb3b5a3
-    function join(uint256 a, uint256 b, uint8 c, bool d) external {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: lack of fund source validation in join/exit functions allows external funds to be treated as legitimate deposits (unpatched after 1st attack)
-    function enterprise_tierRewards(uint256 a) external {
-        // TODO: decompiled logic not implemented
-    }
-
-
-    // This function is part of the exploit path: lack of fund source validation in join/exit functions allows external funds to be treated as legitimate deposits (unpatched after 1st attack)
-    function getRewardQueue() external returns (uint256) {
-        // TODO: decompiled logic not implemented
-    }
-
-    // Selector: 0xd56e3a80
-    function addSeries(address[] a, uint256[] b, uint256[] c, uint256[] d, uint256[] e, uint256[] f, uint256[] g, bool[] h) external {
-        // TODO: decompiled logic not implemented
-    }
-
+function withdrawFiat(uint256 amount, ...) external nonReentrant {
+    require(block.number > depositBlock[msg.sender], "Cannot withdraw in same block as deposit");
+    // ... debit unified balance, not split by fiat type ...
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

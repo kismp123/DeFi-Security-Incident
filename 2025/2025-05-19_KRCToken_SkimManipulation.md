@@ -45,14 +45,73 @@ contract KRCToken {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **not verified on Sourcify** — PancakePair KRC/USDT (`0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5`, BSC) — BscScan verified (Exact Match, Solidity v0.5.16) — https://bscscan.com/address/0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5#code
+
+The vulnerable contract is the **PancakeSwap V2 pair** (standard PancakePair, open-source). The KRC token contract itself is not the target; the exploit abuses the pair's `skim()` function which is part of the verified PancakePair code:
 
 ```solidity
-// File: KRCToken_decompiled.sol
-contract KRCToken {
-    function swap(uint256 a, uint256 b, address c, bytes calldata d) external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// Source: PancakeSwap V2 PancakePair.sol (verified, open-source)
+// https://github.com/pancakeswap/pancake-swap-core/blob/master/contracts/PancakePair.sol
+// KRC/USDT pair: 0xdBEAD75d3610209A093AF1D46d5296BBeFFd53f5 (BSC)
+
+// ❌ skim() — no access control, callable by anyone
+function skim(address to) external lock {
+    address _token0 = token0; // gas savings
+    address _token1 = token1; // gas savings
+    // ❌ Sends (balanceOf - reserve) to any address the caller chooses
+    // If the attacker first transfers USDT directly to the pair (inflating balance above reserve),
+    // skim() returns those tokens to the attacker — no authorization required.
+    _safeTransfer(_token0, to, IERC20(_token0).balanceOf(address(this)).sub(reserve0));
+    _safeTransfer(_token1, to, IERC20(_token1).balanceOf(address(this)).sub(reserve1));
+}
+
+// swap() — used after skim() to profit from manipulated reserves
+function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+    require(amount0Out > 0 || amount1Out > 0, 'Pancake: INSUFFICIENT_OUTPUT_AMOUNT');
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, 'Pancake: INSUFFICIENT_LIQUIDITY');
+
+    uint balance0;
+    uint balance1;
+    { // scope to avoid stack too deep
+        address _token0 = token0;
+        address _token1 = token1;
+        require(to != _token0 && to != _token1, 'Pancake: INVALID_TO');
+        if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out);
+        if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out);
+        if (data.length > 0) IPancakeCallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
+        balance0 = IERC20(_token0).balanceOf(address(this));
+        balance1 = IERC20(_token1).balanceOf(address(this));
     }
+    uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+    uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+    require(amount0In > 0 || amount1In > 0, 'Pancake: INSUFFICIENT_INPUT_AMOUNT');
+    { // k-invariant check
+        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(2));
+        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(2));
+        require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'Pancake: K');
+    }
+    _update(balance0, balance1, _reserve0, _reserve1);
+    emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `skim()` has no access control — `external lock` only prevents re-entrancy within the same call, not external calls from anyone.
+- The attacker uses dual flash loans (DODO + PancakeV3) to obtain a large amount of USDT, then transfers it directly to the KRC/USDT pair. This makes `balanceOf(pair) >> reserve1`.
+- `skim(attacker)` then extracts `balanceOf - reserve` of USDT to the attacker — effectively a free withdrawal of whatever was transferred in excess of reserves.
+- The attacker repeats this `transfer → skim` cycle 16 times (per the PoC), compounding the extraction.
+- A final `swap()` converts accumulated KRC to USDT at the manipulated reserve ratio.
+
+```solidity
+// ✅ Fix options:
+// 1. In a custom LP contract, add onlyOwner or remove skim() entirely.
+// 2. In the KRC token contract, disallow direct transfers to the pair address
+//    (require transfers to go through the router):
+function transfer(address to, uint256 amount) external override returns (bool) {
+    require(to != krcPair || msg.sender == address(router), "Direct transfer to pair not allowed"); // ✅
+    return super.transfer(to, amount);
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

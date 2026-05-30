@@ -30,11 +30,49 @@ function getPrice() public view returns (uint256) {
 ---
 ### On-chain Original Code
 
-Source: Bytecode decompilation
+> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
+
+Token8633 (0x11Cd2168fc420ae1375626655ab8f355F0075Bd6, BSC) and its helper contract (0x128112aF3aF5478008c84d77c63561885FBBC438) are not verified on BSCScan or Sourcify. The exploit calls `autoSwapAndAddToMarketing()` (900 times) and `autoAddLp()` (130 times), indicating these functions read spot reserves from an AMM pair without validation.
+
+The following is reconstructed from the PoC and on-chain traces:
 
 ```solidity
-// Root cause: both token contracts use unvalidated AMM spot reserves for reward/price calculation, allowing manipulation within a single transaction
-// Source code unverified — based on bytecode analysis
+// ❌ RECONSTRUCTED — not verified source.
+// Token8633 / helper contract pattern — spot reserve price used directly
+
+function autoSwapAndAddToMarketing() external {
+    // ❌ Reads current AMM spot reserves without TWAP or manipulation check
+    (uint112 reserve0, uint112 reserve1,) = IPancakePair(pair).getReserves();
+    uint256 price = uint256(reserve1) * 1e18 / uint256(reserve0); // ❌ spot price, manipulable
+
+    uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+    if (tokenBalance > threshold) {
+        // Calculates swap/reward amount based on manipulated spot price
+        uint256 swapAmount = tokenBalance * price / 1e18;
+        _swapTokensForMarketing(swapAmount); // sends to marketing wallet
+    }
+}
+
+function autoAddLp() external {
+    // ❌ Uses spot reserves to determine LP add ratio — inflated by flash loan
+    (uint112 reserve0, uint112 reserve1,) = IPancakePair(pair).getReserves();
+    uint256 half = IERC20(token).balanceOf(address(this)) / 2;
+    uint256 otherHalf = half * uint256(reserve1) / uint256(reserve0); // ❌ spot price ratio
+    _addLiquidity(half, otherHalf); // adds LP at manipulated ratio → mints inflated LP tokens
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- Both functions use `IPancakePair(pair).getReserves()` at the moment of call to determine price or ratio — this is the classic spot price oracle vulnerability.
+- The attacker flash-borrows 1.1e24 USDT, dumps it into the pair, making `reserve1` (USDT) spike dramatically, which inflates the computed `price`.
+- With the inflated price, calling `autoSwapAndAddToMarketing()` 900 times drains accumulated token value at a false rate; calling `autoAddLp()` 130 times mints LP tokens at the manipulated ratio.
+- Because both functions are callable by anyone with no cooldown or access control, the attacker can invoke them repeatedly within a single flash-loan transaction.
+
+```solidity
+// ✅ Fix: replace spot price oracle with Uniswap V2 TWAP
+// Use price0CumulativeLast / price1CumulativeLast over a sufficient window (e.g. 30 min)
+// Also add: onlyOwner or caller whitelist, and a per-block call frequency limit
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

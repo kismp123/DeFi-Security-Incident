@@ -58,15 +58,55 @@ function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data)
 
 ### On-Chain Source Code
 
-Source: Unverified
+Source: **Sourcify-verified** — UraniumPair.sol inside UraniumFactory (0xA943eA143cd7E79806d670f4a7cf08F8922a454F, BSC)
+https://sourcify.dev/server/files/any/56/0xA943eA143cd7E79806d670f4a7cf08F8922a454F
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: Bug where the constant used in the K invariant check after swap() (1000) differs from the fee calculation constant (10000), causing K to increase by 100x
-// Source code unverified — bytecode analysis required
-// Vulnerability: Bug where the constant used in the K invariant check after swap() (1000) differs from the fee calculation constant (10000), causing K to increase by 100x
+// this low-level function should be called from a contract which performs important safety checks
+function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+    require(amount0Out > 0 || amount1Out > 0, 'UraniumSwap: INSUFFICIENT_OUTPUT_AMOUNT');
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UraniumSwap: INSUFFICIENT_LIQUIDITY');
+
+    uint balance0;
+    uint balance1;
+    { // scope for _token{0,1}, avoids stack too deep errors
+    address _token0 = token0;
+    address _token1 = token1;
+    require(to != _token0 && to != _token1, 'UraniumSwap: INVALID_TO');
+    if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+    if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+    if (data.length > 0) IUraniumCallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
+    }
+    uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+    uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+    require(amount0In > 0 || amount1In > 0, 'UraniumSwap: INSUFFICIENT_INPUT_AMOUNT');
+    { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
+    uint balance0Adjusted = balance0.mul(10000).sub(amount0In.mul(16)); // fee denom = 10000
+    uint balance1Adjusted = balance1.mul(10000).sub(amount1In.mul(16)); // fee denom = 10000
+    require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UraniumSwap: K'); // ❌ BUG: 1000**2, should be 10000**2
+    }
+
+    _update(balance0, balance1, _reserve0, _reserve1);
+    emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- Line `balance0Adjusted = balance0.mul(10000).sub(amount0In.mul(16))` — fee denominator was changed to `10000` (Uranium's modification from Uniswap's `1000`), making adjusted balances 10× larger than in the original.
+- Line `require(...mul(1000**2), ...)` — K invariant threshold was **not** updated; it still uses `1000**2 = 1_000_000` instead of `10000**2 = 100_000_000`.
+- Result: `balance0Adjusted * balance1Adjusted` is 100× larger than reserve product × `1000**2`, so the K check always passes even when 99% of pool assets are drained.
+- An attacker can send 1 wei into the pool, request 99% of reserves as `amount0Out`, and the invariant check trivially succeeds because the actual K is 100× above the stale threshold.
+
+```solidity
+// ✅ Fix: align K invariant constant with fee denominator
+require(
+    balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(10000**2),
+    'UraniumSwap: K'
+);
 ```
 
 ## 3. Attack Flow

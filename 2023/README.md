@@ -1,8 +1,8 @@
 # 2023 DeFi Security Incidents
 
-A high-volume year with 235 incidents. Flash loan price manipulation, access control failures, and read-only reentrancy across L2 chains (Arbitrum, Optimism, Polygon) were the dominant patterns.
+A high-volume year with 230 incidents. Flash loan price manipulation, access control failures, and read-only reentrancy across L2 chains (Arbitrum, Optimism, Polygon) were the dominant patterns.
 
-**Total incidents: 235**
+**Total incidents: 230**
 
 ---
 
@@ -79,9 +79,6 @@ A high-volume year with 235 incidents. Flash loan price manipulation, access con
 | 2023-05-02 | LevelFinance | ReferralClaimDrain BSC | [2023-05-02_LevelFinance_ReferralClaimDrain_BSC.md](./2023-05-02_LevelFinance_ReferralClaimDrain_BSC.md) |
 | 2023-05-02 | Melo | MintNoAccessControl | [2023-05-02_Melo_MintNoAccessControl.md](./2023-05-02_Melo_MintNoAccessControl.md) |
 | 2023-05-05 | DEI | BurnFromExploit ARB | [2023-05-05_DEI_BurnFromExploit_ARB.md](./2023-05-05_DEI_BurnFromExploit_ARB.md) |
-| 2023-05-05 | GPT | SkimLoopFeeManipulation | [2023-05-05_GPT_SkimLoopFeeManipulation.md](./2023-05-05_GPT_SkimLoopFeeManipulation.md) |
-| 2023-05-07 | BabyDogeCoin | FlashLoanFee | [2023-05-07_BabyDogeCoin_FlashLoanFee.md](./2023-05-07_BabyDogeCoin_FlashLoanFee.md) |
-| 2023-05-08 | ERC20TokenBank | UncheckedTransfer | [2023-05-08_ERC20TokenBank_UncheckedTransfer.md](./2023-05-08_ERC20TokenBank_UncheckedTransfer.md) |
 | 2023-05-09 | LW | ReceiveFunctionUnprotectedSwap | [2023-05-09_LW_ReceiveFunctionUnprotectedSwap.md](./2023-05-09_LW_ReceiveFunctionUnprotectedSwap.md) |
 | 2023-05-10 | SNK | RewardCalculation BSC | [2023-05-10_SNK_RewardCalculation_BSC.md](./2023-05-10_SNK_RewardCalculation_BSC.md) |
 | 2023-05-12 | HODLCapital | ReflectiveDeliver | [2023-05-12_HODLCapital_ReflectiveDeliver.md](./2023-05-12_HODLCapital_ReflectiveDeliver.md) |
@@ -111,7 +108,6 @@ A high-volume year with 235 incidents. Flash loan price manipulation, access con
 | 2023-06-06 | UN | FlashLoanManipulation | [2023-06-06_UN_FlashLoanManipulation.md](./2023-06-06_UN_FlashLoanManipulation.md) |
 | 2023-06-07 | UnverifiedContr | AccessControl | [2023-06-07_UnverifiedContr_AccessControl.md](./2023-06-07_UnverifiedContr_AccessControl.md) |
 | 2023-06-08 | MyAi | AccessControl | [2023-06-08_MyAi_AccessControl.md](./2023-06-08_MyAi_AccessControl.md) |
-| 2023-06-08 | Pawnfi | StakingLogicFlaw | [2023-06-08_Pawnfi_StakingLogicFlaw.md](./2023-06-08_Pawnfi_StakingLogicFlaw.md) |
 | 2023-06-08 | STRAC | TokenBurnExploit | [2023-06-08_STRAC_TokenBurnExploit.md](./2023-06-08_STRAC_TokenBurnExploit.md) |
 | 2023-06-09 | ARA | FlashLoanPriceManipulation | [2023-06-09_ARA_FlashLoanPriceManipulation.md](./2023-06-09_ARA_FlashLoanPriceManipulation.md) |
 | 2023-06-09 | DEPUSDT | LEVUSDC ProxyApproval | [2023-06-09_DEPUSDT_LEVUSDC_ProxyApproval.md](./2023-06-09_DEPUSDT_LEVUSDC_ProxyApproval.md) |
@@ -170,7 +166,6 @@ A high-volume year with 235 incidents. Flash loan price manipulation, access con
 | 2023-08-28 | GSS | FlashLoanSkimSync | [2023-08-28_GSS_FlashLoanSkimSync.md](./2023-08-28_GSS_FlashLoanSkimSync.md) |
 | 2023-08-28 | Leetswap | FeeManipulation | [2023-08-28_Leetswap_FeeManipulation.md](./2023-08-28_Leetswap_FeeManipulation.md) |
 | 2023-08-30 | Uwerx | TokenLogic | [2023-08-30_Uwerx_TokenLogic.md](./2023-08-30_Uwerx_TokenLogic.md) |
-| 2023-08-31 | SVT | PriceManipulation | [2023-08-31_SVT_PriceManipulation.md](./2023-08-31_SVT_PriceManipulation.md) |
 | 2023-09-01 | DEXRouter | ArbitraryCall | [2023-09-01_DEXRouter_ArbitraryCall.md](./2023-09-01_DEXRouter_ArbitraryCall.md) |
 | 2023-09-01 | HeavensGate | TokenLogic | [2023-09-01_HeavensGate_TokenLogic.md](./2023-09-01_HeavensGate_TokenLogic.md) |
 | 2023-09-04 | Stake | HotWalletDrain Multi | [2023-09-04_Stake_HotWalletDrain_Multi.md](./2023-09-04_Stake_HotWalletDrain_Multi.md) |

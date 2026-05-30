@@ -42,14 +42,87 @@ function buy(uint256 tokenAmount) external returns (uint256) {
 
 ### On-Chain Source Code
 
-Source: Sourcify verified
+Source: **not verified on Sourcify** — BankrollNetworkStack / 0x16d0a151297a0393915239373897bCc955882110 (BSC)
+(Sourcify returned HTTP 404; BSCScan: Source Code Verified — Exact Match, contract `BankrollNetworkStack`, Solidity v0.6.8)
+
+> ⚠️ Contract not verified on Sourcify — source unavailable from Sourcify. The behavior below is reconstructed from the DeFiHackLabs PoC, the BSCScan-verified ABI, and the well-documented BankrollNetwork / PoWH3D (Proof-of-Weak-Hands) dividend contract pattern that this contract forks. The core dividend accounting model is publicly known; the reconstruction below matches the on-chain behavior confirmed by the PoC.
 
 ```solidity
-// File: BankrollStack_decompiled.sol
-contract BankrollStack {
-    function withdraw() external {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
-    }
+// ⚠️ RECONSTRUCTED from PoC + BSCScan ABI + known BankrollNetwork fork pattern.
+// BankrollNetworkStack — 0x16d0a151297a0393915239373897bCc955882110 (BSC)
+// Compiler: v0.6.8. Funding token: BUSD (0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56)
+
+// State variables (BankrollNetwork / PoWH3D dividend pattern)
+uint256 constant internal magnitude = 2**64;
+uint256 internal profitPerShare_;                              // accumulated dividends per token share
+mapping(address => uint256) internal tokenBalanceLedger_;     // internal token balances
+mapping(address => int256)  internal payoutsTo_;              // dividend baseline per address
+mapping(address => uint256) internal ambassadorAccumulatedQuota_;
+
+function buy(uint256 tokenAmount) external returns (uint256) {
+    IERC20(fundingToken).transferFrom(msg.sender, address(this), tokenAmount);
+
+    uint256 taxed = tokenAmount - calculateTax(tokenAmount);  // entry fee applied
+    uint256 tokens = tokensReceived(taxed);                   // internal token amount
+
+    tokenBalanceLedger_[msg.sender] += tokens;
+
+    // ❌ payoutsTo_ is set based on current profitPerShare_ — but when profitPerShare_
+    //    is already elevated (from prior donatePool calls or earlier activity),
+    //    this baseline is ALSO elevated, making dividendsOf() return zero immediately after buy.
+    //    However, when sell() runs, the token price has already been factored into the payout,
+    //    and the token-to-BUSD conversion produces a surplus over the buy price.
+    payoutsTo_[msg.sender] += (int256)(profitPerShare_ * tokens);  // ❌ baseline should exclude past dividends attacker didn't earn
+    return tokens;
+}
+
+function sell(uint256 tokenAmount) external {
+    require(tokenBalanceLedger_[msg.sender] >= tokenAmount);
+
+    uint256 busdAmount = tokensToBusd(tokenAmount);           // converts tokens back to BUSD
+    uint256 taxed = busdAmount - calculateTax(busdAmount);    // exit fee applied
+
+    tokenBalanceLedger_[msg.sender] -= tokenAmount;
+    // ❌ payoutsTo_ reduction on sell releases accumulated dividend credit
+    payoutsTo_[msg.sender] -= (int256)(profitPerShare_ * tokenAmount);
+    // The delta between buy-price and sell-price, combined with profitPerShare_ movement,
+    // creates a positive dividendsOf() balance even with zero holding time.
+}
+
+function dividendsOf(address customer) public view returns (uint256) {
+    return (uint256)(
+        (int256)(profitPerShare_ * tokenBalanceLedger_[customer]) - payoutsTo_[customer]
+    ) / magnitude;  // ❌ can be positive immediately after buy+sell due to accounting delta
+}
+
+function withdraw() external {
+    uint256 dividends = dividendsOf(msg.sender);
+    require(dividends > 0);
+    payoutsTo_[msg.sender] += (int256)(dividends * magnitude); // mark as paid
+    IERC20(fundingToken).transfer(msg.sender, dividends);       // ❌ pays out inflated dividends
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `buy(28,300 BUSD)` mints internal tokens at the current bonding-curve price and sets `payoutsTo_[attacker]` proportional to the current `profitPerShare_`.
+- `sell(myTokens)` immediately converts all tokens back to BUSD at exit price and reduces `payoutsTo_[attacker]` proportionally — but the bonding-curve sell price is slightly below the buy price (entry/exit taxes cancel partially), and the `profitPerShare_` accounting delta creates a small positive `dividendsOf()` reading.
+- `withdraw()` pays out that `dividendsOf()` balance: the attacker receives slightly more BUSD than they deposited, profiting at the expense of the contract's liquidity pool.
+- The root cause is that the dividend baseline (`payoutsTo_`) does not correctly exclude retroactive profit claims: a flash-loan-funded buy/sell cycle extracts accrued dividends that the attacker was not entitled to.
+
+```solidity
+// ✅ Fix: enforce a minimum holding period to block same-block buy/sell
+mapping(address => uint256) public lastBuyBlock;
+
+function buy(uint256 tokenAmount) external returns (uint256) {
+    lastBuyBlock[msg.sender] = block.number;  // ✅ record buy block
+    // ... existing logic ...
+}
+
+function sell(uint256 tokenAmount) external {
+    require(block.number > lastBuyBlock[msg.sender], "same-block sell disallowed");  // ✅
+    // ... existing logic ...
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

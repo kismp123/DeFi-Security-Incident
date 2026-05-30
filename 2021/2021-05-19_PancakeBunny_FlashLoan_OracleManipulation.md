@@ -62,15 +62,53 @@ function mintFor(address flip, uint _withdrawalFee, uint _performanceFee, addres
 
 ### On-Chain Original Code
 
-Source: Source unconfirmed
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
+The BunnyMinterV2 contract on BSC (targeted by the PoC at VaultFlipToFlip 0x633e538EcF0bee1a18c2EDFE10C4Da0d6E71e77B) is not verified on Sourcify (chainid 56) and is not publicly verified on BSCscan. The following is reconstructed pseudocode from the DeFiHackLabs PoC and post-mortems:
 
-**Vulnerable Function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: mintFor() uses the AMM spot price of the WBNB-USDT V1 pool as an oracle when calculating BUNNY reward amounts — manipulable within a single block via large swaps
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: mintFor() uses the AMM spot price of the WBNB-USDT V1 pool as an oracle when calculating BUNNY reward amounts — manipulable within a single block via large swaps
+// RECONSTRUCTED — not verified source
+// BunnyMinterV2.mintFor() — BUNNY reward calculation using AMM spot price
+
+function mintFor(
+    address flip,           // LP token (e.g., WBNB-USDT)
+    uint _withdrawalFee,
+    uint _performanceFee,
+    address to,
+    uint
+) external onlyMinter {
+    uint feeSum = _performanceFee.add(_withdrawalFee);
+    IBEP20(flip).safeTransferFrom(msg.sender, address(this), feeSum);
+
+    uint bunnyBNBValue = tokenToBunnyBNB(feeSum, flip); // ❌ calls PancakeSwap V1 reserves() directly — spot price
+    // When WBNB-USDT V1 pool is manipulated by dumping ~15,000 WBNB via flash loan,
+    // the spot ratio collapses and bunnyBNBValue is computed from the distorted price,
+    // causing mintBunny to be orders of magnitude larger than intended.
+    uint mintBunny = safeBunnyMintAmount(bunnyBNBValue); // ❌ no upper bound on minted amount
+    if (mintBunny > 0) {
+        _mint(mintBunny, to); // ❌ mints unbounded BUNNY at distorted spot price
+    }
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `tokenToBunnyBNB()` reads the current PancakeSwap V1 `getReserves()` — a spot price readable within the same block. No TWAP or time-weighted averaging is applied.
+- The attacker borrowed ~15,000 WBNB via 7 nested flash loans and dumped them into the WBNB-USDT V1 pool, crashing the effective BNB spot price momentarily.
+- With the distorted spot price, `bunnyBNBValue` became astronomically large, causing `mintBunny` to be millions of tokens rather than a few hundred.
+- `safeBunnyMintAmount()` applied no per-transaction cap, so the full inflated quantity was minted and immediately sold.
+
+```solidity
+// ✅ Fix: replace spot price with a TWAP oracle (minimum 30-minute window)
+function mintFor(address flip, uint _withdrawalFee, uint _performanceFee, address to, uint) external onlyMinter {
+    uint feeSum = _performanceFee.add(_withdrawalFee);
+    IBEP20(flip).safeTransferFrom(msg.sender, address(this), feeSum);
+    uint bunnyBNBValue = tokenToBunnyBNBTWAP(feeSum, flip); // ✅ time-weighted price — single-block manipulation impossible
+    uint mintBunny = safeBunnyMintAmount(bunnyBNBValue);
+    require(mintBunny <= MAX_BUNNY_MINT_PER_TX, "mint limit"); // ✅ cap per transaction
+    if (mintBunny > 0) {
+        _mint(mintBunny, to);
+    }
+}
 ```
 
 ## 3. Attack Flow

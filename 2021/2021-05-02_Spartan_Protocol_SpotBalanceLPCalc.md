@@ -64,17 +64,84 @@ function removeLiquidity(uint256 units) external returns (uint256 outputBase, ui
 ```
 
 
-### On-Chain Original Code
+### On-Chain Source Code
 
-Source: Source unconfirmed
+Source: **Sourcify partial-match** — Pool.sol / `0x3de669c4F1f167a8aFBc9993E4753b84b576426f` (BSC)
+https://sourcify.dev/server/files/any/56/0x3de669c4f1f167a8afbc9993e4753b84b576426f
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
-
-**Vulnerable function** — `vulnerableFunction()`:
 ```solidity
-// ❌ Root cause: removeLiquidity() calculates withdrawal amounts using the current balanceOf() instead of synchronized reserve variables, making it manipulable via direct token donations
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: removeLiquidity() calculates withdrawal amounts using the current balanceOf() instead of synchronized reserve variables, making it manipulable via direct token donations
+// ── State variables ─────────────────────────────────────────────────────────
+uint public baseAmount;   // internal accounting of BASE tokens in pool
+uint public tokenAmount;  // internal accounting of TOKEN tokens in pool
+
+// ── _getAddedBaseAmount ──────────────────────────────────────────────────────
+// Called by addLiquidityForMember to detect newly arrived BASE tokens.
+// ❌ Uses live balanceOf(pool) minus the stored baseAmount.
+//    A direct token donation inflates this delta without minting LP for the donor.
+function _getAddedBaseAmount() internal view returns (uint256 _actual) {
+    uint _baseBalance = iBEP20(BASE).balanceOf(address(this)); // ❌ spot balance
+    if (_baseBalance > baseAmount) {
+        _actual = _baseBalance.sub(baseAmount);
+    } else {
+        _actual = 0;
+    }
+    return _actual;
+}
+
+// ── addLiquidityForMember ───────────────────────────────────────────────────
+// ❌ Passes the spot delta (including donated tokens) to calcLiquidityUnits,
+//    so the next LP minter is credited for tokens the attacker donated.
+function addLiquidityForMember(address member) public returns (uint liquidityUnits) {
+    uint256 _actualInputBase  = _getAddedBaseAmount();  // ❌ inflated by donation
+    uint256 _actualInputToken = _getAddedTokenAmount(); // ❌ inflated by donation
+    liquidityUnits = _DAO().UTILS().calcLiquidityUnits(
+        _actualInputBase, baseAmount,
+        _actualInputToken, tokenAmount,
+        totalSupply
+    );
+    _incrementPoolBalances(_actualInputBase, _actualInputToken);
+    _mint(member, liquidityUnits);
+    emit AddLiquidity(member, _actualInputBase, _actualInputToken, liquidityUnits);
+    return liquidityUnits;
+}
+
+// ── removeLiquidityForMember ────────────────────────────────────────────────
+// ❌ calcLiquidityShare(units, token, pool, member) is implemented in the
+//    external UTILS contract using baseAmount/tokenAmount as pool reserves.
+//    Because those reserves were inflated by the donation→addLiquidity trick,
+//    the attacker's LP units entitle them to far more than they deposited.
+function removeLiquidityForMember(address member) public returns (uint outputBase, uint outputToken) {
+    uint units  = balanceOf(address(this));
+    outputBase  = _DAO().UTILS().calcLiquidityShare(units, BASE,  address(this), member); // ❌ excess share
+    outputToken = _DAO().UTILS().calcLiquidityShare(units, TOKEN, address(this), member); // ❌ excess share
+    _decrementPoolBalances(outputBase, outputToken);
+    _burn(address(this), units);
+    iBEP20(BASE).transfer(member, outputBase);
+    iBEP20(TOKEN).transfer(member, outputToken);
+    emit RemoveLiquidity(member, outputBase, outputToken, units);
+    return (outputBase, outputToken);
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `_getAddedBaseAmount()` returns `balanceOf(pool) − baseAmount`. Any `WBNB.transfer(pool, X)` that bypasses `addLiquidity` increases `balanceOf` but leaves `baseAmount` unchanged, so the delta is silently attributed to the *next* `addLiquidityForMember` caller.
+- The attacker donates WBNB before calling `addLiquidityForMember`, receiving LP tokens backed by both their real deposit *and* the donated amount — an LP over-issuance.
+- `removeLiquidityForMember` then pays out proportionally to those inflated units, draining more WBNB than was legitimately deposited.
+- The cycle was repeated **8 times**, compounding the drain to ~$30.5 M.
+
+```solidity
+// ✅ Fix: maintain independent reserve variables — mirror Uniswap V2 pattern
+uint112 private reserve0;
+uint112 private reserve1;
+
+function _update(uint balance0, uint balance1) private {
+    reserve0 = uint112(balance0);
+    reserve1 = uint112(balance1);
+    emit Sync(reserve0, reserve1);
+}
+// addLiquidity computes deltas vs. reserve0/reserve1, not balanceOf().
+// removeLiquidity pays proportional to reserve0/reserve1.
+// Direct donations never touch reserves, so they cannot inflate LP shares.
 ```
 
 ## 3. Attack Flow

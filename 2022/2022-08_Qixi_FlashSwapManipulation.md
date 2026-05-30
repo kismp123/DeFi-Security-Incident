@@ -55,15 +55,56 @@ function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata
 
 ### On-Chain Source Code
 
-Source: Unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The vulnerable behavior below is reconstructed from the attack PoC and on-chain traces, not from verified source.
 
-> ⚠️ No on-chain source code — bytecode only or source unverified
+The QIXI token (0x65F11B2de17c4af7A8f70858D6CcB63AAC215601, BSC) and its PancakeSwap V2 pair (0x88fF4f62A75733C0f5afe58672121568a680DE84) are not verified on Sourcify or BSCScan. The pair contract is standard PancakeSwap V2; the exploitable behavior arises from the interaction between QIXI's fee-on-transfer `_transfer` and the pair's K invariant check.
 
-**Vulnerable Function** — `vulnerableFunction()`:
+The following is reconstructed from the PoC and on-chain traces:
+
 ```solidity
-// ❌ Root cause: Transfer logic bug in QIXI token allows reserve manipulation during `pancakeCall` callback
-// Source code unverified — bytecode analysis required
-// Vulnerability: Transfer logic bug in QIXI token allows reserve manipulation during `pancakeCall` callback
+// ❌ RECONSTRUCTED — not verified source. QIXI token _transfer (fee-on-transfer pattern)
+// The transfer burns or takes a fee, so the pair's balanceOf(QIXI) increases by LESS than
+// the amount passed to transfer(), breaking the pair's accounting assumptions.
+function _transfer(address sender, address recipient, uint256 amount) internal override {
+    uint256 feeAmount = amount * _feeRate / 100; // e.g. 5–10% fee taken on every transfer
+    super._transfer(sender, address(this), feeAmount); // fee to contract
+    super._transfer(sender, recipient, amount - feeAmount); // ❌ pair receives less than `amount`
+}
+
+// Standard PancakeSwap V2 swap() — K check after callback:
+// (from PancakeSwap V2 source — same as Uniswap V2)
+function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+    // ... optimistic send of WBNB to attacker ...
+    if (data.length > 0) IPancakeCallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
+    // After callback: attacker has transferred large amount of QIXI into pair
+    uint balance0 = IERC20(_token0).balanceOf(address(this)); // WBNB — low (most sent out)
+    uint balance1 = IERC20(_token1).balanceOf(address(this)); // QIXI — very high (attacker dumped tokens in)
+    uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+    uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+    // K check: (balance0 - amount0In*3/1000) * (balance1 - amount1In*3/1000) >= reserve0 * reserve1
+    // ❌ balance1 (QIXI) is so large that balance1_adj >> reserve1,
+    //    meaning balance0_adj can be tiny — far less WBNB than borrowed — and K still passes
+    require(
+        uint(balance0.sub(amount0In.mul(3)/1000)).mul(balance1.sub(amount1In.mul(3)/1000)) >=
+        uint(_reserve0).mul(_reserve1),
+        'Pancake: K'
+    );
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- The attacker flash-swaps nearly all WBNB out of the pair, then inside `pancakeCall` transfers all their QIXI holdings into the pair, causing `balance1` (QIXI) to spike far above `_reserve1`.
+- Because QIXI has a fee-on-transfer, the actual balance increase is slightly less than the nominal transfer, but still far more than the borrowed WBNB reserves would require.
+- In the K check, the inflated `balance1` compensates for the reduced `balance0` (small WBNB repayment): `balance0_adj * balance1_adj >= reserve0 * reserve1` passes even when the attacker returns far fewer WBNB than borrowed.
+- Net result: attacker obtains WBNB from the flash swap and repays a fraction of it, keeping the difference (~6.8 BNB) as profit.
+
+```solidity
+// ✅ Fix: measure actual received amount via pre/post balance diff; never rely on transfer() amount
+uint256 before = IERC20(token).balanceOf(address(this));
+IERC20(token).transferFrom(sender, address(this), amount);
+uint256 actualReceived = IERC20(token).balanceOf(address(this)) - before;
+// Use actualReceived, not amount, in all K invariant calculations
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -40,14 +40,101 @@ function _update(address from, address to, uint256 amount) internal override {
 
 ### On-chain Source Code
 
-Source: Sourcify verified
+Source: **Sourcify-verified** — NGP Token [0xd2f26200cd524db097cf4ab7cc2e5c38ab6ae5c9](https://bscscan.com/address/0xd2f26200cd524db097cf4ab7cc2e5c38ab6ae5c9) (BSC)
+Sourcify URL: https://sourcify.dev/server/files/any/56/0xd2f26200cd524db097cf4ab7cc2e5c38ab6ae5c9
 
 ```solidity
-// File: NGP_decompiled.sol
-contract NGP {
-    function getPrice() external view returns (uint256) {  // ❌ Vulnerability
-        // TODO: decompiled logic not implemented
+// File: contracts/Token.sol
+
+function _transfer(address from, address to, uint256 value) internal {
+    if (from == address(0)) {
+        revert ERC20InvalidSender(address(0));
     }
+    if (to == address(0)) {
+        revert ERC20InvalidReceiver(address(0));
+    }
+    _update(from, to, value);
+}
+
+function _update(
+    address from,
+    address to,
+    uint256 value
+) internal override {
+    require(value > 0, "Invalid value");
+
+    // Whitelisted addresses bypass all fee/sync logic
+    if (whitelisted[from] || whitelisted[to]) {
+        super._update(from, to, value);
+        emit SystemTransfer(from, to, value);
+        return;
+    }
+
+    // buy or remove liquidity
+    if (from == mainPair) {
+        require(buyState, "Buy not allowed");
+        require(
+            ((value * getPrice()) / 1e18) <= maxBuyAmountInUsdt,
+            "Exceeds max buy amount"
+        );
+        _checkAndUpdateBuyCount(to);
+        emit FlowOutPool(from, to, value);
+        super._update(from, to, value);
+        return;
+    }
+
+    // sell or add liquidity — THIS PATH CONTAINS THE VULNERABILITY
+    if (to == mainPair) {
+        require(sellState, "Sell not allowed");
+        _checkTransferCooldown(from);
+
+        uint256 marketFee = (value * marketFeeRate) / RATIO_PRECISION;
+        uint256 burnAmount = (value * burnFeeRate) / RATIO_PRECISION;
+        if (!isLpStopBurn()) {
+            super._update(from, DEAD, burnAmount);
+        } else {
+            super._update(from, marketAddress, burnAmount);
+        }
+        super._update(from, marketAddress, marketFee);
+        uint256 totalFee = marketFee + burnAmount;
+        uint256 treasuryAmount = (value * treasuryRate) / RATIO_PRECISION;
+        uint256 rewardAmount = (value * rewardRate) / RATIO_PRECISION;
+        uint256 burnPoolAmount = treasuryAmount + rewardAmount;
+        uint poolAmount = this.balanceOf(mainPair);
+        if (poolAmount > burnPoolAmount) {
+            // ❌ Withdraws tokens from the pair directly, then calls sync()
+            // This reduces the pair's NGP balance (actual balance < reserve)
+            super._update(mainPair, treasuryAddress, treasuryAmount);   // ❌ pulls from pair
+            super._update(mainPair, rewardPoolAddress, rewardAmount);    // ❌ pulls from pair
+            IUniswapV2Pair(mainPair).sync(); // ❌ syncs reserve DOWN to reduced actual balance
+            // After sync: reserve_NGP drops sharply → NGP appears scarcer → price spikes
+        }
+        value = value - totalFee;
+        emit FlowIntoPool(
+            from, to, value,
+            marketFee, burnAmount, treasuryAmount, rewardAmount
+        );
+    }
+
+    // check transfer cooldown for wallet-to-wallet
+    if (from != mainPair && to != mainPair) {
+        _checkTransferCooldown(from);
+    }
+
+    super._update(from, to, value);
+}
+```
+
+**Why it is exploitable (identified from verified source):**
+- When a sell occurs (`to == mainPair`), the `_update()` hook calls `super._update(mainPair, treasuryAddress, treasuryAmount)` and `super._update(mainPair, rewardPoolAddress, rewardAmount)` — these are ERC-20 transfers **from the pair itself**, reducing the pair's NGP token balance without going through the AMM's swap mechanism.
+- Immediately after, `IUniswapV2Pair(mainPair).sync()` is called, which updates the pair's stored `reserve_NGP` to the now-lower actual balance — making the pair believe less NGP is in the pool, inflating the NGP/USDT price.
+- The attacker pre-calculated the exact flash-loan amount (`FLASHLOAN_AMOUNT = 211,000,000 NGP`) and preparation transfer amount (`PREPARATION_NGP_AMOUNT = 1,350,000 NGP`) to satisfy the `poolAmount > burnPoolAmount` condition and trigger this sync at the right moment.
+- After the sync, the attacker swaps their NGP holdings back to USDT at the artificially inflated price, draining ~$2,000,000.
+
+```solidity
+// ✅ Fix: do not transfer tokens directly from the pair or call sync() within the token's _update() hook.
+// Treasury/reward distributions should be taken from the seller's amount BEFORE it reaches the pair,
+// not extracted from the pair's balance post-transfer. Remove the sync() call entirely.
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -61,69 +61,64 @@ function migrateToPool(address token, uint256 bnbAmount, uint256 tokenAmount) ex
 
 ### On-chain Source Code
 
-Source: Sourcify verified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The FourMeme launchpad contract at `0x5c952063c7fc8610FFDB798152D69F0B9550762b` (BSC) returns HTTP 404 on Sourcify. The vulnerable behavior below is reconstructed from the attack PoC, the DeFiHackLabs analysis, and on-chain transaction traces, not from verified source.
+
+**Reconstructed: `addLiquidity()` — No Pool Price Validation**
+```solidity
+// RECONSTRUCTED — not verified source; derived from PoC + on-chain trace
+// ❌ FourMeme Launchpad: 0x5c952063c7fc8610FFDB798152D69F0B9550762b
+function _addLiquidityToPancakeV3(
+    address token,
+    uint256 bnbAmount,
+    uint256 tokenAmount
+) internal {
+    address pool = IPancakeV3Factory(factory).getPool(token, WBNB, fee);
+
+    if (pool == address(0)) {
+        // Only creates+initializes pool if it doesn't exist yet
+        pool = IPancakeV3Factory(factory).createPool(token, WBNB, fee);
+        uint160 sqrtPrice = _computeSqrtPrice(tokenAmount, bnbAmount);
+        IPancakeV3Pool(pool).initialize(sqrtPrice);
+    }
+    // ❌ If pool already exists (pre-created by attacker), no price check is performed.
+    // Liquidity is added unconditionally at whatever sqrtPriceX96 the pool has.
+    // Attacker pre-initializes the pool with sqrtPriceX96 ≈ type(uint160).max/2,
+    // making 1 meme token worth ~368 trillion times the intended WBNB price.
+
+    INonfungiblePositionManager(npm).mint(
+        INonfungiblePositionManager.MintParams({
+            token0: token < WBNB ? token : WBNB,
+            token1: token < WBNB ? WBNB : token,
+            fee: fee,
+            tickLower: tickLower,
+            tickUpper: tickUpper,
+            amount0Desired: token < WBNB ? tokenAmount : bnbAmount,
+            amount1Desired: token < WBNB ? bnbAmount : tokenAmount,
+            amount0Min: 0,
+            amount1Min: 0,  // ❌ no minimum — entire WBNB injected at attacker's price
+            recipient: address(this),
+            deadline: block.timestamp
+        })
+    );
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- The launchpad checks whether a pool exists and creates it if not. But if the pool already exists (pre-created by the attacker), it adds liquidity without validating the pool's current `sqrtPriceX96`.
+- The attacker pre-creates the PancakeSwap V3 pool with an extreme `sqrtPriceX96 ≈ type(uint160).max / 2`, equivalent to a price of ~billions of WBNB per meme token (or inversely, 1 meme token for enormous WBNB).
+- When the launchpad calls `mint()` with `amount0Min = 0` and `amount1Min = 0`, the pool accepts the WBNB injection at the extreme price. The attacker then swaps a handful of meme tokens for the bulk of the WBNB, extracting ~287 BNB.
 
 ```solidity
-// File: WBNB.sol
-contract WBNB {
-    string public name     = "Wrapped BNB";
-    string public symbol   = "WBNB";
-    uint8  public decimals = 18;
-
-    event  Approval(address indexed src, address indexed guy, uint wad);  // ❌ vulnerability
-    event  Transfer(address indexed src, address indexed dst, uint wad);
-    event  Deposit(address indexed dst, uint wad);
-    event  Withdrawal(address indexed src, uint wad);
-
-    mapping (address => uint)                       public  balanceOf;
-    mapping (address => mapping (address => uint))  public  allowance;
-
-    function() public payable {
-        deposit();
-    }
-    function deposit() public payable {
-        balanceOf[msg.sender] += msg.value;
-        Deposit(msg.sender, msg.value);
-    }
-    function withdraw(uint wad) public {
-        require(balanceOf[msg.sender] >= wad);
-        balanceOf[msg.sender] -= wad;
-        msg.sender.transfer(wad);
-        Withdrawal(msg.sender, wad);
-    }
-
-    function totalSupply() public view returns (uint) {
-        return this.balance;
-    }
-
-    function approve(address guy, uint wad) public returns (bool) {
-        allowance[msg.sender][guy] = wad;
-        Approval(msg.sender, guy, wad);
-        return true;
-    }
-
-    function transfer(address dst, uint wad) public returns (bool) {
-        return transferFrom(msg.sender, dst, wad);
-    }
-
-    function transferFrom(address src, address dst, uint wad)
-    public
-    returns (bool)
-    {
-        require(balanceOf[src] >= wad);
-
-        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
-            require(allowance[src][msg.sender] >= wad);
-            allowance[src][msg.sender] -= wad;
-        }
-
-        balanceOf[src] -= wad;
-        balanceOf[dst] += wad;
-
-        Transfer(src, dst, wad);
-
-        return true;
-    }
+// ✅ Fix: validate pool price before adding liquidity
+if (pool != address(0)) {
+    (uint160 sqrtPriceX96,,,,,,) = IPancakeV3Pool(pool).slot0();
+    uint160 expectedPrice = _computeSqrtPrice(tokenAmount, bnbAmount);
+    require(
+        sqrtPriceX96 >= expectedPrice * 95 / 100 &&
+        sqrtPriceX96 <= expectedPrice * 105 / 100,
+        "FourMeme: pool price manipulated"
+    );
 }
 ```
 

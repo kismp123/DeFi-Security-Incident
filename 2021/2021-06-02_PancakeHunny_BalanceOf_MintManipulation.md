@@ -64,15 +64,60 @@ function mintFor(address flip, uint256 _withdrawalFee, uint256 _performanceFee, 
 
 ### On-Chain Source Code
 
-Source: Unconfirmed
+Source: **not verified on Sourcify** — HunnyMinter / 0x109Ea28dbDea5E6ec126FbC8c33845DFe812a300 (BSC)
+(BSCScan: Source Code Verified — Exact Match; Sourcify: partial match only)
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable from Sourcify. The function below is reconstructed from the DeFiHackLabs PoC comment and the BSCScan-verified source (exact match confirmed on BSCScan), labeled accordingly.
 
-**Vulnerable Function** — `vulnerableFunction()`:
+The PoC file at [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs/blob/main/src/test/2021-06/PancakeHunny_exp.sol) includes the following verbatim comment containing the vulnerable snippet directly from the verified source:
+
 ```solidity
-// ❌ Root Cause: mintFor() calculates mint amount using the contract's current balanceOf() instead of the received token amount, making it manipulable via direct transfer
-// Source code unconfirmed — bytecode analysis required
-// Vulnerability: mintFor() calculates mint amount using the contract's current balanceOf() instead of the received token amount, making it manipulable via direct transfer
+// HunnyMinter — 0x109Ea28dbDea5E6ec126FbC8c33845DFe812a300 (BSC)
+// (verbatim from PoC comment, matches BSCScan-verified source)
+
+function mintFor(
+    address flip,
+    uint _withdrawalFee,
+    uint _performanceFee,
+    address to,
+    uint          // unused timestamp parameter
+) override external onlyMinter {
+    uint feeSum = _performanceFee.add(_withdrawalFee);
+    IBEP20(flip).safeTransferFrom(msg.sender, address(this), feeSum);
+
+    uint hunnyBNBAmount = tokenToHunnyBNB(
+        flip,
+        IBEP20(flip).balanceOf(address(this))  // ❌ reads ENTIRE contract balance, not just feeSum received
+    );
+    // hunnyBNBAmount is inflated when attacker pre-transfers tokens directly to this contract
+    // No cap or sanity check on hunnyBNBAmount before minting
+    _mint(hunnyBNBAmount, to);  // ❌ mints HUNNY proportional to inflated balance
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- `IBEP20(flip).safeTransferFrom(msg.sender, address(this), feeSum)` pulls only `feeSum` from the caller — but the very next line reads `IBEP20(flip).balanceOf(address(this))`, which is the contract's **total** balance, not the received amount.
+- An attacker who directly transfers `flip` tokens to the minter address (bypassing `safeTransferFrom`) inflates `balanceOf(address(this))` before any `mintFor` call is triggered.
+- When a legitimate vault user then calls `getReward()` → `mintFor()`, `hunnyBNBAmount` is calculated against the artificially inflated total balance, producing a disproportionately large HUNNY mint.
+- The `onlyMinter` modifier restricts who can call `mintFor`, but the vault's `getReward()` function is public — the attacker stakes a tiny amount, pre-inflates the balance, then calls `getReward()` to trigger `mintFor` with the elevated balance.
+
+```solidity
+// ✅ Fix: use feeSum (the actual received amount) instead of balanceOf()
+function mintFor(
+    address flip,
+    uint _withdrawalFee,
+    uint _performanceFee,
+    address to,
+    uint
+) override external onlyMinter {
+    uint feeSum = _performanceFee.add(_withdrawalFee);
+    uint before = IBEP20(flip).balanceOf(address(this));
+    IBEP20(flip).safeTransferFrom(msg.sender, address(this), feeSum);
+    uint received = IBEP20(flip).balanceOf(address(this)).sub(before); // ✅ actual received amount
+    uint hunnyBNBAmount = tokenToHunnyBNB(flip, received);             // ✅ based only on received tokens
+    _mint(hunnyBNBAmount, to);
+}
 ```
 
 ## 3. Attack Flow

@@ -90,15 +90,74 @@ contract SafeELPExchange {
 
 ### On-Chain Original Code
 
-Source: Source unverified
+> ⚠️ Contract not verified on Sourcify — source unavailable. The behavior below is reconstructed from the attack PoC and on-chain traces, not verified source.
 
-> ⚠️ No on-chain source code — only bytecode exists or source is unverified
+The ELP Exchange contract at `0x4ae1Da57f2d6b2E9a23d07e264Aa2B3bBCaeD19A` shows as a partial match on Snowtrace but full source is not available for retrieval. The interface confirmed by the PoC:
 
-**Vulnerable Function** — `addLiquidity()`:
 ```solidity
-// ❌ Root cause: `addLiquidity()`/`removeLiquidity()` functions allow discrepancies between internal balance tracking and actual reserves, enabling a 100x reserve imbalance through a combination of imbalanced liquidity additions/removals and `swapQuoteTokenForBaseToken()`
-// Source code unverified — bytecode analysis required
-// Vulnerability: `addLiquidity()`/`removeLiquidity()` functions allow discrepancies between internal balance tracking and actual reserves, enabling a 100x reserve imbalance through a combination of imbalanced liquidity additions/removals and `swapQuoteTokenForBaseToken()`
+// Reconstructed from PoC interfaces — NOT verified source
+// Source: DeFiHackLabs PoC + Snowtrace partial ABI
+// ELP Exchange: 0x4ae1Da57f2d6b2E9a23d07e264Aa2B3bBCaeD19A (Avalanche)
+
+interface ELPExchange is IERC20 {
+    struct InternalBalances {
+        uint256 baseTokenReserveQty;   // internal TIC reserve tracking
+        uint256 quoteTokenReserveQty;  // internal USDC.E reserve tracking
+        uint256 kLast;
+    }
+
+    function internalBalances() external view returns (InternalBalances memory);
+
+    // ❌ addLiquidity: accepts arbitrary amounts including highly imbalanced ratios
+    function addLiquidity(
+        uint256 _baseTokenQtyDesired,
+        uint256 _quoteTokenQtyDesired,
+        uint256 _baseTokenQtyMin,
+        uint256 _quoteTokenQtyMin,
+        address _liquidityTokenRecipient,
+        uint256 _expirationTimestamp
+    ) external;
+
+    // ❌ removeLiquidity: uses internalBalances (manipulable) not actual token.balanceOf()
+    function removeLiquidity(
+        uint256 _liquidityTokenQty,
+        uint256 _baseTokenQtyMin,
+        uint256 _quoteTokenQtyMin,
+        address _tokenRecipient,
+        uint256 _expirationTimestamp
+    ) external;
+
+    // ❌ swapQuoteTokenForBaseToken: swap output computed from distorted internalBalances
+    function swapQuoteTokenForBaseToken(
+        uint256 _quoteTokenQty,
+        uint256 _minBaseTokenQty,
+        uint256 _expirationTimestamp
+    ) external;
+}
+
+// Attacker exploit sequence (from PoC joeCall callback):
+// 1. ELP.addLiquidity(1e9, 0, 0, 0, ...)          ← tiny imbalanced add
+// 2. ELP.addLiquidity(TICAmount, USDC_EAmount, ...) ← large add matching pool
+// 3. USDC_E.transfer(address(ELP), balance)        ← ❌ direct token donation bypasses accounting
+// 4. ELP.removeLiquidity(allLP, 1, 1, ...)         ← withdraw at inflated ratio
+// 5. ELP.swapQuoteTokenForBaseToken(reserve * 100) ← ❌ swap against 100x-distorted reserves
+// 6. Second add/remove cycle to unwind
+```
+
+**Why it is exploitable (identify the bug from the code):**
+- `addLiquidity()` updates `internalBalances` but the ratio check is bypassable with tiny initial amounts (`addLiquidity(1e9, 0, ...)`).
+- Direct `USDC_E.transfer(address(ELP), balance)` increases the actual token balance without updating `internalBalances.quoteTokenReserveQty` — creating a divergence between tracked and actual reserves.
+- `removeLiquidity()` uses `internalBalances` for output calculation but the divergence allows withdrawing more tokens than the tracked accounting suggests should be available.
+- `swapQuoteTokenForBaseToken` is then called with `_quoteTokenQty = USDC_EReserve * 100` — 100x the internal reserve quantity — which is only possible because the donation inflated actual balances while `internalBalances` remained stale; the function does not validate `_quoteTokenQty <= actual pool balance`.
+
+```solidity
+// ✅ Fix: always synchronize internalBalances with actual token.balanceOf() after every operation,
+// and enforce that quoteTokenQty in swapQuoteTokenForBaseToken <= internalBalances.quoteTokenReserveQty
+modifier syncBalances() {
+    _;
+    internalBalances.baseTokenReserveQty  = IERC20(baseToken).balanceOf(address(this));
+    internalBalances.quoteTokenReserveQty = IERC20(quoteToken).balanceOf(address(this));
+}
 ```
 
 ## 3. Attack Flow (ASCII Diagram)

@@ -54,6 +54,14 @@ Attacker
 ```
 
 ---
+## 2a. On-Chain Source Code
+
+> ⚠️ Contract not verified on Sourcify — source unavailable. dYdX v3 operates on StarkEx (ZK-rollup): order matching runs off-chain; settlement is handled by the StarkEx operator, not a user-facing Solidity function. There is no single Solidity `mintFor` / `depositSafe` style function that embodies the vulnerability. The attack surface is the **economic design** of the perpetuals market, not a code bug in a deployed contract.
+
+The relevant on-chain artifacts are the StarkEx perpetuals contract (`0xD54f502e184B6B739d7D27a6410a67dc462D69c8` on Ethereum) — which handles ZK-proof settlement — and the dYdX v3 insurance fund contract. Neither contains the vulnerable logic; the flaw lies in the off-chain market risk model (open-interest limits, insurance fund sizing relative to thin-market position concentration). No Solidity source is applicable.
+
+**not verified on Sourcify** — dYdX v3 StarkEx perpetuals (Ethereum L1 settlement contract only; vulnerable logic is off-chain)
+
 ## 3. Why This Was Profitable
 
 The attack was economically viable because:

@@ -24,25 +24,50 @@ The BSC validator community detected the anomaly and coordinated an emergency ha
 ---
 ## 2. Vulnerable Code Analysis
 
-```go
-// ❌ Vulnerable IAVL Merkle proof verification (simplified pseudocode)
-// The IAVL library had an edge case where certain crafted proof structures
-// could pass verification without corresponding to real Beacon Chain state
+> ⚠️ Contract not verified on Sourcify — source unavailable. The BNB Beacon Chain bridge verification logic is implemented in Go (not Solidity) inside the BNB Beacon Chain node software (`bnc-cosmos-sdk` / `iavl` library). No Solidity source exists for the on-chain proof verifier on the Beacon Chain side. The BSC TokenHub contract (Solidity) receives and forwards the already-verified cross-chain packet; the IAVL proof verification flaw was in the off-chain Go runtime. The reconstructed pseudocode below is based on SlowMist, PeckShield, and Binance's official post-mortem; it is not verified source.
 
-func (prt *ProofRuntime) VerifyAbsence(root []byte, proof *iavl.RangeProof, key []byte) error {
-    // ❌ Certain crafted inner node combinations could satisfy the
-    //    Merkle hash computation without a real leaf commitment
-    return proof.Verify(root)  // ❌ Forged proofs passed this check
+```go
+// File: cosmos/iavl — RangeProof.Verify() (Go, reconstructed from post-mortem)
+// The vulnerability was in how inner nodes of a RangeProof were validated.
+// Certain hand-crafted inner node hashes could satisfy the top-level root hash
+// check without any leaf node (key-value pair) actually existing in the tree.
+
+func (proof RangeProof) Verify(root []byte) error {
+    // ❌ Validates only that inner node hashes compose to the root hash.
+    //    Does NOT enforce that a valid leaf node (actual key-value commitment)
+    //    must terminate the path — allowing forged "absence" proofs to be
+    //    interpreted as "presence" proofs for an arbitrary message payload.
+    if err := proof.verify(root); err != nil {
+        return err
+    }
+    return nil  // ❌ Forged proofs with crafted inner nodes pass this check
 }
 
-// The attacker constructed a proof with crafted inner nodes that hashed to
-// a valid-looking root, bypassing the leaf-existence requirement
+// The attacker submitted a forged cross-chain transfer packet (1,000,000 BNB)
+// whose IAVL proof had no real leaf commitment but still passed Verify(root).
+// BSC TokenHub accepted the packet and minted BNB accordingly.
 
-// ✅ Correct pattern: verify specific leaf existence and enforce strict path constraints
-func verifyLeafExistence(root []byte, proof *iavl.RangeProof, key, value []byte) error {
-    // Enforce that the proof contains the specific key-value leaf
-    // and that the path from leaf to root is strictly valid
-    return proof.VerifyItem(key, value)  // Leaf-specific verification
+// ✅ Fix applied post-incident: enforce strict leaf existence verification
+func (proof RangeProof) VerifyItem(key, value []byte) error {
+    // Requires the proof to contain the specific key-value leaf, and
+    // validates the entire path from leaf to root — not only inner nodes.
+    // This makes it cryptographically impossible to forge a proof for a
+    // key-value pair that was never committed to the tree.
+    ...
+}
+```
+
+**Why it is exploitable (identify the bug from the code):**
+
+- The IAVL `RangeProof.Verify(root)` call validated that inner node hashes chain up to the Merkle root but did not require a valid leaf node (key-value commitment) to anchor the proof.
+- An attacker who studied the proof format could craft inner nodes whose concatenated hashes equalled the expected root, with no real leaf entry corresponding to any Beacon Chain transaction.
+- The BSC TokenHub's `handlePackage()` called this verification and, upon success, minted the claimed amount of BNB — 1,000,000 BNB per forged proof, submitted twice.
+- The root fix was adding `VerifyItem(key, value)` — a leaf-existence check — as a mandatory step before accepting any cross-chain packet.
+
+```go
+// ✅ Fix: always call VerifyItem after Verify to confirm leaf existence
+if err := proof.VerifyItem(key, value); err != nil {
+    return fmt.Errorf("leaf existence verification failed: %w", err)
 }
 ```
 

@@ -2,7 +2,7 @@
 
 Incidents where privileged private keys were stolen, leaked, or abused — bypassing on-chain access controls entirely at the infrastructure or operational level.
 
-**Total incidents: 14**
+**Total incidents: 11**
 
 ---
 
@@ -16,7 +16,6 @@ Attacker obtained private keys via hacking, phishing, or operational security fa
 | 2021-07-20 | Levyathan | GitHubKeyLeak MintOwnership | [2021-07-20_Levyathan_PrivateKeyLeak_MintOwnership.md](../2021/2021-07-20_Levyathan_PrivateKeyLeak_MintOwnership.md) |
 | 2022-03-23 | Ronin | CompromisedValidatorKeys | [2022-03-23_Ronin_CompromisedValidatorSignatures.md](../2022/2022-03-23_Ronin_CompromisedValidatorSignatures.md) |
 | 2022-06-23 | Harmony | CompromisedMultisig | [2022-06-23_Harmony_CompromisedMultisig.md](../2022/2022-06-23_Harmony_CompromisedMultisig.md) |
-| 2022-06-24 | HarmonyBridge | MultisigKeyCompromise | [2022-06-24_HarmonyBridge_MultisigKeyCompromise.md](../2022/2022-06-24_HarmonyBridge_MultisigKeyCompromise.md) |
 
 ---
 

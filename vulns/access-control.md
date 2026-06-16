@@ -2,7 +2,7 @@
 
 Missing or improperly enforced permission checks that allow unauthorized actors to call privileged functions.
 
-**Total incidents: 95**
+**Total incidents: 96**
 
 ---
 
@@ -103,6 +103,7 @@ Missing or improperly enforced permission checks that allow unauthorized actors 
 | 2026-03-06 | MoltEVM | mEVM FakeSpawnerMint Base | [2026-03-06_MoltEVM_mEVM_FakeSpawnerMint_Base.md](../2026/2026-03-06_MoltEVM_mEVM_FakeSpawnerMint_Base.md) |
 | 2023-05-05 | DEI | BurnFromExploit ARB | [2023-05-05_DEI_BurnFromExploit_ARB.md](../2023/2023-05-05_DEI_BurnFromExploit_ARB.md) |
 | 2026-05-07 | TrustedVolumes | RFQOrderSigner AccessControl ETH | [2026-05-07_TrustedVolumes_RFQOrderSignerAccessControl_ETH.md](../2026/2026-05-07_TrustedVolumes_RFQOrderSignerAccessControl_ETH.md) |
+| 2026-05-26 | DxSale | LockerBackdoorWithdraw BSC | [2026-05-26_DxSale_LockerBackdoorWithdraw_BSC.md](../2026/2026-05-26_DxSale_LockerBackdoorWithdraw_BSC.md) |
 
 ---
 

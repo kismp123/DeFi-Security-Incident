@@ -7,14 +7,14 @@ Browse DeFi security incidents by vulnerability category.
 | [Reentrancy](./reentrancy.md) | 61 |
 | [Flash Loan](./flash-loan.md) | 116 |
 | [Oracle & Price Manipulation](./oracle-price-manipulation.md) | 96 |
-| [Access Control](./access-control.md) | 95 |
-| [Business Logic](./business-logic.md) | 134 |
+| [Access Control](./access-control.md) | 96 |
+| [Business Logic](./business-logic.md) | 136 |
 | [Signature Replay](./signature-replay.md) | 13 |
-| [Private Key Compromise](./private-key-compromise.md) | 11 |
-| [Integer & Precision](./integer-precision.md) | 26 |
-| [Bridge & Cross-Chain](./bridge-crosschain.md) | 4 |
-| [Governance](./governance.md) | 8 |
-| [Arbitrary Call / Input Validation](./arbitrary-call.md) | 73 |
+| [Private Key Compromise](./private-key-compromise.md) | 14 |
+| [Integer & Precision](./integer-precision.md) | 27 |
+| [Bridge & Cross-Chain](./bridge-crosschain.md) | 5 |
+| [Governance](./governance.md) | 9 |
+| [Arbitrary Call / Input Validation](./arbitrary-call.md) | 74 |
 | [Slippage & AMM](./slippage-amm.md) | 26 |
 | [Proxy & Storage Collision](./proxy-storage.md) | 12 |
 | [Staking & Reward](./staking-reward.md) | 45 |

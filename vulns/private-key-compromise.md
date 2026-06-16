@@ -2,7 +2,7 @@
 
 Incidents where privileged private keys were stolen, leaked, or abused — bypassing on-chain access controls entirely at the infrastructure or operational level.
 
-**Total incidents: 11**
+**Total incidents: 14**
 
 ---
 
@@ -41,6 +41,9 @@ Attacker tampered with off-chain infrastructure to steal keys or bypass key-base
 | 2025-07-15 | BigONE | SupplyChainWithdrawalLogic | [2025-07-15_BigONE_Exploit_ETH.md](../2025/2025-07-15_BigONE_Exploit_ETH.md) |
 | 2025-12-24 | TrustWallet | NpmSupplyChainSeedPhrase | [2025-12-24_TrustWallet_Exploit_ETH.md](../2025/2025-12-24_TrustWallet_Exploit_ETH.md) |
 | 2022-06-09 | Optimism | WintermuteVanityAddress | [2022-06-09_Optimism_WintermuteVanityAddress.md](../2022/2022-06-09_Optimism_WintermuteVanityAddress.md) |
+| 2026-05-21 | Polymarket | TopUpWalletKeyCompromise Polygon | [2026-05-21_Polymarket_TopUpWalletKeyCompromise_Polygon.md](../2026/2026-05-21_Polymarket_TopUpWalletKeyCompromise_Polygon.md) |
+| 2026-05-23 | StablR | MultisigKeyCompromiseMint ETH | [2026-05-23_StablR_MultisigKeyCompromiseMint_ETH.md](../2026/2026-05-23_StablR_MultisigKeyCompromiseMint_ETH.md) |
+| 2026-05-30 | GravityBridge | ValidatorSigningKeyCompromise ETH | [2026-05-30_GravityBridge_ValidatorSigningKeyCompromise_ETH.md](../2026/2026-05-30_GravityBridge_ValidatorSigningKeyCompromise_ETH.md) |
 
 ---
 

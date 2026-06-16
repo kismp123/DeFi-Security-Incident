@@ -1,8 +1,8 @@
 # 2026 DeFi Security Incidents
 
-Early 2026 saw continued BSC-focused business logic attacks and novel patterns including EIP-7702 exploitation and AMM k-value manipulation.
+Early 2026 saw continued BSC-focused business logic attacks and novel patterns including EIP-7702 exploitation and AMM k-value manipulation. Late May–June 2026 added a cluster of off-chain signing / key-compromise bridge drains (Gravity, Alephium), a governance mint takeover (TOP), an ERC-404/BT404 ghost-ownership underflow (Flooring), a SquidRouterModule confused-deputy drain, and a zk-rollup proof/settlement validation mismatch (Aztec Connect).
 
-**Total incidents: 48**
+**Total incidents: 58**
 
 ---
 
@@ -23,6 +23,13 @@ Early 2026 saw continued BSC-focused business logic attacks and novel patterns i
 | UnverifiedInput ETH | 1 |
 | SameTxLiquidationPricing ETH | 1 |
 | SameTxSpotQuoteRedemption ARB | 1 |
+| PrivateKey / Off-chain Signing | 4 |
+| ProofSettlementMismatch ETH | 1 |
+| BT404 GhostOwnership Underflow | 1 |
+| GovernanceMintTakeover ETH | 1 |
+| LegacyLPMintValidation SOL | 1 |
+| LockerBackdoorWithdraw BSC | 1 |
+| UnverifiedInput ConfusedDeputy | 1 |
 
 ---
 
@@ -78,6 +85,16 @@ Early 2026 saw continued BSC-focused business logic attacks and novel patterns i
 | 2026-05-16 | LendingHookV3 | SameTxLiquidationPricing ETH | [2026-05-16_LendingHookV3_SameTxLiquidationPricing_ETH.md](./2026-05-16_LendingHookV3_SameTxLiquidationPricing_ETH.md) |
 | 2026-05-18 | VerusBridge | SourceAmountValidationBypass ETH | [2026-05-18_VerusBridge_SourceAmountValidationBypass_ETH.md](./2026-05-18_VerusBridge_SourceAmountValidationBypass_ETH.md) |
 | 2026-05-17 | SEA | SameTxSpotQuoteRedemption ARB | [2026-05-17_SEA_SameTxSpotQuoteRedemption_ARB.md](./2026-05-17_SEA_SameTxSpotQuoteRedemption_ARB.md) |
+| 2026-05-21 | Polymarket | TopUpWalletKeyCompromise Polygon | [2026-05-21_Polymarket_TopUpWalletKeyCompromise_Polygon.md](./2026-05-21_Polymarket_TopUpWalletKeyCompromise_Polygon.md) |
+| 2026-05-23 | StablR | MultisigKeyCompromiseMint ETH | [2026-05-23_StablR_MultisigKeyCompromiseMint_ETH.md](./2026-05-23_StablR_MultisigKeyCompromiseMint_ETH.md) |
+| 2026-05-24 | SquidRouterModule | UnverifiedInputConfusedDeputy ETH | [2026-05-24_SquidRouterModule_UnverifiedInputConfusedDeputy_ETH.md](./2026-05-24_SquidRouterModule_UnverifiedInputConfusedDeputy_ETH.md) |
+| 2026-05-26 | DxSale | LockerBackdoorWithdraw BSC | [2026-05-26_DxSale_LockerBackdoorWithdraw_BSC.md](./2026-05-26_DxSale_LockerBackdoorWithdraw_BSC.md) |
+| 2026-05-29 | Alephium | ForgedGuardianVAA ETH | [2026-05-29_Alephium_ForgedGuardianVAA_ETH.md](./2026-05-29_Alephium_ForgedGuardianVAA_ETH.md) |
+| 2026-05-30 | GravityBridge | ValidatorSigningKeyCompromise ETH | [2026-05-30_GravityBridge_ValidatorSigningKeyCompromise_ETH.md](./2026-05-30_GravityBridge_ValidatorSigningKeyCompromise_ETH.md) |
+| 2026-06-07 | FlooringProtocol | BT404GhostOwnershipUnderflow ETH | [2026-06-07_FlooringProtocol_BT404GhostOwnershipUnderflow_ETH.md](./2026-06-07_FlooringProtocol_BT404GhostOwnershipUnderflow_ETH.md) |
+| 2026-06-09 | RaydiumV3 | LegacyLPMintValidation SOL | [2026-06-09_RaydiumV3_LegacyLPMintValidation_SOL.md](./2026-06-09_RaydiumV3_LegacyLPMintValidation_SOL.md) |
+| 2026-06-09 | TOPToken | GovernanceMintTakeover ETH | [2026-06-09_TOPToken_GovernanceMintTakeover_ETH.md](./2026-06-09_TOPToken_GovernanceMintTakeover_ETH.md) |
+| 2026-06-14 | AztecConnect | ProofSettlementCountMismatch ETH | [2026-06-14_AztecConnect_ProofSettlementCountMismatch_ETH.md](./2026-06-14_AztecConnect_ProofSettlementCountMismatch_ETH.md) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 Exploits where attackers supply arbitrary calldata or target addresses to hijack contract execution flow.
 
-**Total incidents: 73**
+**Total incidents: 74**
 
 ---
 
@@ -81,6 +81,7 @@ Exploits where attackers supply arbitrary calldata or target addresses to hijack
 | 2024-09-05 | AIRBTC | CustomSelectorDrain | [2024-09-05_AIRBTC_CustomSelectorDrain.md](../2024/2024-09-05_AIRBTC_CustomSelectorDrain.md) |
 | 2024-09-17 | MARA | EncodedCallExploit | [2024-09-17_MARA_EncodedCallExploit.md](../2024/2024-09-17_MARA_EncodedCallExploit.md) |
 | 2025-07-22 | MulticallWithETH | ValueForwarding | [2025-07-22_MulticallWithETH_ValueForwarding.md](../2025/2025-07-22_MulticallWithETH_ValueForwarding.md) |
+| 2026-05-24 | SquidRouterModule | UnverifiedInput ConfusedDeputy ETH | [2026-05-24_SquidRouterModule_UnverifiedInputConfusedDeputy_ETH.md](../2026/2026-05-24_SquidRouterModule_UnverifiedInputConfusedDeputy_ETH.md) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 Flaws in protocol-specific logic — incorrect accounting, faulty reward math, or broken invariants — that can be exploited for unintended gains.
 
-**Total incidents: 134**
+**Total incidents: 136**
 
 ---
 
@@ -142,6 +142,8 @@ Flaws in protocol-specific logic — incorrect accounting, faulty reward math, o
 | 2025-05-15 | Unwarp | WETHUnwrapExploit | [2025-05-15_Unwarp_WETHUnwrapExploit.md](../2025/2025-05-15_Unwarp_WETHUnwrapExploit.md) |
 | 2024-12-10 | CloberDEX | FakeTokenMint | [2024-12-10_CloberDEX_Reentrancy_Base.md](../2024/2024-12-10_CloberDEX_Reentrancy_Base.md) |
 | 2024-04-09 | Unverified Contract 0x00C409 | Unknown Vulnerability | [2024-04-09_UnverifiedContract0x00C409_UnknownVuln.md](../2024/2024-04-09_UnverifiedContract0x00C409_UnknownVuln.md) |
+| 2026-06-09 | RaydiumV3 | LegacyLPMintValidation SOL | [2026-06-09_RaydiumV3_LegacyLPMintValidation_SOL.md](../2026/2026-06-09_RaydiumV3_LegacyLPMintValidation_SOL.md) |
+| 2026-06-14 | AztecConnect | ProofSettlementCountMismatch ETH | [2026-06-14_AztecConnect_ProofSettlementCountMismatch_ETH.md](../2026/2026-06-14_AztecConnect_ProofSettlementCountMismatch_ETH.md) |
 
 ---
 

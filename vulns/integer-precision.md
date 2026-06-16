@@ -2,7 +2,7 @@
 
 Overflow, underflow, or precision loss bugs that corrupt calculations — often in fixed-point arithmetic, share math, or unit conversions.
 
-**Total incidents: 26**
+**Total incidents: 27**
 
 ---
 
@@ -34,6 +34,7 @@ Overflow, underflow, or precision loss bugs that corrupt calculations — often 
 | 2025-03-25 | MIMSpell | CauldronRounding ARB | [2025-03-25_MIMSpell_CauldronRounding_ARB.md](../2025/2025-03-25_MIMSpell_CauldronRounding_ARB.md) |
 | 2026-03-05 | SolvProtocol | BRO DoubleMint ETH | [2026-03-05_SolvProtocol_BRO_DoubleMint_ETH.md](../2026/2026-03-05_SolvProtocol_BRO_DoubleMint_ETH.md) |
 | 2024-09-14 | PLN | TransferFromZeroAmount | [2024-09-14_PLN_TransferFromZeroAmount.md](../2024/2024-09-14_PLN_TransferFromZeroAmount.md) |
+| 2026-06-07 | FlooringProtocol | BT404 GhostOwnership Underflow ETH | [2026-06-07_FlooringProtocol_BT404GhostOwnershipUnderflow_ETH.md](../2026/2026-06-07_FlooringProtocol_BT404GhostOwnershipUnderflow_ETH.md) |
 
 ---
 

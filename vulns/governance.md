@@ -2,7 +2,7 @@
 
 Attacks manipulating on-chain governance through vote buying, flash-loan governance power, or proposal hijacking.
 
-**Total incidents: 8**
+**Total incidents: 9**
 
 ---
 
@@ -16,6 +16,7 @@ Attacks manipulating on-chain governance through vote buying, flash-loan governa
 | 2024-01-05 | Loot | GovernanceAttack ETH | [2024-01-05_Loot_GovernanceAttack_ETH.md](../2024/2024-01-05_Loot_GovernanceAttack_ETH.md) |
 | 2024-03-23 | CurioEcosystem | GovernanceAttack ETH | [2024-03-23_CurioEcosystem_GovernanceAttack_ETH.md](../2024/2024-03-23_CurioEcosystem_GovernanceAttack_ETH.md) |
 | 2024-03-XX | CGT | GovernanceTakeover | [2024-03-XX_CGT_GovernanceTakeover.md](../2024/2024-03-XX_CGT_GovernanceTakeover.md) |
+| 2026-06-09 | TOPToken | GovernanceMintTakeover ETH | [2026-06-09_TOPToken_GovernanceMintTakeover_ETH.md](../2026/2026-06-09_TOPToken_GovernanceMintTakeover_ETH.md) |
 
 ---
 
